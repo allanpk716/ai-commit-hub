@@ -254,3 +254,13 @@ func (a *App) GetProjectStatus(projectPath string) (map[string]interface{}, erro
 		"has_staged":   status.HasStaged,
 	}, nil
 }
+
+// GenerateCommit generates a commit message using AI
+func (a *App) GenerateCommit(projectPath, provider, language string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+
+	commitService := service.NewCommitService(a.ctx)
+	return commitService.GenerateCommit(projectPath, provider, language)
+}
