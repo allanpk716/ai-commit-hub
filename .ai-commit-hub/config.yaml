@@ -1,0 +1,39 @@
+# AI Commit Hub 配置文件
+
+# 默认 AI Provider
+# 可选值: openai, anthropic, deepseek, ollama
+provider: openai
+
+# 默认语言
+# 可选值: zh (中文), en (English)
+language: zh
+
+# Provider 详细配置
+providers:
+  # OpenAI 配置
+  openai:
+    # 请在下方填写您的 OpenAI API Key
+    apiKey:
+    model: gpt-4
+    baseURL: https://api.openai.com/v1
+
+  # Anthropic (Claude) 配置
+  anthropic:
+    apiKey:
+    model: claude-3-sonnet-20240229
+
+  # DeepSeek 配置
+  deepseek:
+    apiKey:
+    model: deepseek-chat
+
+  # Ollama (本地运行)
+  # ollama:
+  #   baseURL: http://localhost:11434
+  #   model: llama2
+
+# 自定义 Prompt 模板（可选）
+# 将模板文件放在 ~/.config/ai-commit-hub/prompts/ 目录下
+# 支持的占位符: {DIFF}, {LANGUAGE}
+prompts:
+  # commitMessage: my-custom-prompt.txt
