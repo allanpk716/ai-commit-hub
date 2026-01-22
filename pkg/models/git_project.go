@@ -1,0 +1,72 @@
+package models
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/go-git/go-git/v5"
+)
+
+// GitProject represents a git repository project
+type GitProject struct {
+	ID        uint   `gorm:"primaryKey" json:"id"`
+	Path      string `gorm:"not null;uniqueIndex" json:"path"`
+	Name      string `json:"name"`
+	SortOrder int    `gorm:"index" json:"sort_order"`
+}
+
+// TableName specifies the table name for GitProject
+func (GitProject) TableName() string {
+	return "git_projects"
+}
+
+// Validate checks if the project is valid
+func (gp *GitProject) Validate() error {
+	if gp.Path == "" {
+		return fmt.Errorf("项目路径不能为空")
+	}
+
+	// Check if path exists
+	if _, err := os.Stat(gp.Path); os.IsNotExist(err) {
+		return fmt.Errorf("路径不存在: %s", gp.Path)
+	}
+
+	// Check if it's a git repository
+	if _, err := git.PlainOpen(gp.Path); err != nil {
+		return fmt.Errorf("不是有效的 git 仓库: %s", gp.Path)
+	}
+
+	return nil
+}
+
+// DetectName attempts to detect the project name from path or git config
+func (gp *GitProject) DetectName() (string, error) {
+	// Try folder name first
+	folderName := filepath.Base(gp.Path)
+	if folderName != "" && folderName != "." && folderName != "/" {
+		return folderName, nil
+	}
+
+	// Try git config
+	repo, err := git.PlainOpen(gp.Path)
+	if err != nil {
+		return "", fmt.Errorf("无法打开 git 仓库: %w", err)
+	}
+
+	cfg, err := repo.Config()
+	if err != nil {
+		return folderName, nil // fallback to folder name
+	}
+
+	// Try to get name from remote URL or use folder name
+	if len(cfg.Remotes) > 0 {
+		for _, remote := range cfg.Remotes {
+			if len(remote.URLs) > 0 && remote.URLs[0] != "" {
+				return folderName, nil // Use folder name for clarity
+			}
+		}
+	}
+
+	return folderName, nil
+}
