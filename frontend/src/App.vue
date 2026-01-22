@@ -9,38 +9,23 @@
     </div>
 
     <div class="content">
-      <div class="project-list">
-        <h2>项目列表</h2>
-        <div v-if="projectStore.loading">加载中...</div>
-        <div v-else-if="projectStore.error" class="error">
-          {{ projectStore.error }}
-        </div>
-        <div v-else-if="projectStore.projects.length === 0" class="empty">
-          暂无项目，请添加项目
-        </div>
-        <div v-else class="projects">
-          <div
-            v-for="project in projectStore.projects"
-            :key="project.id"
-            class="project-item"
-          >
-            <span class="project-name">{{ project.name }}</span>
-            <span class="project-path">{{ project.path }}</span>
-            <button @click="handleDelete(project)" class="delete-btn">✕</button>
-          </div>
-        </div>
-      </div>
+      <ProjectList
+        :selected-id="selectedProjectId"
+        @select="handleSelectProject"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useProjectStore } from './stores/projectStore'
 import { OpenConfigFolder, SelectProjectFolder } from '../wailsjs/go/main/App'
+import ProjectList from './components/ProjectList.vue'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
+const selectedProjectId = ref<number>()
 
 onMounted(() => {
   projectStore.loadProjects()
@@ -59,15 +44,9 @@ async function openAddProject() {
   }
 }
 
-async function handleDelete(project: GitProject) {
-  if (confirm(`确定要删除项目 "${project.name}" 吗?`)) {
-    try {
-      await projectStore.deleteProject(project.id)
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '未知错误'
-      alert('删除失败: ' + message)
-    }
-  }
+function handleSelectProject(project: GitProject) {
+  selectedProjectId.value = project.id
+  console.log('Selected project:', project)
 }
 
 async function openConfigFolder() {
@@ -119,54 +98,6 @@ async function openConfigFolder() {
 
 .content {
   flex: 1;
-  padding: 20px;
-  overflow: auto;
-}
-
-.project-list h2 {
-  margin-top: 0;
-}
-
-.project-item {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  margin-bottom: 8px;
-}
-
-.project-name {
-  font-weight: bold;
-  margin-right: 10px;
-}
-
-.project-path {
-  flex: 1;
-  color: #666;
-  font-size: 14px;
-}
-
-.delete-btn {
-  padding: 4px 8px;
-  border: 1px solid #ff4444;
-  color: #ff4444;
-  background: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.delete-btn:hover {
-  background: #fff5f5;
-}
-
-.error {
-  color: #ff4444;
-}
-
-.empty {
-  color: #999;
-  text-align: center;
-  padding: 40px;
+  overflow: hidden;
 }
 </style>

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { GitProject } from '../types'
-import { GetAllProjects, AddProject, DeleteProject } from '../../wailsjs/go/main/App'
+import { GetAllProjects, AddProject, DeleteProject, MoveProject, ReorderProjects } from '../../wailsjs/go/main/App'
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<GitProject[]>([])
@@ -54,12 +54,44 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  async function moveProject(id: number, direction: 'up' | 'down') {
+    loading.value = true
+    error.value = null
+    try {
+      await MoveProject(id, direction)
+      await loadProjects()
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '移动项目失败'
+      error.value = message
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function reorderProjects(updatedProjects: GitProject[]) {
+    loading.value = true
+    error.value = null
+    try {
+      await ReorderProjects(updatedProjects)
+      await loadProjects()
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '重新排序失败'
+      error.value = message
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     projects,
     loading,
     error,
     loadProjects,
     addProject,
-    deleteProject
+    deleteProject,
+    moveProject,
+    reorderProjects
   }
 })

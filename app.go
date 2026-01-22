@@ -163,3 +163,67 @@ func (a *App) SelectProjectFolder() (string, error) {
 	}
 	return selectedFile, nil
 }
+
+// MoveProject moves a project up or down
+func (a *App) MoveProject(id uint, direction string) error {
+	if a.initError != nil {
+		return fmt.Errorf("app not initialized: %w", a.initError)
+	}
+
+	projects, err := a.gitProjectRepo.GetAll()
+	if err != nil {
+		return fmt.Errorf("获取项目列表失败: %w", err)
+	}
+
+	// Find current project index
+	var currentIndex int = -1
+	for i, p := range projects {
+		if p.ID == id {
+			currentIndex = i
+			break
+		}
+	}
+
+	if currentIndex == -1 {
+		return fmt.Errorf("项目不存在")
+	}
+
+	// Calculate new index
+	newIndex := currentIndex
+	if direction == "up" && currentIndex > 0 {
+		newIndex = currentIndex - 1
+	} else if direction == "down" && currentIndex < len(projects)-1 {
+		newIndex = currentIndex + 1
+	} else {
+		return nil // No change needed
+	}
+
+	// Swap sort orders
+	projects[currentIndex].SortOrder, projects[newIndex].SortOrder =
+		projects[newIndex].SortOrder, projects[currentIndex].SortOrder
+
+	// Save both projects
+	if err := a.gitProjectRepo.Update(&projects[currentIndex]); err != nil {
+		return fmt.Errorf("更新项目失败: %w", err)
+	}
+	if err := a.gitProjectRepo.Update(&projects[newIndex]); err != nil {
+		return fmt.Errorf("更新项目失败: %w", err)
+	}
+
+	return nil
+}
+
+// ReorderProjects reorders projects based on new order
+func (a *App) ReorderProjects(projects []models.GitProject) error {
+	if a.initError != nil {
+		return fmt.Errorf("app not initialized: %w", a.initError)
+	}
+
+	for i, project := range projects {
+		project.SortOrder = i
+		if err := a.gitProjectRepo.Update(&project); err != nil {
+			return fmt.Errorf("更新项目排序失败: %w", err)
+		}
+	}
+	return nil
+}
