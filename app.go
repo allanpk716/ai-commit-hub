@@ -7,12 +7,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/allanpk716/ai-commit-hub/pkg/models"
+	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 )
 
 // App struct
 type App struct {
-	ctx     context.Context
-	dbPath  string
+	ctx            context.Context
+	dbPath         string
+	gitProjectRepo *repository.GitProjectRepository
 }
 
 // NewApp creates a new App application struct
@@ -26,7 +30,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	fmt.Println("AI Commit Hub starting up...")
 
-	// Set database path
+	// Initialize database
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Println("Failed to get home directory:", err)
@@ -40,7 +44,18 @@ func (a *App) startup(ctx context.Context) {
 	}
 
 	a.dbPath = filepath.Join(configDir, "ai-commit-hub.db")
-	fmt.Println("Database path:", a.dbPath)
+
+	// Initialize database
+	dbConfig := &repository.DatabaseConfig{Path: a.dbPath}
+	if err := repository.InitializeDatabase(dbConfig); err != nil {
+		fmt.Println("Failed to initialize database:", err)
+		return
+	}
+
+	// Initialize repositories
+	a.gitProjectRepo = repository.NewGitProjectRepository()
+
+	fmt.Println("AI Commit Hub initialized successfully")
 }
 
 // shutdown is called when the app is closing
@@ -73,4 +88,51 @@ func (a *App) OpenConfigFolder() error {
 	}
 
 	return cmd.Start()
+}
+
+// GetAllProjects retrieves all projects
+func (a *App) GetAllProjects() ([]models.GitProject, error) {
+	projects, err := a.gitProjectRepo.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get projects: %w", err)
+	}
+	return projects, nil
+}
+
+// AddProject adds a new project
+func (a *App) AddProject(path string) (models.GitProject, error) {
+	// Validate path
+	project := &models.GitProject{Path: path}
+	if err := project.Validate(); err != nil {
+		return models.GitProject{}, fmt.Errorf("项目验证失败: %w", err)
+	}
+
+	// Detect name
+	name, err := project.DetectName()
+	if err != nil {
+		return models.GitProject{}, fmt.Errorf("无法检测项目名称: %w", err)
+	}
+	project.Name = name
+
+	// Get next sort order
+	maxOrder, err := a.gitProjectRepo.GetMaxSortOrder()
+	if err != nil {
+		return models.GitProject{}, fmt.Errorf("无法获取排序: %w", err)
+	}
+	project.SortOrder = maxOrder + 1
+
+	// Save to database
+	if err := a.gitProjectRepo.Create(project); err != nil {
+		return models.GitProject{}, fmt.Errorf("保存项目失败: %w", err)
+	}
+
+	return *project, nil
+}
+
+// DeleteProject deletes a project
+func (a *App) DeleteProject(id uint) error {
+	if err := a.gitProjectRepo.Delete(id); err != nil {
+		return fmt.Errorf("删除项目失败: %w", err)
+	}
+	return nil
 }

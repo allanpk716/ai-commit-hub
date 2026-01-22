@@ -2,7 +2,12 @@ module github.com/allanpk716/ai-commit-hub
 
 go 1.23.4
 
-require github.com/wailsapp/wails/v2 v2.11.0
+require (
+	github.com/go-git/go-git/v5 v5.16.4
+	github.com/wailsapp/wails/v2 v2.11.0
+	gorm.io/driver/sqlite v1.6.0
+	gorm.io/gorm v1.31.1
+)
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
@@ -14,7 +19,6 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
-	github.com/go-git/go-git/v5 v5.16.4 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
@@ -52,6 +56,4 @@ require (
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	gorm.io/driver/sqlite v1.6.0 // indirect
-	gorm.io/gorm v1.31.1 // indirect
 )
