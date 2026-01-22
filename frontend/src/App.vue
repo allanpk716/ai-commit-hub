@@ -49,13 +49,13 @@ onMounted(() => {
 async function openAddProject() {
   try {
     const path = await SelectProjectFolder()
-    if (path) {
+    if (path) {  // Empty string means user canceled
       await projectStore.addProject(path)
+      alert('项目添加成功!')
     }
-  } catch (e: any) {
-    if (e.message !== 'cancel') {
-      alert('添加项目失败: ' + e.message)
-    }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '未知错误'
+    alert('添加项目失败: ' + message)
   }
 }
 

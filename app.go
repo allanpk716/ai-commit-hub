@@ -156,8 +156,10 @@ func (a *App) SelectProjectFolder() (string, error) {
 		Title: "选择 Git 仓库",
 	})
 	if err != nil {
-		return "", fmt.Errorf("取消选择: %w", err)
+		return "", fmt.Errorf("打开文件夹选择对话框失败: %w", err)
 	}
-
+	if selectedFile == "" {
+		return "", nil // User canceled - return empty string with no error
+	}
 	return selectedFile, nil
 }
