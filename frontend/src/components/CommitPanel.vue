@@ -79,6 +79,7 @@
 
 <script setup lang="ts">
 import { useCommitStore } from '../stores/commitStore'
+import { CommitLocally } from '../../wailsjs/go/main/App'
 
 const commitStore = useCommitStore()
 
@@ -93,8 +94,30 @@ async function handleCopy() {
 }
 
 async function handleCommit() {
-  // TODO: Implement in next task
-  alert('提交功能将在下一步实现')
+  if (!commitStore.selectedProjectPath) {
+    alert('请先选择项目')
+    return
+  }
+
+  const message = commitStore.streamingMessage || commitStore.generatedMessage
+  if (!message) {
+    alert('请先生成 commit 消息')
+    return
+  }
+
+  try {
+    await CommitLocally(commitStore.selectedProjectPath, message)
+    alert('提交成功!')
+
+    // Reload project status
+    await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
+
+    // Clear message
+    commitStore.clearMessage()
+  } catch (e: unknown) {
+    const errMessage = e instanceof Error ? e.message : '提交失败'
+    alert('提交失败: ' + errMessage)
+  }
 }
 
 async function handleRegenerate() {

@@ -264,3 +264,32 @@ func (a *App) GenerateCommit(projectPath, provider, language string) error {
 	commitService := service.NewCommitService(a.ctx)
 	return commitService.GenerateCommit(projectPath, provider, language)
 }
+
+// CommitLocally commits changes to local git repository
+func (a *App) CommitLocally(projectPath, message string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+
+	if message == "" {
+		return fmt.Errorf("commit 消息不能为空")
+	}
+
+	// Save current directory and change to project path
+	originalDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	if err := os.Chdir(projectPath); err != nil {
+		return fmt.Errorf("failed to change directory: %w", err)
+	}
+	defer os.Chdir(originalDir)
+
+	// Use the existing CommitChanges function from git package
+	if err := git.CommitChanges(context.Background(), message); err != nil {
+		return err
+	}
+
+	return nil
+}
