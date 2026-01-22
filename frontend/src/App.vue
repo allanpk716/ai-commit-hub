@@ -13,6 +13,7 @@
         :selected-id="selectedProjectId"
         @select="handleSelectProject"
       />
+      <CommitPanel v-if="selectedProjectId" />
     </div>
   </div>
 </template>
@@ -20,11 +21,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useProjectStore } from './stores/projectStore'
+import { useCommitStore } from './stores/commitStore'
 import { OpenConfigFolder, SelectProjectFolder } from '../wailsjs/go/main/App'
 import ProjectList from './components/ProjectList.vue'
+import CommitPanel from './components/CommitPanel.vue'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
+const commitStore = useCommitStore()
 const selectedProjectId = ref<number>()
 
 onMounted(() => {
@@ -46,7 +50,8 @@ async function openAddProject() {
 
 function handleSelectProject(project: GitProject) {
   selectedProjectId.value = project.id
-  console.log('Selected project:', project)
+  // Load project status for commit panel
+  commitStore.loadProjectStatus(project.path)
 }
 
 async function openConfigFolder() {
@@ -97,7 +102,8 @@ async function openConfigFolder() {
 }
 
 .content {
-  flex: 1;
-  overflow: hidden;
+  display: flex;
+  gap: 20px;
+  height: calc(100vh - 70px);
 }
 </style>
