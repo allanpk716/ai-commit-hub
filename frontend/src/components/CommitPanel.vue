@@ -44,7 +44,7 @@
           <label>语言:</label>
           <select v-model="commitStore.language">
             <option value="zh">中文</option>
-            <option value="english">English</option>
+            <option value="en">English</option>
           </select>
         </div>
       </div>
@@ -61,6 +61,11 @@
     <div class="section" v-if="commitStore.streamingMessage || commitStore.generatedMessage">
       <h3>生成结果</h3>
       <div class="message-area">
+        <!-- Loading state with spinner -->
+        <div v-if="commitStore.isGenerating" class="loading-indicator">
+          <span class="spinner"></span>
+          AI 正在生成...
+        </div>
         <pre class="message-content">{{ commitStore.streamingMessage || commitStore.generatedMessage }}</pre>
       </div>
       <div class="actions">
@@ -70,18 +75,80 @@
       </div>
     </div>
 
-    <!-- Error -->
+    <!-- History Section -->
+    <div class="section" v-if="history.length > 0">
+      <h3>历史记录</h3>
+      <div class="history-list">
+        <div
+          v-for="item in history"
+          :key="item.id"
+          class="history-item"
+          @click="loadHistory(item)"
+        >
+          <div class="history-meta">
+            <span class="history-provider">{{ item.provider }}</span>
+            <span class="history-time">{{ formatTime(item.created_at) }}</span>
+          </div>
+          <div class="history-message">{{ item.message.substring(0, 100) }}{{ item.message.length > 100 ? '...' : '' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error (dismissible) -->
     <div class="section error" v-if="commitStore.error">
-      {{ commitStore.error }}
+      <div class="error-content">
+        <span class="error-message">{{ commitStore.error }}</span>
+        <button @click="commitStore.error = null" class="error-dismiss">×</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
-import { CommitLocally } from '../../wailsjs/go/main/App'
+import { useProjectStore } from '../stores/projectStore'
+import { GetProjectHistory, SaveCommitHistory, CommitLocally } from '../../wailsjs/go/main/App'
 
 const commitStore = useCommitStore()
+const projectStore = useProjectStore()
+const history = ref<any[]>([])
+
+// Load history when project changes
+watch(() => commitStore.selectedProjectPath, async (path) => {
+  if (path) {
+    await loadHistoryForProject()
+  }
+})
+
+async function loadHistoryForProject() {
+  // Find current project by path to get ID
+  const project = projectStore.projects.find(p => p.path === commitStore.selectedProjectPath)
+  if (!project) return
+
+  try {
+    const result = await GetProjectHistory(project.id)
+    history.value = result || []
+  } catch (e) {
+    console.error('Failed to load history:', e)
+  }
+}
+
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
+  return date.toLocaleDateString()
+}
+
+function loadHistory(item: any) {
+  commitStore.generatedMessage = item.message
+  commitStore.streamingMessage = item.message
+}
 
 async function handleGenerate() {
   await commitStore.generateCommit()
@@ -107,10 +174,18 @@ async function handleCommit() {
 
   try {
     await CommitLocally(commitStore.selectedProjectPath, message)
+
+    // Save to history
+    const project = projectStore.projects.find(p => p.path === commitStore.selectedProjectPath)
+    if (project) {
+      await SaveCommitHistory(project.id, message, commitStore.provider, commitStore.language)
+    }
+
     alert('提交成功!')
 
-    // Reload project status
+    // Reload project status and history
     await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
+    await loadHistoryForProject()
 
     // Clear message
     commitStore.clearMessage()
@@ -216,6 +291,29 @@ async function handleRegenerate() {
   overflow-y: auto;
 }
 
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  color: #2196f3;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #2196f3;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .message-content {
   margin: 0;
   white-space: pre-wrap;
@@ -262,9 +360,84 @@ async function handleRegenerate() {
   background: #5a6268;
 }
 
+.history-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.history-item {
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.history-item:hover {
+  background: #f5f5f5;
+}
+
+.history-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.history-provider {
+  padding: 2px 6px;
+  background: #e3f2fd;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.history-time {
+  color: #888;
+}
+
+.history-message {
+  font-size: 13px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .error {
   background: #f8d7da;
   color: #842029;
   border: 1px solid #f5c2c7;
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.error-message {
+  flex: 1;
+}
+
+.error-dismiss {
+  background: none;
+  border: none;
+  color: #842029;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-dismiss:hover {
+  background: rgba(0,0,0,0.1);
+  border-radius: 4px;
 }
 </style>
