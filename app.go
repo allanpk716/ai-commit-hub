@@ -10,6 +10,7 @@ import (
 
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
+	"github.com/allanpk716/ai-commit-hub/pkg/service"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gorm.io/gorm"
 )
@@ -19,6 +20,7 @@ type App struct {
 	ctx            context.Context
 	dbPath         string
 	gitProjectRepo *repository.GitProjectRepository
+	configService  *service.ConfigService
 	initError      error
 }
 
@@ -58,6 +60,9 @@ func (a *App) startup(ctx context.Context) {
 
 	// Initialize repositories (only if database init succeeded)
 	a.gitProjectRepo = repository.NewGitProjectRepository()
+
+	// Initialize config service
+	a.configService = service.NewConfigService()
 
 	fmt.Println("AI Commit Hub initialized successfully")
 }

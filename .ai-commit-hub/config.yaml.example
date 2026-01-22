@@ -1,0 +1,46 @@
+# AI Commit Hub Configuration File
+# Copy this file to config.yaml and customize with your settings
+
+# Default AI provider to use
+provider: openai
+
+# Output language for commit messages (zh, en, etc.)
+language: zh
+
+# Provider-specific settings
+providers:
+  openai:
+    apiKey: your-openai-api-key-here
+    model: gpt-4
+    baseURL: https://api.openai.com/v1
+    maxTokens: 1000
+
+  anthropic:
+    apiKey: your-anthropic-api-key-here
+    model: claude-3-opus-20240229
+    baseURL: https://api.anthropic.com
+    maxTokens: 1000
+
+  deepseek:
+    apiKey: your-deepseek-api-key-here
+    model: deepseek-chat
+    baseURL: https://api.deepseek.com
+    maxTokens: 1000
+
+  ollama:
+    model: llama2
+    baseURL: http://localhost:11434
+    maxTokens: 1000
+
+# Custom prompt template (optional)
+# You can also use promptFile to load from prompts/ directory
+prompt: |
+  Analyze the following git diff and generate a concise commit message.
+  The message should:
+  - Start with a type (feat, fix, docs, style, refactor, test, chore)
+  - Be written in {{.Language}}
+  - Follow conventional commit format
+  - Be descriptive but concise
+
+# Path to custom prompt file (optional, relative to config directory)
+# promptFile: custom-commit.txt
