@@ -18,11 +18,12 @@ import (
 
 // App struct
 type App struct {
-	ctx            context.Context
-	dbPath         string
-	gitProjectRepo *repository.GitProjectRepository
-	configService  *service.ConfigService
-	initError      error
+	ctx                context.Context
+	dbPath             string
+	gitProjectRepo     *repository.GitProjectRepository
+	commitHistoryRepo  *repository.CommitHistoryRepository
+	configService      *service.ConfigService
+	initError          error
 }
 
 // NewApp creates a new App application struct
@@ -61,6 +62,7 @@ func (a *App) startup(ctx context.Context) {
 
 	// Initialize repositories (only if database init succeeded)
 	a.gitProjectRepo = repository.NewGitProjectRepository()
+	a.commitHistoryRepo = repository.NewCommitHistoryRepository()
 
 	// Initialize config service
 	a.configService = service.NewConfigService()
@@ -292,4 +294,36 @@ func (a *App) CommitLocally(projectPath, message string) error {
 	}
 
 	return nil
+}
+
+// SaveCommitHistory saves a generated commit message to history
+func (a *App) SaveCommitHistory(projectID uint, message, provider, language string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+
+	history := &models.CommitHistory{
+		ProjectID: projectID,
+		Message:   message,
+		Provider:  provider,
+		Language:  language,
+	}
+
+	if err := a.commitHistoryRepo.Create(history); err != nil {
+		return fmt.Errorf("保存历史记录失败: %w", err)
+	}
+	return nil
+}
+
+// GetProjectHistory retrieves commit history for a project
+func (a *App) GetProjectHistory(projectID uint) ([]models.CommitHistory, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+
+	histories, err := a.commitHistoryRepo.GetByProjectID(projectID, 10)
+	if err != nil {
+		return nil, fmt.Errorf("获取历史记录失败: %w", err)
+	}
+	return histories, nil
 }

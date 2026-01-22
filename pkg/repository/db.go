@@ -54,7 +54,7 @@ func InitializeDatabase(config *DatabaseConfig) error {
 		}
 
 		// Auto migrate schemas
-		if err := db.AutoMigrate(&models.GitProject{}); err != nil {
+		if err := db.AutoMigrate(&models.GitProject{}, &models.CommitHistory{}); err != nil {
 			initErr = fmt.Errorf("failed to migrate database: %w", err)
 			return
 		}

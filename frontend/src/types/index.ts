@@ -25,3 +25,13 @@ export interface ProjectStatus {
   staged_files: StagedFile[]
   has_staged: boolean
 }
+
+export interface CommitHistory {
+  id: number
+  project_id: number
+  message: string
+  provider: string
+  language: string
+  created_at: string
+  project?: GitProject
+}

@@ -97,3 +97,10 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	runtime.EventsEmit(s.ctx, "commit-complete", msg)
 	return nil
 }
+
+// SaveHistory is a placeholder for history saving functionality
+// History saving is handled at the App layer via SaveCommitHistory API
+func (s *CommitService) SaveHistory(projectID uint, message, provider, language string) error {
+	// Placeholder - actual history saving happens via App.SaveCommitHistory
+	return nil
+}
