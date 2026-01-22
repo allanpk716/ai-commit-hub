@@ -11,6 +11,7 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"gorm.io/gorm"
 )
 
 // App struct
@@ -202,15 +203,17 @@ func (a *App) MoveProject(id uint, direction string) error {
 	projects[currentIndex].SortOrder, projects[newIndex].SortOrder =
 		projects[newIndex].SortOrder, projects[currentIndex].SortOrder
 
-	// Save both projects
-	if err := a.gitProjectRepo.Update(&projects[currentIndex]); err != nil {
-		return fmt.Errorf("更新项目失败: %w", err)
-	}
-	if err := a.gitProjectRepo.Update(&projects[newIndex]); err != nil {
-		return fmt.Errorf("更新项目失败: %w", err)
-	}
-
-	return nil
+	// Update both projects in a transaction
+	db := repository.GetDB()
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(&projects[currentIndex]).Error; err != nil {
+			return fmt.Errorf("更新项目失败: %w", err)
+		}
+		if err := tx.Save(&projects[newIndex]).Error; err != nil {
+			return fmt.Errorf("更新项目失败: %w", err)
+		}
+		return nil
+	})
 }
 
 // ReorderProjects reorders projects based on new order
@@ -219,9 +222,9 @@ func (a *App) ReorderProjects(projects []models.GitProject) error {
 		return fmt.Errorf("app not initialized: %w", a.initError)
 	}
 
-	for i, project := range projects {
-		project.SortOrder = i
-		if err := a.gitProjectRepo.Update(&project); err != nil {
+	for i := range projects {
+		projects[i].SortOrder = i
+		if err := a.gitProjectRepo.Update(&projects[i]); err != nil {
 			return fmt.Errorf("更新项目排序失败: %w", err)
 		}
 	}

@@ -21,7 +21,7 @@
         :key="project.id"
         class="project-item"
         :class="{ selected: selectedId === project.id }"
-        draggable="true"
+        :draggable="!searchQuery"
         @dragstart="handleDragStart(project, index, $event)"
         @dragover.prevent="handleDragOver"
         @drop="handleDrop(project, index)"
@@ -117,6 +117,11 @@ async function handleDelete(project: GitProject) {
 }
 
 function handleDragStart(project: GitProject, index: number, event: DragEvent) {
+  if (searchQuery.value) {
+    event.preventDefault()
+    alert('搜索时无法拖拽排序')
+    return
+  }
   draggedItem.value = { project, index }
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
