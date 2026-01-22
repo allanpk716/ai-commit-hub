@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set PYTHONIOENCODING=utf-8&& python \"C:\\WorkSpace\\Go2Hell\\src\\github.com\\allanpk716\\ai-commit-hub\\.claude\\hooks\\pushover-hook\\pushover-notify.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set PYTHONIOENCODING=utf-8&& python \"C:\\WorkSpace\\Go2Hell\\src\\github.com\\allanpk716\\ai-commit-hub\\.claude\\hooks\\pushover-hook\\pushover-notify.py\""
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt|idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set PYTHONIOENCODING=utf-8&& python \"C:\\WorkSpace\\Go2Hell\\src\\github.com\\allanpk716\\ai-commit-hub\\.claude\\hooks\\pushover-hook\\pushover-notify.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
