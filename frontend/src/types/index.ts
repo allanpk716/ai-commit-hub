@@ -14,3 +14,14 @@ export interface ProjectInfo {
   path: string
   name: string
 }
+
+export interface StagedFile {
+  path: string
+  status: string // 'Modified' | 'New' | 'Deleted' | 'Renamed'
+}
+
+export interface ProjectStatus {
+  branch: string
+  staged_files: StagedFile[]
+  has_staged: boolean
+}

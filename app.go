@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
@@ -234,4 +235,22 @@ func (a *App) ReorderProjects(projects []models.GitProject) error {
 		}
 	}
 	return nil
+}
+
+// GetProjectStatus retrieves the git status of a project
+func (a *App) GetProjectStatus(projectPath string) (map[string]interface{}, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+
+	status, err := git.GetProjectStatus(context.Background(), projectPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"branch":       status.Branch,
+		"staged_files": status.StagedFiles,
+		"has_staged":   status.HasStaged,
+	}, nil
 }
