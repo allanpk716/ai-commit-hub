@@ -109,17 +109,23 @@ import { ref, watch } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { GetProjectHistory, SaveCommitHistory, CommitLocally } from '../../wailsjs/go/main/App'
+import type { CommitHistory } from '../types'
 
 const commitStore = useCommitStore()
 const projectStore = useProjectStore()
-const history = ref<any[]>([])
+const history = ref<CommitHistory[]>([])
+
+// Time constants for relative time formatting
+const MINUTE = 60 * 1000
+const HOUR = 60 * MINUTE
+const DAY = 24 * HOUR
 
 // Load history when project changes
 watch(() => commitStore.selectedProjectPath, async (path) => {
   if (path) {
     await loadHistoryForProject()
   }
-})
+}, { immediate: true })
 
 async function loadHistoryForProject() {
   // Find current project by path to get ID
@@ -139,15 +145,14 @@ function formatTime(dateStr: string): string {
   const now = new Date()
   const diff = now.getTime() - date.getTime()
 
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
+  if (diff < MINUTE) return '刚刚'
+  if (diff < HOUR) return `${Math.floor(diff / MINUTE)} 分钟前`
+  if (diff < DAY) return `${Math.floor(diff / HOUR)} 小时前`
   return date.toLocaleDateString()
 }
 
-function loadHistory(item: any) {
+function loadHistory(item: CommitHistory) {
   commitStore.generatedMessage = item.message
-  commitStore.streamingMessage = item.message
 }
 
 async function handleGenerate() {
