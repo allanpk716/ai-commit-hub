@@ -10,6 +10,7 @@ import (
 
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -147,4 +148,16 @@ func (a *App) DeleteProject(id uint) error {
 		return fmt.Errorf("删除项目失败: %w", err)
 	}
 	return nil
+}
+
+// SelectProjectFolder opens a folder selection dialog
+func (a *App) SelectProjectFolder() (string, error) {
+	selectedFile, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "选择 Git 仓库",
+	})
+	if err != nil {
+		return "", fmt.Errorf("取消选择: %w", err)
+	}
+
+	return selectedFile, nil
 }

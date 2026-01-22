@@ -37,7 +37,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useProjectStore } from './stores/projectStore'
-import { OpenConfigFolder } from '../wailsjs/go/main/App'
+import { OpenConfigFolder, SelectProjectFolder } from '../wailsjs/go/main/App'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
@@ -47,15 +47,14 @@ onMounted(() => {
 })
 
 async function openAddProject() {
-  // TODO: Open file dialog to select project path
-  const path = prompt('请输入 Git 仓库路径:')
-  if (path) {
-    try {
+  try {
+    const path = await SelectProjectFolder()
+    if (path) {
       await projectStore.addProject(path)
-      alert('项目添加成功!')
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '未知错误'
-      alert('添加失败: ' + message)
+    }
+  } catch (e: any) {
+    if (e.message !== 'cancel') {
+      alert('添加项目失败: ' + e.message)
     }
   }
 }
