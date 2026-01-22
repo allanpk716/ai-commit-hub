@@ -38,6 +38,7 @@
 import { onMounted } from 'vue'
 import { useProjectStore } from './stores/projectStore'
 import { OpenConfigFolder } from '../wailsjs/go/main/App'
+import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
 
@@ -52,18 +53,20 @@ async function openAddProject() {
     try {
       await projectStore.addProject(path)
       alert('项目添加成功!')
-    } catch (e: any) {
-      alert('添加失败: ' + e.message)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      alert('添加失败: ' + message)
     }
   }
 }
 
-async function handleDelete(project: any) {
+async function handleDelete(project: GitProject) {
   if (confirm(`确定要删除项目 "${project.name}" 吗?`)) {
     try {
       await projectStore.deleteProject(project.id)
-    } catch (e: any) {
-      alert('删除失败: ' + e.message)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      alert('删除失败: ' + message)
     }
   }
 }
@@ -71,8 +74,9 @@ async function handleDelete(project: any) {
 async function openConfigFolder() {
   try {
     await OpenConfigFolder()
-  } catch (e: any) {
-    alert('打开配置文件夹失败: ' + e.message)
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '未知错误'
+    alert('打开配置文件夹失败: ' + message)
   }
 }
 </script>

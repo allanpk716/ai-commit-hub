@@ -17,6 +17,7 @@ type App struct {
 	ctx            context.Context
 	dbPath         string
 	gitProjectRepo *repository.GitProjectRepository
+	initError      error
 }
 
 // NewApp creates a new App application struct
@@ -48,11 +49,12 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize database
 	dbConfig := &repository.DatabaseConfig{Path: a.dbPath}
 	if err := repository.InitializeDatabase(dbConfig); err != nil {
+		a.initError = fmt.Errorf("database initialization failed: %w", err)
 		fmt.Println("Failed to initialize database:", err)
 		return
 	}
 
-	// Initialize repositories
+	// Initialize repositories (only if database init succeeded)
 	a.gitProjectRepo = repository.NewGitProjectRepository()
 
 	fmt.Println("AI Commit Hub initialized successfully")
@@ -92,6 +94,9 @@ func (a *App) OpenConfigFolder() error {
 
 // GetAllProjects retrieves all projects
 func (a *App) GetAllProjects() ([]models.GitProject, error) {
+	if a.initError != nil {
+		return nil, fmt.Errorf("app not initialized: %w", a.initError)
+	}
 	projects, err := a.gitProjectRepo.GetAll()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get projects: %w", err)
@@ -101,6 +106,10 @@ func (a *App) GetAllProjects() ([]models.GitProject, error) {
 
 // AddProject adds a new project
 func (a *App) AddProject(path string) (models.GitProject, error) {
+	if a.initError != nil {
+		return models.GitProject{}, fmt.Errorf("app not initialized: %w", a.initError)
+	}
+
 	// Validate path
 	project := &models.GitProject{Path: path}
 	if err := project.Validate(); err != nil {
@@ -131,6 +140,9 @@ func (a *App) AddProject(path string) (models.GitProject, error) {
 
 // DeleteProject deletes a project
 func (a *App) DeleteProject(id uint) error {
+	if a.initError != nil {
+		return fmt.Errorf("app not initialized: %w", a.initError)
+	}
 	if err := a.gitProjectRepo.Delete(id); err != nil {
 		return fmt.Errorf("删除项目失败: %w", err)
 	}

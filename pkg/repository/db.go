@@ -67,6 +67,9 @@ func InitializeDatabase(config *DatabaseConfig) error {
 
 // GetDB returns the database instance
 func GetDB() *gorm.DB {
+	if db == nil {
+		panic("database not initialized. Call InitializeDatabase() first")
+	}
 	return db
 }
 

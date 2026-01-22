@@ -14,8 +14,9 @@ export const useProjectStore = defineStore('project', () => {
     try {
       const result = await GetAllProjects()
       projects.value = result
-    } catch (e: any) {
-      error.value = e.message || '加载项目失败'
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '加载项目失败'
+      error.value = message
       console.error('Failed to load projects:', e)
     } finally {
       loading.value = false
@@ -29,8 +30,9 @@ export const useProjectStore = defineStore('project', () => {
       const result = await AddProject(path)
       projects.value.push(result)
       return result
-    } catch (e: any) {
-      error.value = e.message || '添加项目失败'
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '添加项目失败'
+      error.value = message
       throw e
     } finally {
       loading.value = false
@@ -43,8 +45,9 @@ export const useProjectStore = defineStore('project', () => {
     try {
       await DeleteProject(id)
       projects.value = projects.value.filter(p => p.id !== id)
-    } catch (e: any) {
-      error.value = e.message || '删除项目失败'
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '删除项目失败'
+      error.value = message
       throw e
     } finally {
       loading.value = false
