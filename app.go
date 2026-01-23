@@ -18,12 +18,13 @@ import (
 
 // App struct
 type App struct {
-	ctx                context.Context
-	dbPath             string
-	gitProjectRepo     *repository.GitProjectRepository
-	commitHistoryRepo  *repository.CommitHistoryRepository
-	configService      *service.ConfigService
-	initError          error
+	ctx                  context.Context
+	dbPath               string
+	gitProjectRepo       *repository.GitProjectRepository
+	commitHistoryRepo    *repository.CommitHistoryRepository
+	configService        *service.ConfigService
+	projectConfigService *service.ProjectConfigService
+	initError            error
 }
 
 // NewApp creates a new App application struct
@@ -70,6 +71,10 @@ func (a *App) startup(ctx context.Context) {
 		fmt.Println("Failed to initialize config:", err)
 		// Continue anyway - config will be created when needed
 	}
+
+	// Initialize project config service
+	cfg, _ := a.configService.LoadConfig(ctx)
+	a.projectConfigService = service.NewProjectConfigService(a.gitProjectRepo, cfg)
 
 	fmt.Println("AI Commit Hub initialized successfully")
 }
@@ -330,4 +335,89 @@ func (a *App) GetProjectHistory(projectID uint) ([]models.CommitHistory, error) 
 		return nil, fmt.Errorf("获取历史记录失败: %w", err)
 	}
 	return histories, nil
+}
+
+// GetProjectAIConfig 获取项目的 AI 配置
+func (a *App) GetProjectAIConfig(projectID int) (*service.ProjectAIConfig, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+
+	config, err := a.projectConfigService.GetProjectAIConfig(uint(projectID))
+	if err != nil {
+		return nil, fmt.Errorf("获取项目 AI 配置失败: %w", err)
+	}
+
+	return config, nil
+}
+
+// UpdateProjectAIConfig 更新项目的 AI 配置
+func (a *App) UpdateProjectAIConfig(projectID int, provider, language, model string, useDefault bool) error {
+	if a.initError != nil {
+		return a.initError
+	}
+
+	project, err := a.gitProjectRepo.GetByID(uint(projectID))
+	if err != nil {
+		return fmt.Errorf("获取项目失败: %w", err)
+	}
+
+	project.UseDefault = useDefault
+
+	if useDefault {
+		project.Provider = nil
+		project.Language = nil
+		project.Model = nil
+	} else {
+		if provider != "" {
+			project.Provider = &provider
+		}
+		if language != "" {
+			project.Language = &language
+		}
+		if model != "" {
+			project.Model = &model
+		}
+	}
+
+	if err := a.gitProjectRepo.Update(project); err != nil {
+		return fmt.Errorf("更新项目配置失败: %w", err)
+	}
+
+	return nil
+}
+
+// ValidateProjectConfig 验证项目配置
+func (a *App) ValidateProjectConfig(projectID int) (valid bool, resetFields []string, suggestedConfig map[string]interface{}, err error) {
+	if a.initError != nil {
+		return false, nil, nil, a.initError
+	}
+
+	valid, fields, config, err := a.projectConfigService.ValidateProjectConfig(uint(projectID))
+	if err != nil {
+		return false, nil, nil, fmt.Errorf("验证项目配置失败: %w", err)
+	}
+
+	if config != nil {
+		suggestedConfig = map[string]interface{}{
+			"provider":  config.Provider,
+			"language":  config.Language,
+			"isDefault": config.IsDefault,
+		}
+	}
+
+	return valid, fields, suggestedConfig, nil
+}
+
+// ConfirmResetProjectConfig 确认并重置项目配置
+func (a *App) ConfirmResetProjectConfig(projectID int) error {
+	if a.initError != nil {
+		return a.initError
+	}
+
+	if err := a.projectConfigService.ResetProjectToDefaults(uint(projectID)); err != nil {
+		return fmt.Errorf("重置项目配置失败: %w", err)
+	}
+
+	return nil
 }
