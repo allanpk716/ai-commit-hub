@@ -1,0 +1,7 @@
+/superpowers:brainstorm 我希望本项目支持一个项目的功能，这个项目是cc-pushover-hook，它在本地目录是：C:\WorkSpace\agent\cc-pushover-hook，你可以读它的readme.md文件看看它的介绍和使用说明。
+
+现在本项目是支持导入各种 git 开发项目的，那么我想要在导入后，可以有一个地方支持安装cc-pushover-hook，也就是执行它的 install.py 的脚本，或者也可以改进这个项目支持安装脚本传参什么的。然后安装成功后，还希望可以在本项目中，选中一个项目如果已经安装了cc-pushover-hook，那么就可以设置是否禁用 pushover 或者 windows 的通知。也可以知道当前的状态是什么样的。
+
+我还希望，如果本程序启动的时候，发现 cc-pushover-hook 不在本程序的目录下的thirdpart 类似这样名称的文件夹中，就会去 git@github.com:allanpk716/cc-pushover-hook.git 进行 clone 最新的主分支代码下来。这样就可以满足前面提到的协助导入的项目安装这个 cc-pushover-hook 。
+
+cc-pushover-hook  的设置和下载功能，我希望在一个单独的界面中，这样不影响其他的功能，然后如果检测到本程序目录下没有这个项目则需要提醒用户，然后用户就可以去对应的界面去点击下载。
