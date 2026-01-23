@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ProjectStatus, ProjectAIConfig } from '../types'
+import type { ProjectStatus, ProjectAIConfig, ProviderInfo } from '../types'
 import {
   GetProjectStatus,
   GenerateCommit,
   GetProjectAIConfig,
   UpdateProjectAIConfig,
   ValidateProjectConfig,
-  ConfirmResetProjectConfig
+  ConfirmResetProjectConfig,
+  GetConfiguredProviders
 } from '../../wailsjs/go/main/App'
 import { EventsOn } from '../../wailsjs/runtime/runtime'
 
@@ -19,6 +20,9 @@ export const useCommitStore = defineStore('commit', () => {
   const streamingMessage = ref('')
   const generatedMessage = ref('')
   const error = ref<string | null>(null)
+
+  // Provider 列表
+  const availableProviders = ref<ProviderInfo[]>([])
 
   // Provider settings
   const provider = ref('openai')
@@ -79,6 +83,17 @@ export const useCommitStore = defineStore('commit', () => {
       provider.value = 'openai'
       language.value = 'zh'
       isDefaultConfig.value = true
+    }
+  }
+
+  async function loadAvailableProviders() {
+    try {
+      const result = await GetConfiguredProviders()
+      availableProviders.value = result as ProviderInfo[]
+    } catch (e) {
+      console.error('Failed to load providers:', e)
+      // 失败时使用空数组，避免界面崩溃
+      availableProviders.value = []
     }
   }
 
@@ -174,6 +189,7 @@ export const useCommitStore = defineStore('commit', () => {
     streamingMessage,
     generatedMessage,
     error,
+    availableProviders,
     provider,
     language,
     isDefaultConfig,
@@ -181,6 +197,7 @@ export const useCommitStore = defineStore('commit', () => {
     configValidation,
     loadProjectStatus,
     loadProjectAIConfig,
+    loadAvailableProviders,
     saveProjectConfig,
     confirmResetConfig,
     generateCommit,
