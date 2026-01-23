@@ -48,3 +48,10 @@ export interface CommitHistory {
   created_at: string
   project?: GitProject
 }
+
+// Provider 配置信息
+export interface ProviderInfo {
+  name: string           // provider 名称，如 'openai'
+  configured: boolean    // 是否已配置
+  reason?: string        // 未配置的原因
+}
