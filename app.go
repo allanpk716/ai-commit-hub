@@ -428,3 +428,18 @@ func (a *App) ConfirmResetProjectConfig(projectID int) error {
 
 	return nil
 }
+
+// GetConfiguredProviders 返回所有支持的 providers 及其配置状态
+func (a *App) GetConfiguredProviders() ([]models.ProviderInfo, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+
+	cfg, err := a.configService.LoadConfig(a.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("加载配置失败: %w", err)
+	}
+
+	providers := a.configService.GetConfiguredProviders(cfg)
+	return providers, nil
+}
