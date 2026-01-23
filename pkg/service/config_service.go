@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/allanpk716/ai-commit-hub/pkg/config"
+	"github.com/allanpk716/ai-commit-hub/pkg/models"
 	"github.com/allanpk716/ai-commit-hub/pkg/prompt"
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/anthropic"
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/deepseek"
@@ -139,4 +140,63 @@ func (s *ConfigService) ResolvePromptTemplate(configDir, configFile string) (str
 	}
 
 	return string(content), nil
+}
+
+// GetConfiguredProviders 返回所有支持的 providers 及其配置状态
+func (s *ConfigService) GetConfiguredProviders(cfg *config.Config) []models.ProviderInfo {
+	// 获取所有已注册的 providers
+	registeredProviders := registry.Names()
+
+	result := make([]models.ProviderInfo, 0, len(registeredProviders))
+
+	for _, name := range registeredProviders {
+		info := models.ProviderInfo{
+			Name: name,
+		}
+
+		// 检查该 provider 是否在 config 中配置
+		if cfg.Providers == nil {
+			info.Configured = false
+			info.Reason = "未在配置文件中添加"
+			result = append(result, info)
+			continue
+		}
+
+		providerSettings, exists := cfg.Providers[name]
+		if !exists {
+			info.Configured = false
+			info.Reason = "未在配置文件中添加"
+			result = append(result, info)
+			continue
+		}
+
+		// 检查是否需要 API Key
+		requiresKey := registry.RequiresAPIKey(name)
+
+		// 验证配置完整性
+		var reason string
+		configured := true
+
+		if requiresKey && providerSettings.APIKey == "" {
+			configured = false
+			reason = "缺少 API Key"
+		} else if providerSettings.BaseURL == "" && name != "openai" && name != "anthropic" {
+			// 某些 providers 有默认 BaseURL，不需要检查
+			if name == "ollama" || name == "deepseek" || name == "google" || name == "phind" {
+				if providerSettings.BaseURL == "" {
+					configured = false
+					reason = "缺少 BaseURL"
+				}
+			}
+		}
+
+		info.Configured = configured
+		if !configured {
+			info.Reason = reason
+		}
+
+		result = append(result, info)
+	}
+
+	return result
 }
