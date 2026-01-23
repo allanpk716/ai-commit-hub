@@ -14,6 +14,12 @@ type GitProject struct {
 	Path      string `gorm:"not null;uniqueIndex" json:"path"`
 	Name      string `json:"name"`
 	SortOrder int    `gorm:"index" json:"sort_order"`
+
+	// 项目级别 AI 配置（可选）
+	Provider   *string `json:"provider,omitempty"`    // nil 表示使用默认
+	Language   *string `json:"language,omitempty"`    // nil 表示使用默认
+	Model      *string `json:"model,omitempty"`       // nil 表示使用默认
+	UseDefault bool    `gorm:"default:true" json:"use_default"` // true=使用默认配置
 }
 
 // TableName specifies the table name for GitProject
