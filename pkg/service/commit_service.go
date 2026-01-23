@@ -15,11 +15,15 @@ import (
 )
 
 type CommitService struct {
-	ctx context.Context
+	ctx            context.Context
+	configService  *ConfigService
 }
 
 func NewCommitService(ctx context.Context) *CommitService {
-	return &CommitService{ctx: ctx}
+	return &CommitService{
+		ctx:           ctx,
+		configService: NewConfigService(),
+	}
 }
 
 func (s *CommitService) GenerateCommit(projectPath, providerName, language string) error {
@@ -32,6 +36,29 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	}
 	if language != "" {
 		cfg.Language = language
+	}
+
+	// 加载配置检查 provider 是否已配置
+	configuredCfg, err := s.configService.LoadConfig(s.ctx)
+	if err != nil {
+		runtime.EventsEmit(s.ctx, "commit-error", fmt.Sprintf("加载配置失败: %v", err))
+		return fmt.Errorf("加载配置失败: %w", err)
+	}
+
+	// 检查 provider 是否已配置
+	providers := s.configService.GetConfiguredProviders(configuredCfg)
+	providerConfigured := false
+	for _, p := range providers {
+		if p.Name == cfg.Provider && p.Configured {
+			providerConfigured = true
+			break
+		}
+	}
+
+	if !providerConfigured {
+		errMsg := fmt.Sprintf("Provider '%s' 未配置，请先在配置文件中添加", cfg.Provider)
+		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
+		return fmt.Errorf("provider not configured: %s", cfg.Provider)
 	}
 
 	// Get AI client from registry (imports provider packages for side effects)
