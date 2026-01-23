@@ -37,3 +37,7 @@ nul
 /.claude
 tmp/
 .playwright-mcp/
+
+# Git worktrees
+.worktrees/
+worktrees/
