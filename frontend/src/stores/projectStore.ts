@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { GitProject } from '../types'
 import { GetAllProjects, AddProject, DeleteProject, MoveProject, ReorderProjects } from '../../wailsjs/go/main/App'
 
@@ -7,6 +7,12 @@ export const useProjectStore = defineStore('project', () => {
   const projects = ref<GitProject[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const selectedPath = ref<string>('')
+
+  // 计算属性：当前选中的项目
+  const selectedProject = computed(() => {
+    return projects.value.find(p => p.path === selectedPath.value)
+  })
 
   async function loadProjects() {
     loading.value = true
@@ -84,14 +90,21 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  function selectProject(path: string) {
+    selectedPath.value = path
+  }
+
   return {
     projects,
     loading,
     error,
+    selectedPath,
+    selectedProject,
     loadProjects,
     addProject,
     deleteProject,
     moveProject,
-    reorderProjects
+    reorderProjects,
+    selectProject
   }
 })
