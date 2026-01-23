@@ -33,20 +33,25 @@ func (sc *StatusChecker) GetNotificationMode() NotificationMode {
 	noPushoverPath := filepath.Join(claudeDir, ".no-pushover")
 	noWindowsPath := filepath.Join(claudeDir, ".no-windows")
 
-	hasNoPushover, _ := os.Stat(noPushoverPath)
-	hasNoWindows, _ := os.Stat(noWindowsPath)
+	_, hasNoPushover := os.Stat(noPushoverPath)
+	_, hasNoWindows := os.Stat(noWindowsPath)
 
-	noPushover := hasNoPushover == nil
-	noWindows := hasNoWindows == nil
+	// 文件存在时 isExists 为 true，不存在时为 false
+	noPushoverExists := !os.IsNotExist(hasNoPushover)
+	noWindowsExists := !os.IsNotExist(hasNoWindows)
 
 	switch {
-	case !noPushover && !noWindows:
+	case !noPushoverExists && !noWindowsExists:
+		// 两个文件都不存在 → 全部启用
 		return ModeEnabled
-	case !noPushover && noWindows:
+	case !noPushoverExists && noWindowsExists:
+		// 只有 .no-windows 存在 → 仅 Pushover
 		return ModePushoverOnly
-	case noPushover && !noWindows:
+	case noPushoverExists && !noWindowsExists:
+		// 只有 .no-pushover 存在 → 仅 Windows
 		return ModeWindowsOnly
 	default:
+		// 两个文件都存在 → 全部禁用
 		return ModeDisabled
 	}
 }

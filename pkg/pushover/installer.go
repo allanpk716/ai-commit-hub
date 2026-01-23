@@ -50,10 +50,19 @@ func (in *Installer) Install(projectPath string, force bool) (*InstallResult, er
 		args = append(args, "--force")
 	}
 
+	// 调试日志：打印执行的命令
+	fmt.Fprintf(os.Stderr, "[DEBUG] Executing: %s %v\n", pythonCmd, args)
+	fmt.Fprintf(os.Stderr, "[DEBUG] Working dir: %s\n", in.extensionPath)
+
 	// 执行安装脚本
 	cmd := exec.Command(pythonCmd, args...)
-	cmd.Stdout = nil // 我们会从输出中解析最后一行 JSON
-	cmd.Stderr = nil
+	cmd.Dir = in.extensionPath // 设置工作目录为扩展目录
+
+	// 打印实际的命令参数
+	fmt.Fprintf(os.Stderr, "[DEBUG] cmd.Path: %s\n", cmd.Path)
+	for i, arg := range cmd.Args {
+		fmt.Fprintf(os.Stderr, "[DEBUG] cmd.Args[%d]: %s\n", i, arg)
+	}
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

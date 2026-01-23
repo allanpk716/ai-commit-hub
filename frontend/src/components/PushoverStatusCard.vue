@@ -145,15 +145,18 @@ function formatDate(dateStr: string): string {
 
 // 安装 Hook
 async function handleInstall() {
+  console.log('[PushoverStatusCard] handleInstall called', props.projectPath)
   error.value = null
   loading.value = true
 
   try {
     const result = await pushoverStore.installHook(props.projectPath, false)
+    console.log('[PushoverStatusCard] installHook result:', result)
     if (!result.success) {
       error.value = result.message || '安装失败'
     }
   } catch (e) {
+    console.error('[PushoverStatusCard] installHook error:', e)
     error.value = '安装失败，请稍后重试'
   } finally {
     loading.value = false
