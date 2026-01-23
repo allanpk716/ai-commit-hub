@@ -34,14 +34,14 @@ func SetupTestRepoNamed(t *testing.T, name string) *TestRepo {
 	}
 
 	// 初始化 Git 仓库
-	runGitCmd(t, repoPath, "init")
-	runGitCmd(t, repoPath, "config", "user.name", "Test User")
-	runGitCmd(t, repoPath, "config", "user.email", "test@example.com")
+	RunGitCmd(t, repoPath, "init")
+	RunGitCmd(t, repoPath, "config", "user.name", "Test User")
+	RunGitCmd(t, repoPath, "config", "user.email", "test@example.com")
 
 	// 创建初始文件
-	writeFile(t, repoPath, "README.md", "# Test Repository\n")
-	runGitCmd(t, repoPath, "add", ".")
-	runGitCmd(t, repoPath, "commit", "-m", "init")
+	WriteFile(t, repoPath, "README.md", "# Test Repository\n")
+	RunGitCmd(t, repoPath, "add", ".")
+	RunGitCmd(t, repoPath, "commit", "-m", "init")
 
 	return &TestRepo{
 		Name: name,
@@ -53,15 +53,15 @@ func SetupTestRepoNamed(t *testing.T, name string) *TestRepo {
 func (tr *TestRepo) CreateStagedChange(t *testing.T, filename, content string) {
 	t.Helper()
 
-	writeFile(t, tr.Path, filename, content)
-	runGitCmd(t, tr.Path, "add", filename)
+	WriteFile(t, tr.Path, filename, content)
+	RunGitCmd(t, tr.Path, "add", filename)
 }
 
 // CreateModifiedFile 在测试仓库中创建修改的文件
 func (tr *TestRepo) CreateModifiedFile(t *testing.T, filename, content string) {
 	t.Helper()
 
-	writeFile(t, tr.Path, filename, content)
+	WriteFile(t, tr.Path, filename, content)
 	// 不暂存，只修改工作区
 }
 
@@ -90,13 +90,25 @@ func runGitCmd(t *testing.T, dir string, args ...string) {
 	}
 }
 
-// writeFile 写入文件
-func writeFile(t *testing.T, dir, filename, content string) {
+// WriteFile 写入文件（导出供其他测试使用）
+func WriteFile(t *testing.T, dir, filename, content string) {
 	t.Helper()
 
 	path := filepath.Join(dir, filename)
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		t.Fatalf("写入文件失败 %s: %v", path, err)
+	}
+}
+
+// RunGitCmd 运行 Git 命令（导出供其他测试使用）
+func RunGitCmd(t *testing.T, dir string, args ...string) {
+	t.Helper()
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v 失败: %v\n输出: %s", args, err, string(output))
 	}
 }
 
