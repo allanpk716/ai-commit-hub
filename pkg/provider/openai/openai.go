@@ -1,7 +1,7 @@
 package openai
 
 import (
-    openaic "github.com/renatogalera/ai-commit/pkg/provider/openai_compat"
+    openaic "github.com/allanpk716/ai-commit-hub/pkg/aicommit/provider/openai_compat"
 )
 
 // NewOpenAIClient returns an OpenAI-compatible client powered by the official SDK.

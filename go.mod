@@ -1,6 +1,8 @@
 module github.com/allanpk716/ai-commit-hub
 
-go 1.25.0
+go 1.24.1
+
+toolchain go1.24.11
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.19.0
@@ -9,8 +11,8 @@ require (
 	github.com/google/generative-ai-go v0.20.1
 	github.com/ollama/ollama v0.14.3
 	github.com/openai/openai-go/v2 v2.7.1
-	github.com/renatogalera/ai-commit v0.9.0
 	github.com/sergi/go-diff v1.4.0
+	github.com/stretchr/testify v1.11.1
 	github.com/wailsapp/wails/v2 v2.11.0
 	google.golang.org/api v0.248.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -33,6 +35,7 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
@@ -69,6 +72,7 @@ require (
 	github.com/pjbgf/sha1cd v0.4.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/samber/lo v1.49.1 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect

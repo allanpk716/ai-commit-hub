@@ -10,7 +10,7 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/prompt"
 	"github.com/allanpk716/ai-commit-hub/pkg/provider/registry"
-	aicommitconfig "github.com/renatogalera/ai-commit/pkg/config"
+	aicommitconfig "github.com/allanpk716/ai-commit-hub/pkg/aicommit/config"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 

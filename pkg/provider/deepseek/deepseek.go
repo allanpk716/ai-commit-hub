@@ -4,7 +4,7 @@ import (
     "fmt"
     "strings"
 
-    openaic "github.com/renatogalera/ai-commit/pkg/provider/openai_compat"
+    openaic "github.com/allanpk716/ai-commit-hub/pkg/aicommit/provider/openai_compat"
 )
 
 // NewDeepseekClient returns a client using the OpenAI-compatible SDK against DeepSeek's endpoint.

@@ -3,10 +3,10 @@ package openrouter
 import (
 	"context"
 
-	"github.com/renatogalera/ai-commit/pkg/ai"
-	"github.com/renatogalera/ai-commit/pkg/config"
-	compat "github.com/renatogalera/ai-commit/pkg/provider/openai_compat"
-	"github.com/renatogalera/ai-commit/pkg/provider/registry"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/ai"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/config"
+	compat "github.com/allanpk716/ai-commit-hub/pkg/aicommit/provider/openai_compat"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/provider/registry"
 )
 
 const ProviderName = "openrouter"

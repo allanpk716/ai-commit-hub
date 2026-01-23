@@ -3,9 +3,9 @@ package google
 import (
 	"context"
 
-	"github.com/renatogalera/ai-commit/pkg/ai"
-	"github.com/renatogalera/ai-commit/pkg/config"
-	"github.com/renatogalera/ai-commit/pkg/provider/registry"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/ai"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/config"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/provider/registry"
 )
 
 const ProviderName = "google"

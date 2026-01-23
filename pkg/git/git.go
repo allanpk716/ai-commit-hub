@@ -14,8 +14,8 @@ import (
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/renatogalera/ai-commit/pkg/committypes"
-	"github.com/renatogalera/ai-commit/pkg/config"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/committypes"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/config"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 

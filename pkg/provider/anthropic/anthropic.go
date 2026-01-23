@@ -8,7 +8,7 @@ import (
 
 	anthropic "github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
-	"github.com/renatogalera/ai-commit/pkg/ai"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/ai"
 )
 
 type AnthropicClient struct {

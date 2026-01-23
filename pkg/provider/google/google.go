@@ -8,7 +8,7 @@ import (
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 
-	"github.com/renatogalera/ai-commit/pkg/ai"
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/ai"
 )
 
 type GoogleClient struct {
