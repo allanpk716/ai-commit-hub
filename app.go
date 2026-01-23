@@ -76,6 +76,13 @@ func (a *App) startup(ctx context.Context) {
 	cfg, _ := a.configService.LoadConfig(ctx)
 	a.projectConfigService = service.NewProjectConfigService(a.gitProjectRepo, cfg)
 
+	// Run database migrations
+	db := repository.GetDB()
+	if err := repository.MigrateAddProjectAIConfig(db); err != nil {
+		fmt.Printf("数据库迁移失败: %v\n", err)
+		// Continue anyway - migration may have already been applied
+	}
+
 	fmt.Println("AI Commit Hub initialized successfully")
 }
 
