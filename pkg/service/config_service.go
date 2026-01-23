@@ -11,8 +11,11 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/prompt"
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/anthropic"
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/deepseek"
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/google"
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/ollama"
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/openai"
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/openrouter"
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/phind"
 	"github.com/allanpk716/ai-commit-hub/pkg/provider/registry"
 	"gopkg.in/yaml.v3"
 )
@@ -105,6 +108,21 @@ func (s *ConfigService) getDefaultConfig() *config.Config {
 			"ollama": {
 				Model:   "llama2",
 				BaseURL: "http://localhost:11434",
+			},
+			"google": {
+				APIKey:  "",
+				Model:   "gemini-pro",
+				BaseURL: "https://generativelanguage.googleapis.com",
+			},
+			"openrouter": {
+				APIKey:  "",
+				Model:   "mistralai/mistral-7b-instruct",
+				BaseURL: "https://openrouter.ai/api/v1",
+			},
+			"phind": {
+				APIKey:  "",
+				Model:   "phind-34b-v2",
+				BaseURL: "",
 			},
 		},
 		Prompts: config.PromptFiles{

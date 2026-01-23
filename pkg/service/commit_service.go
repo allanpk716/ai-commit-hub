@@ -118,6 +118,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	// Fallback: non-streaming
 	msg, err := client.GetCommitMessage(context.Background(), promptText)
 	if err != nil {
+		runtime.EventsEmit(s.ctx, "commit-error", err.Error())
 		return err
 	}
 

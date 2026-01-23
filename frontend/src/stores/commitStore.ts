@@ -91,7 +91,7 @@ export const useCommitStore = defineStore('commit', () => {
       const result = await GetConfiguredProviders()
       availableProviders.value = result as ProviderInfo[]
     } catch (e) {
-      console.error('Failed to load providers:', e)
+      console.error('加载 provider 列表失败:', e)
       // 失败时使用空数组，避免界面崩溃
       availableProviders.value = []
     }

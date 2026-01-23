@@ -238,6 +238,7 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   deepseek: 'DeepSeek',
   ollama: 'Ollama',
   google: 'Google',
+  openrouter: 'OpenRouter',
   phind: 'Phind'
 }
 
