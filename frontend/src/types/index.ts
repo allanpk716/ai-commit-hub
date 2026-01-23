@@ -5,6 +5,19 @@ export interface GitProject {
   sort_order: number
   created_at?: string
   updated_at?: string
+
+  // 项目 AI 配置（可选）
+  provider?: string | null      // null 表示使用默认
+  language?: string | null      // null 表示使用默认
+  model?: string | null         // null 表示使用默认
+  use_default?: boolean         // true 表示使用默认配置
+}
+
+export interface ProjectAIConfig {
+  provider: string
+  language: string
+  model?: string
+  isDefault: boolean
 }
 
 export interface ProjectInfo {
