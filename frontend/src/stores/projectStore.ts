@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { GitProject } from '../types'
 import { GetAllProjects, AddProject, DeleteProject, MoveProject, ReorderProjects } from '../../wailsjs/go/main/App'
+import { models } from '../../wailsjs/go/models'
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<GitProject[]>([])
@@ -18,8 +19,17 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true
     error.value = null
     try {
-      const result = await GetAllProjects()
-      projects.value = result
+      const result = await GetAllProjects() as models.GitProject[]
+      projects.value = result.map(p => ({
+        id: p.id,
+        path: p.path,
+        name: p.name,
+        sort_order: p.sort_order,
+        provider: p.provider ?? null,
+        language: p.language ?? null,
+        model: p.model ?? null,
+        use_default: p.use_default
+      }))
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '加载项目失败'
       error.value = message
@@ -33,9 +43,19 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true
     error.value = null
     try {
-      const result = await AddProject(path)
-      projects.value.push(result)
-      return result
+      const result = await AddProject(path) as models.GitProject
+      const newProject: GitProject = {
+        id: result.id,
+        path: result.path,
+        name: result.name,
+        sort_order: result.sort_order,
+        provider: result.provider ?? null,
+        language: result.language ?? null,
+        model: result.model ?? null,
+        use_default: result.use_default
+      }
+      projects.value.push(newProject)
+      return newProject
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '添加项目失败'
       error.value = message
@@ -79,7 +99,20 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true
     error.value = null
     try {
-      await ReorderProjects(updatedProjects)
+      // Convert to models.GitProject format
+      const modelsProjects = updatedProjects.map(p => {
+        const mp = new models.GitProject()
+        mp.id = p.id
+        mp.path = p.path
+        mp.name = p.name
+        mp.sort_order = p.sort_order
+        mp.provider = p.provider ?? undefined
+        mp.language = p.language ?? undefined
+        mp.model = p.model ?? undefined
+        mp.use_default = p.use_default ?? true
+        return mp
+      })
+      await ReorderProjects(modelsProjects)
       await loadProjects()
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '重新排序失败'

@@ -50,22 +50,28 @@ export const useCommitStore = defineStore('commit', () => {
     selectedProjectId.value = projectId
 
     try {
-      const config = await GetProjectAIConfig(projectId) as ProjectAIConfig
-      provider.value = config.provider
-      language.value = config.language
-      isDefaultConfig.value = config.isDefault
+      const config = await GetProjectAIConfig(projectId)
+      provider.value = config.Provider
+      language.value = config.Language
+      isDefaultConfig.value = config.IsDefault
 
       // 验证配置
-      const [valid, resetFields, suggestedConfig] = await ValidateProjectConfig(projectId)
-
-      if (!valid && resetFields.length > 0) {
-        configValidation.value = {
-          valid: false,
-          resetFields,
-          suggestedConfig: suggestedConfig as ProjectAIConfig
+      const result = await ValidateProjectConfig(projectId) as any
+      if (result && result.length === 3) {
+        const [valid, resetFields, suggestedConfig] = result
+        if (!valid && resetFields.length > 0) {
+          configValidation.value = {
+            valid: false,
+            resetFields,
+            suggestedConfig: {
+              provider: suggestedConfig.Provider,
+              language: suggestedConfig.Language,
+              isDefault: suggestedConfig.IsDefault
+            }
+          }
+        } else {
+          configValidation.value = null
         }
-      } else {
-        configValidation.value = null
       }
     } catch (e: unknown) {
       console.error('加载项目配置失败:', e)
