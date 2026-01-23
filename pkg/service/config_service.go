@@ -180,14 +180,6 @@ func (s *ConfigService) GetConfiguredProviders(cfg *config.Config) []models.Prov
 		if requiresKey && providerSettings.APIKey == "" {
 			configured = false
 			reason = "缺少 API Key"
-		} else if providerSettings.BaseURL == "" && name != "openai" && name != "anthropic" {
-			// 某些 providers 有默认 BaseURL，不需要检查
-			if name == "ollama" || name == "deepseek" || name == "google" || name == "phind" {
-				if providerSettings.BaseURL == "" {
-					configured = false
-					reason = "缺少 BaseURL"
-				}
-			}
 		}
 
 		info.Configured = configured
