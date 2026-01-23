@@ -48,7 +48,34 @@
         <div class="section-title">
           <span class="icon">🤖</span>
           <h3>AI 配置</h3>
+          <span v-if="!commitStore.isDefaultConfig" class="config-badge">自定义</span>
         </div>
+        <button
+          v-if="!commitStore.isDefaultConfig"
+          @click="handleResetToDefault"
+          class="btn-reset"
+          title="重置为默认配置"
+        >
+          <span class="icon">↺</span>
+          恢复默认
+        </button>
+      </div>
+
+      <!-- 配置不一致警告 -->
+      <div
+        v-if="commitStore.configValidation && !commitStore.configValidation.valid"
+        class="config-warning-banner"
+      >
+        <div class="warning-content">
+          <span class="icon">⚠️</span>
+          <div class="warning-text">
+            <strong>配置已过时</strong>
+            <p>该项目配置的 {{ formatResetFields(commitStore.configValidation.resetFields) }} 在配置文件中不存在</p>
+          </div>
+        </div>
+        <button @click="handleConfirmReset" class="btn-confirm-reset">
+          确认重置
+        </button>
       </div>
 
       <div class="settings-grid">
@@ -56,8 +83,14 @@
           <label class="setting-label">
             <span class="icon">🌐</span>
             Provider
+            <span v-if="commitStore.isSavingConfig" class="saving-indicator">保存中...</span>
           </label>
-          <select v-model="commitStore.provider" class="setting-select">
+          <select
+            v-model="commitStore.provider"
+            class="setting-select"
+            @change="handleConfigChange"
+            :disabled="commitStore.isSavingConfig"
+          >
             <option value="openai">OpenAI</option>
             <option value="anthropic">Anthropic</option>
             <option value="deepseek">DeepSeek</option>
@@ -72,7 +105,12 @@
             <span class="icon">🌍</span>
             语言
           </label>
-          <select v-model="commitStore.language" class="setting-select">
+          <select
+            v-model="commitStore.language"
+            class="setting-select"
+            @change="handleConfigChange"
+            :disabled="commitStore.isSavingConfig"
+          >
             <option value="zh">中文</option>
             <option value="en">English</option>
           </select>
@@ -190,8 +228,11 @@ const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 
-watch(() => commitStore.selectedProjectPath, async (path) => {
-  if (path) {
+// 监听选中的项目变化
+watch(() => projectStore.selectedProject, async (project) => {
+  if (project) {
+    await commitStore.loadProjectAIConfig(project.id)
+    await commitStore.loadProjectStatus(project.path)
     await loadHistoryForProject()
   }
 }, { immediate: true })
@@ -221,6 +262,39 @@ function formatTime(dateStr: string): string {
 
 function loadHistory(item: CommitHistory) {
   commitStore.generatedMessage = item.message
+}
+
+// 配置变更时立即保存
+async function handleConfigChange() {
+  if (commitStore.selectedProjectId) {
+    commitStore.isDefaultConfig = false
+    await commitStore.saveProjectConfig(commitStore.selectedProjectId)
+  }
+}
+
+// 重置为默认配置
+async function handleResetToDefault() {
+  if (confirm('确定要重置为默认配置吗？')) {
+    commitStore.isDefaultConfig = true
+    await commitStore.saveProjectConfig(commitStore.selectedProjectId)
+    // 重新加载配置
+    await commitStore.loadProjectAIConfig(commitStore.selectedProjectId)
+  }
+}
+
+// 确认重置过时的配置
+async function handleConfirmReset() {
+  if (commitStore.selectedProjectId) {
+    await commitStore.confirmResetConfig(commitStore.selectedProjectId)
+  }
+}
+
+function formatResetFields(fields: string[]): string {
+  const fieldNames: Record<string, string> = {
+    provider: '服务商',
+    language: '语言'
+  }
+  return fields.map(f => fieldNames[f] || f).join('、')
 }
 
 async function handleGenerate() {
@@ -900,5 +974,107 @@ async function handleRegenerate() {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* 新增样式 */
+.config-badge {
+  padding: 2px 8px;
+  background: rgba(6, 182, 212, 0.2);
+  color: var(--accent-primary);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.btn-reset {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-reset:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.config-warning-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+}
+
+.warning-content {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  flex: 1;
+}
+
+.warning-content .icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.warning-text strong {
+  display: block;
+  font-size: 13px;
+  color: var(--accent-warning);
+  margin-bottom: 2px;
+}
+
+.warning-text p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.btn-confirm-reset {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent-warning);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.btn-confirm-reset:hover {
+  filter: brightness(1.1);
+}
+
+.saving-indicator {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--accent-primary);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.setting-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 </style>
