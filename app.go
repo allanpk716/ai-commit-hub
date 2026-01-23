@@ -64,8 +64,12 @@ func (a *App) startup(ctx context.Context) {
 	a.gitProjectRepo = repository.NewGitProjectRepository()
 	a.commitHistoryRepo = repository.NewCommitHistoryRepository()
 
-	// Initialize config service
+	// Initialize config service and ensure default config exists
 	a.configService = service.NewConfigService()
+	if _, err := a.configService.LoadConfig(ctx); err != nil {
+		fmt.Println("Failed to initialize config:", err)
+		// Continue anyway - config will be created when needed
+	}
 
 	fmt.Println("AI Commit Hub initialized successfully")
 }

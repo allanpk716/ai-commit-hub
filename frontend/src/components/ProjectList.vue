@@ -1,21 +1,51 @@
 <template>
   <div class="project-list">
+    <!-- Header -->
     <div class="list-header">
-      <h3>项目列表</h3>
+      <div class="header-title">
+        <span class="icon">📁</span>
+        <h3>项目列表</h3>
+      </div>
+      <div class="project-count">{{ projectStore.projects.length }}</div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-container">
+      <span class="search-icon">🔍</span>
       <input
         v-model="searchQuery"
         type="text"
-        placeholder="搜索..."
+        placeholder="搜索项目..."
         class="search-input"
       />
+      <button
+        v-if="searchQuery"
+        @click="searchQuery = ''"
+        class="search-clear"
+      >×</button>
     </div>
 
-    <div v-if="projectStore.loading" class="loading">加载中...</div>
-    <div v-else-if="projectStore.error" class="error">{{ projectStore.error }}</div>
-    <div v-else-if="filteredProjects.length === 0" class="empty">
-      {{ searchQuery ? '未找到匹配的项目' : '暂无项目，请添加项目' }}
+    <!-- Loading state -->
+    <div v-if="projectStore.loading" class="state-container">
+      <div class="loading-spinner"></div>
+      <p>加载中...</p>
     </div>
-    <div v-else class="projects">
+
+    <!-- Error state -->
+    <div v-else-if="projectStore.error" class="state-container error">
+      <div class="state-icon">⚠️</div>
+      <p>{{ projectStore.error }}</p>
+    </div>
+
+    <!-- Empty state -->
+    <div v-else-if="filteredProjects.length === 0" class="state-container empty">
+      <div class="state-icon">📭</div>
+      <p>{{ searchQuery ? '未找到匹配的项目' : '暂无项目' }}</p>
+      <span v-if="!searchQuery" class="empty-hint">点击上方 "添加项目" 按钮开始</span>
+    </div>
+
+    <!-- Project list -->
+    <transition-group v-else tag="div" name="list-item" class="projects">
       <div
         v-for="(project, index) in filteredProjects"
         :key="project.id"
@@ -27,27 +57,36 @@
         @drop="handleDrop(project, index)"
         @click="selectProject(project)"
       >
-        <span class="drag-handle">⋮⋮</span>
-        <span class="project-index">{{ index + 1 }}.</span>
-        <span class="project-name">{{ project.name }}</span>
+        <span class="drag-handle" title="拖拽排序">⋮⋮</span>
+
+        <div class="project-info">
+          <span class="project-name">{{ project.name }}</span>
+          <span class="project-path">{{ project.path }}</span>
+        </div>
+
         <div class="project-actions">
           <button
             @click.stop="moveUp(project, index)"
             :disabled="index === 0"
+            class="action-btn"
             title="上移"
           >↑</button>
           <button
             @click.stop="moveDown(project, index)"
             :disabled="index === filteredProjects.length - 1"
+            class="action-btn"
             title="下移"
           >↓</button>
           <button
             @click.stop="handleDelete(project)"
+            class="action-btn danger"
             title="删除"
-          >✕</button>
+          >×</button>
         </div>
+
+        <div class="project-indicator" v-if="selectedId === project.id"></div>
       </div>
-    </div>
+    </transition-group>
   </div>
 </template>
 
@@ -144,12 +183,10 @@ async function handleDrop(targetProject: GitProject, targetIndex: number) {
     return
   }
 
-  // Reorder projects
   const newProjects = [...filteredProjects.value]
   newProjects.splice(draggedIndex, 1)
   newProjects.splice(targetIndex, 0, draggedProject)
 
-  // Update sort orders
   const reorderedProjects = newProjects.map((p, i) => ({
     ...p,
     sort_order: i
@@ -171,117 +208,330 @@ async function handleDrop(targetProject: GitProject, targetIndex: number) {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 300px;
+  min-width: 300px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
+/* Header */
 .list-header {
-  padding: 15px;
-  border-bottom: 1px solid #e0e0e0;
   display: flex;
-  gap: 10px;
   align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  border-bottom: 1px solid var(--glass-border);
 }
 
-.list-header h3 {
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.header-title .icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.header-title h3 {
   margin: 0;
-  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.project-count {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--accent-primary);
+  background: rgba(6, 182, 212, 0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* Search */
+.search-container {
+  position: relative;
+  margin: 0 var(--space-lg) var(--space-md);
+}
+
+.search-icon {
+  position: absolute;
+  left: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 14px;
+  pointer-events: none;
 }
 
 .search-input {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  width: 100%;
+  padding: var(--space-sm) var(--space-xl) var(--space-sm) 36px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: all var(--transition-fast);
 }
 
-.loading,
-.error,
-.empty {
-  padding: 20px;
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.search-clear {
+  position: absolute;
+  right: var(--space-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.search-clear:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+/* State containers */
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl);
   text-align: center;
+  flex: 1;
+  animation: fade-in 0.3s ease-out;
 }
 
-.error {
-  color: #ff4444;
+.state-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+  opacity: 0.6;
 }
 
-.empty {
-  color: #999;
+.state-container p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
+.state-container.error .state-icon {
+  filter: hue-rotate(30deg);
+}
+
+.state-container.error p {
+  color: var(--accent-error);
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: var(--space-sm) !important;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--bg-tertiary);
+  border-top: 2px solid var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--space-md);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Project list */
 .projects {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: var(--space-sm);
 }
 
 .project-item {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 10px;
-  margin-bottom: 5px;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  padding: var(--space-md);
+  margin-bottom: var(--space-xs);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all var(--transition-fast);
+  animation: slide-in 0.3s ease-out;
 }
 
 .project-item:hover {
-  background-color: #f5f5f5;
+  background: var(--bg-elevated);
+  border-color: var(--border-hover);
+  transform: translateX(2px);
 }
 
 .project-item.selected {
-  background-color: #e3f2fd;
-  border-color: #2196f3;
+  background: rgba(6, 182, 212, 0.15);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
 }
 
 .drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: var(--space-sm);
+  color: var(--text-muted);
   cursor: grab;
-  color: #999;
-  margin-right: 8px;
-  user-select: none;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.project-item:hover .drag-handle {
+  opacity: 0.5;
+}
+
+.drag-handle:hover {
+  opacity: 1 !important;
 }
 
 .drag-handle:active {
   cursor: grabbing;
 }
 
-.project-index {
-  color: #666;
-  font-size: 12px;
-  min-width: 30px;
+.project-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .project-name {
-  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-path {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .project-actions {
-  display: none;
-  gap: 4px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
 }
 
 .project-item:hover .project-actions {
+  opacity: 1;
+}
+
+.action-btn {
   display: flex;
-}
-
-.project-actions button {
-  padding: 4px 8px;
-  font-size: 14px;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 3px;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
   cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 16px;
+  line-height: 1;
 }
 
-.project-actions button:hover:not(:disabled) {
-  background-color: #f0f0f0;
+.action-btn:hover:not(:disabled) {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
 }
 
-.project-actions button:disabled {
+.action-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+.action-btn.danger:hover:not(:disabled) {
+  background: var(--accent-error);
+  border-color: var(--accent-error);
+}
+
+.project-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
+  border-radius: 0 2px 2px 0;
+}
+
+/* List transitions */
+.list-item-enter-active {
+  transition: all 0.3s ease;
+}
+
+.list-item-leave-active {
+  transition: all 0.2s ease;
+}
+
+.list-item-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.list-item-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.list-item-move {
+  transition: transform 0.3s ease;
 }
 </style>
