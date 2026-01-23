@@ -91,12 +91,15 @@
             @change="handleConfigChange"
             :disabled="commitStore.isSavingConfig"
           >
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
-            <option value="deepseek">DeepSeek</option>
-            <option value="ollama">Ollama</option>
-            <option value="google">Google</option>
-            <option value="phind">Phind</option>
+            <option
+              v-for="p in commitStore.availableProviders"
+              :key="p.name"
+              :value="p.name"
+              :disabled="!p.configured"
+            >
+              {{ getProviderDisplayName(p.name) }}
+              <template v-if="!p.configured"> (未配置: {{ p.reason }})</template>
+            </option>
           </select>
         </div>
 
@@ -214,7 +217,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { GetProjectHistory, SaveCommitHistory, CommitLocally } from '../../wailsjs/go/main/App'
@@ -227,6 +230,21 @@ const history = ref<CommitHistory[]>([])
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
+
+// Provider 显示名称映射
+const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  deepseek: 'DeepSeek',
+  ollama: 'Ollama',
+  google: 'Google',
+  phind: 'Phind'
+}
+
+// 获取 provider 显示名称
+function getProviderDisplayName(name: string): string {
+  return PROVIDER_DISPLAY_NAMES[name] || name
+}
 
 // 监听选中的项目变化
 watch(() => projectStore.selectedProject, async (project) => {
@@ -341,6 +359,11 @@ async function handleRegenerate() {
   commitStore.clearMessage()
   await commitStore.generateCommit()
 }
+
+// 组件挂载时加载 provider 列表
+onMounted(() => {
+  commitStore.loadAvailableProviders()
+})
 </script>
 
 <style scoped>
@@ -586,6 +609,12 @@ async function handleRegenerate() {
 .setting-select option {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+}
+
+.setting-select option:disabled {
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  opacity: 0.6;
 }
 
 /* Generate button */
