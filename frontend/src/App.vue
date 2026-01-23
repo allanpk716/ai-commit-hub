@@ -18,12 +18,15 @@
           <span class="icon">＋</span>
           <span>添加项目</span>
         </button>
-        <button @click="openConfigFolder" class="btn btn-secondary">
+        <button @click="openSettings" class="btn btn-secondary">
           <span class="icon">⚙</span>
           <span>设置</span>
         </button>
       </div>
     </header>
+
+    <!-- Settings Dialog -->
+    <SettingsDialog v-model="settingsOpen" />
 
     <!-- Main content area -->
     <main class="content">
@@ -49,14 +52,16 @@
 import { ref, onMounted } from 'vue'
 import { useProjectStore } from './stores/projectStore'
 import { useCommitStore } from './stores/commitStore'
-import { OpenConfigFolder, SelectProjectFolder } from '../wailsjs/go/main/App'
+import { SelectProjectFolder } from '../wailsjs/go/main/App'
 import ProjectList from './components/ProjectList.vue'
 import CommitPanel from './components/CommitPanel.vue'
+import SettingsDialog from './components/SettingsDialog.vue'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
 const commitStore = useCommitStore()
 const selectedProjectId = ref<number>()
+const settingsOpen = ref(false)
 
 onMounted(() => {
   projectStore.loadProjects()
@@ -80,13 +85,8 @@ function handleSelectProject(project: GitProject) {
   commitStore.loadProjectStatus(project.path)
 }
 
-async function openConfigFolder() {
-  try {
-    await OpenConfigFolder()
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : '未知错误'
-    alert('打开配置文件夹失败: ' + message)
-  }
+function openSettings() {
+  settingsOpen.value = true
 }
 </script>
 

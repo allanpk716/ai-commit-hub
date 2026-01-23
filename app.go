@@ -10,6 +10,7 @@ import (
 
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
+	"github.com/allanpk716/ai-commit-hub/pkg/pushover"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -24,6 +25,7 @@ type App struct {
 	commitHistoryRepo    *repository.CommitHistoryRepository
 	configService        *service.ConfigService
 	projectConfigService *service.ProjectConfigService
+	pushoverService      *pushover.Service
 	initError            error
 }
 
@@ -81,6 +83,22 @@ func (a *App) startup(ctx context.Context) {
 	if err := repository.MigrateAddProjectAIConfig(db); err != nil {
 		fmt.Printf("数据库迁移失败: %v\n", err)
 		// Continue anyway - migration may have already been applied
+	}
+
+	// Run Pushover Hook migration
+	if err := repository.MigrateAddPushoverHookFields(db); err != nil {
+		fmt.Printf("Pushover Hook 迁移失败: %v\n", err)
+		// Continue anyway - migration may have already been applied
+	}
+
+	// Initialize pushover service
+	// 获取可执行文件所在目录作为 appPath
+	execPath, err := os.Executable()
+	if err != nil {
+		fmt.Printf("获取可执行文件路径失败: %v\n", err)
+	} else {
+		appPath := filepath.Dir(execPath)
+		a.pushoverService = pushover.NewService(appPath)
 	}
 
 	fmt.Println("AI Commit Hub initialized successfully")
@@ -442,4 +460,70 @@ func (a *App) GetConfiguredProviders() ([]models.ProviderInfo, error) {
 
 	providers := a.configService.GetConfiguredProviders(cfg)
 	return providers, nil
+}
+
+// GetPushoverHookStatus 获取项目的 Pushover Hook 状态
+func (a *App) GetPushoverHookStatus(projectPath string) (*pushover.HookStatus, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+	if a.pushoverService == nil {
+		return nil, fmt.Errorf("pushover service 未初始化")
+	}
+	return a.pushoverService.GetHookStatus(projectPath)
+}
+
+// InstallPushoverHook 为项目安装 Pushover Hook
+func (a *App) InstallPushoverHook(projectPath string, force bool) (*pushover.InstallResult, error) {
+	if a.initError != nil {
+		return &pushover.InstallResult{Success: false, Message: a.initError.Error()}, nil
+	}
+	if a.pushoverService == nil {
+		return &pushover.InstallResult{Success: false, Message: "pushover service 未初始化"}, nil
+	}
+	return a.pushoverService.InstallHook(projectPath, force)
+}
+
+// SetPushoverNotificationMode 设置项目的通知模式
+func (a *App) SetPushoverNotificationMode(projectPath string, mode string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+	if a.pushoverService == nil {
+		return fmt.Errorf("pushover service 未初始化")
+	}
+	return a.pushoverService.SetNotificationMode(projectPath, pushover.NotificationMode(mode))
+}
+
+// GetPushoverExtensionInfo 获取 cc-pushover-hook 扩展信息
+func (a *App) GetPushoverExtensionInfo() (*pushover.ExtensionInfo, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+	if a.pushoverService == nil {
+		return nil, fmt.Errorf("pushover service 未初始化")
+	}
+	return a.pushoverService.GetExtensionInfo()
+}
+
+// ClonePushoverExtension 克隆 cc-pushover-hook 扩展
+func (a *App) ClonePushoverExtension() error {
+	if a.initError != nil {
+		return a.initError
+	}
+	if a.pushoverService == nil {
+		return fmt.Errorf("pushover service 未初始化")
+	}
+	return a.pushoverService.CloneExtension()
+}
+
+// UpdatePushoverExtension 更新 cc-pushover-hook 扩展
+func (a *App) UpdatePushoverExtension() error {
+	if a.initError != nil {
+		return a.initError
+	}
+	if a.pushoverService == nil {
+		return fmt.Errorf("pushover service 未初始化")
+	}
+	return a.pushoverService.UpdateExtension()
 }

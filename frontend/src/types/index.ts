@@ -11,6 +11,12 @@ export interface GitProject {
   language?: string | null      // null 表示使用默认
   model?: string | null         // null 表示使用默认
   use_default?: boolean         // true 表示使用默认配置
+
+  // Pushover Hook 配置
+  hook_installed?: boolean
+  notification_mode?: string
+  hook_version?: string
+  hook_installed_at?: string
 }
 
 export interface ProjectAIConfig {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 )
@@ -20,6 +21,12 @@ type GitProject struct {
 	Language   *string `json:"language,omitempty"`    // nil 表示使用默认
 	Model      *string `json:"model,omitempty"`       // nil 表示使用默认
 	UseDefault bool    `gorm:"default:true" json:"use_default"` // true=使用默认配置
+
+	// Pushover Hook 配置
+	HookInstalled   bool        `gorm:"default:false" json:"hook_installed"`
+	NotificationMode string     `gorm:"default:'enabled'" json:"notification_mode"` // enabled/pushover_only/windows_only/disabled
+	HookVersion     string      `gorm:"size:50" json:"hook_version"`
+	HookInstalledAt *time.Time  `json:"hook_installed_at,omitempty"`
 }
 
 // TableName specifies the table name for GitProject

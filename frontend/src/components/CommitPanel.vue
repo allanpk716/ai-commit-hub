@@ -7,9 +7,17 @@
           <span class="icon">📊</span>
           <h3>当前状态</h3>
         </div>
-        <div class="branch-badge">
-          <span class="icon">⑂</span>
-          {{ commitStore.projectStatus.branch }}
+        <div class="header-badges">
+          <div class="branch-badge">
+            <span class="icon">⑂</span>
+            {{ commitStore.projectStatus.branch }}
+          </div>
+          <PushoverStatusBadge
+            v-if="currentProject"
+            :status="pushoverStatus"
+            :loading="pushoverStore.loading"
+            :compact="true"
+          />
         </div>
       </div>
 
@@ -41,6 +49,12 @@
       <h2>未选择项目</h2>
       <p>请从左侧列表选择一个项目</p>
     </div>
+
+    <!-- Pushover Hook Status -->
+    <PushoverStatusCard
+      v-if="commitStore.projectStatus && currentProject"
+      :project-path="currentProject.path"
+    />
 
     <!-- AI Settings -->
     <section class="panel-section" v-if="commitStore.projectStatus">
@@ -217,15 +231,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
+import { usePushoverStore } from '../stores/pushoverStore'
 import { GetProjectHistory, SaveCommitHistory, CommitLocally } from '../../wailsjs/go/main/App'
+import PushoverStatusBadge from './PushoverStatusBadge.vue'
+import PushoverStatusCard from './PushoverStatusCard.vue'
 import type { CommitHistory } from '../types'
 
 const commitStore = useCommitStore()
 const projectStore = useProjectStore()
+const pushoverStore = usePushoverStore()
 const history = ref<CommitHistory[]>([])
+
+// 当前选中项目的路径
+const currentProjectPath = computed(() => commitStore.selectedProjectPath)
+// 当前选中项目
+const currentProject = computed(() =>
+  projectStore.projects.find(p => p.path === currentProjectPath.value)
+)
+// Pushover Hook 状态
+const pushoverStatus = computed(() => {
+  if (currentProjectPath.value) {
+    return pushoverStore.getCachedProjectStatus(currentProjectPath.value)
+  }
+  return null
+})
 
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
@@ -253,6 +285,8 @@ watch(() => projectStore.selectedProject, async (project) => {
     await commitStore.loadProjectAIConfig(project.id)
     await commitStore.loadProjectStatus(project.path)
     await loadHistoryForProject()
+    // 加载 Pushover Hook 状态
+    await pushoverStore.getProjectHookStatus(project.path)
   }
 }, { immediate: true })
 
@@ -451,6 +485,16 @@ onMounted(() => {
 .branch-badge .icon {
   font-size: 10px;
   line-height: 1;
+}
+
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.branch-badge {
+  flex-shrink: 0;
 }
 
 /* Staged files */
