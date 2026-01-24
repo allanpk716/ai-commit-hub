@@ -20,10 +20,23 @@ func NewStatusChecker(projectPath string) *StatusChecker {
 }
 
 // CheckInstalled 检查 Hook 是否已安装
+// 兼容新旧两种安装位置：
+// - 新版本（1.0.0+）: .claude/hooks/pushover-hook/pushover-notify.py
+// - 旧版本: .claude/hooks/pushover-notify.py
 func (sc *StatusChecker) CheckInstalled() bool {
-	hookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-hook", "pushover-notify.py")
-	_, err := os.Stat(hookPath)
-	return err == nil
+	// 优先检查新位置
+	newHookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-hook", "pushover-notify.py")
+	if _, err := os.Stat(newHookPath); err == nil {
+		return true
+	}
+
+	// 兼容旧位置
+	oldHookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-notify.py")
+	if _, err := os.Stat(oldHookPath); err == nil {
+		return true
+	}
+
+	return false
 }
 
 // GetNotificationMode 获取当前通知模式
@@ -101,15 +114,23 @@ func (sc *StatusChecker) GetHookVersion() (string, error) {
 }
 
 // GetInstalledAt 获取安装时间
+// 兼容新旧两种安装位置
 func (sc *StatusChecker) GetInstalledAt() (*time.Time, error) {
-	hookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-hook", "pushover-notify.py")
-	info, err := os.Stat(hookPath)
-	if err != nil {
-		return nil, err
+	// 优先检查新位置
+	newHookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-hook", "pushover-notify.py")
+	if info, err := os.Stat(newHookPath); err == nil {
+		modTime := info.ModTime()
+		return &modTime, nil
 	}
 
-	modTime := info.ModTime()
-	return &modTime, nil
+	// 兼容旧位置
+	oldHookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-notify.py")
+	if info, err := os.Stat(oldHookPath); err == nil {
+		modTime := info.ModTime()
+		return &modTime, nil
+	}
+
+	return nil, fmt.Errorf("hook 文件不存在")
 }
 
 // GetStatus 获取完整的 Hook 状态
