@@ -66,3 +66,10 @@ export const NOTIFICATION_MODES: NotificationModeConfig[] = [
     icon: '🔕'
   }
 ]
+
+/** Pushover 配置状态 */
+export interface PushoverConfigStatus {
+  valid: boolean
+  tokenSet: boolean
+  userSet: boolean
+}

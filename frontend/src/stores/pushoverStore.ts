@@ -8,13 +8,16 @@ import {
   ClonePushoverExtension,
   UpdatePushoverExtension,
   CheckPushoverUpdates,
-  UpdatePushoverHook
+  UpdatePushoverHook,
+  ToggleNotification,
+  CheckPushoverConfig
 } from '../../wailsjs/go/main/App'
 import type {
   HookStatus,
   ExtensionInfo,
   InstallResult,
-  NotificationMode
+  NotificationMode,
+  PushoverConfigStatus
 } from '../types/pushover'
 
 export const usePushoverStore = defineStore('pushover', () => {
@@ -155,6 +158,28 @@ export const usePushoverStore = defineStore('pushover', () => {
   }
 
   /**
+   * 切换通知状态（Pushover 或 Windows 通知）
+   * @param projectPath 项目路径
+   * @param notificationType 通知类型：'pushover' 或 'windows'
+   */
+  async function toggleNotification(projectPath: string, notificationType: 'pushover' | 'windows') {
+    loading.value = true
+    error.value = null
+
+    try {
+      await ToggleNotification(projectPath, notificationType)
+      // 刷新项目状态
+      await getProjectHookStatus(projectPath)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      error.value = `切换通知状态失败: ${message}`
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
    * 更新项目的 Hook
    */
   async function updateHook(projectPath: string): Promise<InstallResult> {
@@ -278,6 +303,26 @@ export const usePushoverStore = defineStore('pushover', () => {
     projectHookStatus.value.clear()
   }
 
+  /**
+   * 检查 Pushover 配置状态
+   * 检查环境变量 PUSHOVER_TOKEN 和 PUSHOVER_USER 是否已设置
+   * @returns 配置状态对象
+   */
+  async function checkPushoverConfig(): Promise<PushoverConfigStatus> {
+    try {
+      const result = await CheckPushoverConfig()
+      return {
+        valid: result.valid as boolean,
+        tokenSet: result.token_set as boolean,
+        userSet: result.user_set as boolean
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      error.value = `检查 Pushover 配置失败: ${message}`
+      throw e
+    }
+  }
+
   return {
     // State
     extensionInfo,
@@ -296,11 +341,13 @@ export const usePushoverStore = defineStore('pushover', () => {
     getProjectHookStatus,
     installHook,
     setNotificationMode,
+    toggleNotification,
     getCachedProjectStatus,
     clearCache,
     checkForUpdates,
     updateHook,
     checkForExtensionUpdates,
-    recloneExtension
+    recloneExtension,
+    checkPushoverConfig
   }
 })
