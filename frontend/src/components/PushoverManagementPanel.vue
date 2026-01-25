@@ -24,7 +24,14 @@
               {{ pushoverStore.isExtensionDownloaded ? '扩展已下载' : '扩展未下载' }}
             </div>
             <div v-if="pushoverStore.isExtensionDownloaded" class="status-details">
-              版本 v{{ pushoverStore.extensionInfo.version }}
+              <div class="version-info">
+                <span v-if="pushoverStore.extensionInfo.current_version" class="version-current">
+                  当前版本: v{{ pushoverStore.extensionInfo.current_version }}
+                </span>
+                <span v-if="pushoverStore.extensionInfo.latest_version" class="version-latest">
+                  最新版本: v{{ pushoverStore.extensionInfo.latest_version }}
+                </span>
+              </div>
               <span v-if="pushoverStore.isUpdateAvailable" class="update-badge">
                 有新版本
               </span>
@@ -47,9 +54,9 @@
               v-if="pushoverStore.isUpdateAvailable"
               class="btn btn-primary"
               :disabled="pushoverStore.loading"
-              @click="handleUpdate"
+              @click="handleUpdateExtension"
             >
-              🔄 更新到 v{{ pushoverStore.extensionInfo.latest_version }}
+              🔄 更新扩展
             </button>
 
             <button
@@ -158,16 +165,22 @@ async function handleClone() {
   }
 }
 
-async function handleUpdate() {
+async function handleUpdateExtension() {
   try {
     await pushoverStore.updateExtension()
+    // 更新后重新检查版本信息
+    await handleCheckUpdate()
   } catch (e) {
     // Error handled in store
   }
 }
 
 async function handleCheckUpdate() {
-  await pushoverStore.checkExtensionStatus()
+  try {
+    await pushoverStore.checkExtensionStatus()
+  } catch (e) {
+    // Error handled in store
+  }
 }
 
 function openModeSelector(project: GitProject) {
@@ -244,6 +257,22 @@ onMounted(() => {
 .status-details {
   font-size: 14px;
   color: var(--text-secondary);
+}
+
+.version-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.version-current {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.version-latest {
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .update-badge {

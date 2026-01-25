@@ -18,6 +18,7 @@ export interface ExtensionInfo {
   downloaded: boolean
   path: string
   version: string
+  current_version: string
   latest_version: string
   update_available: boolean
 }

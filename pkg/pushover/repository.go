@@ -139,6 +139,7 @@ func (rm *RepositoryManager) GetExtensionInfo() (*ExtensionInfo, error) {
 		version, err := rm.GetVersion()
 		if err == nil {
 			info.Version = version
+			info.CurrentVersion = version
 		}
 
 		latestVersion, err := rm.GetLatestVersion()

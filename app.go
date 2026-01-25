@@ -545,6 +545,32 @@ func (a *App) UninstallPushoverHook(projectPath string) error {
 	return nil
 }
 
+// UpdatePushoverHook 更新项目的 Pushover Hook
+func (a *App) UpdatePushoverHook(projectPath string) (*pushover.InstallResult, error) {
+	if a.initError != nil {
+		return &pushover.InstallResult{Success: false, Message: a.initError.Error()}, nil
+	}
+	if a.pushoverService == nil {
+		return &pushover.InstallResult{Success: false, Message: "pushover service 未初始化"}, nil
+	}
+
+	// 调用 Service 层更新
+	result, err := a.pushoverService.UpdateHook(projectPath)
+	if err != nil {
+		return &pushover.InstallResult{Success: false, Message: err.Error()}, nil
+	}
+
+	// 更新成功后同步数据库状态
+	if result.Success {
+		if syncErr := a.syncProjectHookStatusByPath(projectPath); syncErr != nil {
+			fmt.Printf("同步 Hook 状态失败: %v\n", syncErr)
+			// 不影响更新结果，只记录错误
+		}
+	}
+
+	return result, nil
+}
+
 // SetPushoverNotificationMode 设置项目的通知模式
 func (a *App) SetPushoverNotificationMode(projectPath string, mode string) error {
 	if a.initError != nil {
@@ -589,16 +615,47 @@ func (a *App) UpdatePushoverExtension() error {
 	return a.pushoverService.UpdateExtension()
 }
 
-// CheckPushoverUpdates 检查 cc-pushover-hook 扩展更新
-// 返回: (是否需要更新, 当前版本, 最新版本, 错误)
-func (a *App) CheckPushoverUpdates() (bool, string, string, error) {
+// CheckPushoverUpdates 检查项目的 Pushover Hook 更新
+func (a *App) CheckPushoverUpdates(projectPath string) (map[string]interface{}, error) {
 	if a.initError != nil {
-		return false, "", "", a.initError
+		return nil, a.initError
 	}
 	if a.pushoverService == nil {
-		return false, "", "", fmt.Errorf("pushover service 未初始化")
+		return nil, fmt.Errorf("pushover service 未初始化")
 	}
-	return a.pushoverService.CheckForUpdates()
+
+	// 获取扩展版本
+	latestVersion, err := a.pushoverService.GetExtensionVersion()
+	if err != nil {
+		return nil, fmt.Errorf("获取扩展版本失败: %w", err)
+	}
+
+	// 获取项目中的 Hook 状态
+	checker := pushover.NewStatusChecker(projectPath)
+	status, err := checker.GetStatus()
+	if err != nil {
+		return nil, fmt.Errorf("获取 Hook 状态失败: %w", err)
+	}
+
+	if !status.Installed {
+		return map[string]interface{}{
+			"update_available": false,
+			"current_version":  status.Version,
+			"latest_version":   latestVersion,
+			"installed":        false,
+		}, nil
+	}
+
+	// 比较版本
+	updateAvailable := pushover.CompareVersions(status.Version, latestVersion)
+	needsUpdate := updateAvailable < 0
+
+	return map[string]interface{}{
+		"update_available": needsUpdate,
+		"current_version":  status.Version,
+		"latest_version":   latestVersion,
+		"installed":        true,
+	}, nil
 }
 
 // syncAllProjectsHookStatus 同步所有项目的 Pushover Hook 状态

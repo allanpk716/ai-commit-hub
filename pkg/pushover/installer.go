@@ -108,6 +108,73 @@ func (in *Installer) Uninstall(projectPath string) error {
 	return nil
 }
 
+// Update 更新项目的 Hook
+func (in *Installer) Update(projectPath string) (*InstallResult, error) {
+	// 检查扩展目录是否存在
+	if _, err := os.Stat(in.extensionPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("cc-pushover-hook 扩展未下载，请先下载扩展")
+	}
+
+	// 检查 install.py 是否存在
+	installScript := filepath.Join(in.extensionPath, "install.py")
+	if _, err := os.Stat(installScript); os.IsNotExist(err) {
+		return nil, fmt.Errorf("install.py 不存在，请确保 cc-pushover-hook 扩展完整")
+	}
+
+	// 检查 Python 是否可用
+	pythonCmd, err := in.findPython()
+	if err != nil {
+		return nil, err
+	}
+
+	// 构建命令参数（更新时使用 force 标志）
+	args := []string{
+		installScript,
+		"--target-dir", projectPath,
+		"--non-interactive",
+		"--force",
+	}
+
+	// 调试日志：打印执行的命令
+	fmt.Fprintf(os.Stderr, "[DEBUG] Updating Hook: %s %v\n", pythonCmd, args)
+	fmt.Fprintf(os.Stderr, "[DEBUG] Working dir: %s\n", in.extensionPath)
+
+	// 执行安装脚本
+	cmd := exec.Command(pythonCmd, args...)
+	cmd.Dir = in.extensionPath // 设置工作目录为扩展目录
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return &InstallResult{
+			Success: false,
+			Message: fmt.Sprintf("更新失败: %v\n输出: %s", err, string(output)),
+		}, nil
+	}
+
+	// 解析输出的最后一行 JSON
+	outputStr := string(output)
+	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
+	lastLine := lines[len(lines)-1]
+
+	var result InstallResult
+	if err := json.Unmarshal([]byte(lastLine), &result); err != nil {
+		// 如果不是 JSON 格式，可能是旧版本或输出格式错误
+		if strings.Contains(outputStr, "success") || strings.Contains(outputStr, "complete") {
+			return &InstallResult{
+				Success:  true,
+				Message:  "更新成功",
+				HookPath: filepath.Join(projectPath, ".claude", "hooks", "pushover-hook"),
+			}, nil
+		}
+		return &InstallResult{
+			Success: false,
+			Message: fmt.Sprintf("无法解析更新结果: %v\n输出: %s", err, outputStr),
+		}, nil
+	}
+
+	return &result, nil
+}
+
 // SetNotificationMode 设置通知模式
 func (in *Installer) SetNotificationMode(projectPath string, mode NotificationMode) error {
 	claudeDir := filepath.Join(projectPath, ".claude")

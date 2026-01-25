@@ -25,6 +25,29 @@
 
       <!-- 已安装状态 -->
       <div v-else class="status-section installed">
+        <!-- 更新提示 -->
+        <div v-if="showUpdatePrompt" class="update-prompt">
+          <div class="update-prompt-content">
+            <span class="update-icon">🔄</span>
+            <div class="update-text">
+              <div class="update-title">
+                {{ status.version === 'unknown' ? 'Hook 版本未知' : '有新版本可用' }}
+              </div>
+              <div v-if="updateInfo" class="update-versions">
+                <span v-if="status.version !== 'unknown'">当前: v{{ updateInfo.currentVersion }}</span>
+                <span v-if="updateInfo.latestVersion">最新: v{{ updateInfo.latestVersion }}</span>
+              </div>
+            </div>
+            <button
+              class="btn btn-update"
+              :disabled="loading"
+              @click="handleUpdateHook"
+            >
+              {{ loading ? '更新中...' : '更新 Hook' }}
+            </button>
+          </div>
+        </div>
+
         <div class="status-info">
           <div class="info-row">
             <span class="info-label">状态:</span>
@@ -84,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { usePushoverStore } from '../stores/pushoverStore'
 import { NOTIFICATION_MODES, type NotificationMode } from '../types/pushover'
 
@@ -98,6 +121,7 @@ const pushoverStore = usePushoverStore()
 const collapsed = ref(false)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const updateInfo = ref<{ updateAvailable: boolean; currentVersion: string; latestVersion: string } | null>(null)
 
 // 获取状态
 const status = computed(() => {
@@ -144,10 +168,48 @@ const modeLabel = computed(() => {
 // 通知模式列表
 const notificationModes = NOTIFICATION_MODES
 
+// 计算是否需要显示更新提示
+const showUpdatePrompt = computed(() => {
+  if (!status.value || !status.value.installed) return false
+  // 如果版本是 unknown 或者有可用更新，显示更新提示
+  return status.value.version === 'unknown' || (updateInfo.value && updateInfo.value.updateAvailable)
+})
+
 // 格式化日期
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr)
   return date.toLocaleString('zh-CN')
+}
+
+// 检查更新
+async function checkForUpdates() {
+  try {
+    updateInfo.value = await pushoverStore.checkForUpdates(props.projectPath)
+  } catch (e) {
+    // Error handled in store
+  }
+}
+
+// 处理更新 Hook
+async function handleUpdateHook() {
+  if (!confirm('确定要更新此项目的 Pushover Hook 吗？')) return
+
+  error.value = null
+  loading.value = true
+
+  try {
+    const result = await pushoverStore.updateHook(props.projectPath)
+    if (!result.success) {
+      error.value = result.message || '更新失败'
+    } else {
+      // 更新成功后重新检查更新状态
+      await checkForUpdates()
+    }
+  } catch (e) {
+    error.value = '更新失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
 }
 
 // 安装 Hook
@@ -202,6 +264,13 @@ async function handleUninstall() {
     loading.value = false
   }
 }
+
+// 组件挂载时检查更新
+onMounted(() => {
+  if (status.value && status.value.installed) {
+    checkForUpdates()
+  }
+})
 </script>
 
 <style scoped>
@@ -401,5 +470,64 @@ async function handleUninstall() {
   color: #ef4444;
   border-radius: var(--radius-sm);
   font-size: 13px;
+}
+
+.update-prompt {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: var(--radius-sm);
+}
+
+.update-prompt-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.update-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.update-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.update-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.update-versions {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.btn-update {
+  flex-shrink: 0;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 12px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn-update:hover:not(:disabled) {
+  background: var(--accent-secondary);
+}
+
+.btn-update:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

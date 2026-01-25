@@ -56,6 +56,21 @@ func (s *Service) UninstallHook(projectPath string) error {
 	return s.installer.Uninstall(projectPath)
 }
 
+// UpdateHook 更新项目的 Hook
+func (s *Service) UpdateHook(projectPath string) (*InstallResult, error) {
+	// 检查项目路径是否存在
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("项目路径不存在: %s", projectPath)
+	}
+
+	// 检查扩展是否已下载
+	if !s.repoManager.IsCloned() {
+		return nil, fmt.Errorf("cc-pushover-hook 扩展未下载，请先下载扩展")
+	}
+
+	return s.installer.Update(projectPath)
+}
+
 // SetNotificationMode 设置项目的通知模式
 func (s *Service) SetNotificationMode(projectPath string, mode NotificationMode) error {
 	return s.installer.SetNotificationMode(projectPath, mode)
@@ -79,6 +94,14 @@ func (s *Service) GetExtensionInfo() (*ExtensionInfo, error) {
 // IsExtensionDownloaded 检查扩展是否已下载
 func (s *Service) IsExtensionDownloaded() bool {
 	return s.repoManager.IsCloned()
+}
+
+// GetExtensionVersion 获取扩展版本
+func (s *Service) GetExtensionVersion() (string, error) {
+	if !s.repoManager.IsCloned() {
+		return "", fmt.Errorf("扩展未下载")
+	}
+	return s.repoManager.GetVersion()
 }
 
 // CheckForUpdates 检查是否有可用更新

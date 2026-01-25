@@ -1,0 +1,1 @@
+/superpowers:brainstorm 我看到 C:\Users\allan716\.ai-commit-hub\config.yaml 这个测试文件的存在的，并且已经有了 openai 的服务商配置信息，但是我在主程序中，选中一个项目准备进行commit信息的生成的时候，我发现无法选择到服务商，因为服务商下来列表是空的，去分析下原因、修复

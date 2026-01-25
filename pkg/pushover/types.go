@@ -25,6 +25,7 @@ type ExtensionInfo struct {
 	Downloaded      bool   `json:"downloaded"`
 	Path            string `json:"path"`
 	Version         string `json:"version"`
+	CurrentVersion  string `json:"current_version"`
 	LatestVersion   string `json:"latest_version"`
 	UpdateAvailable bool   `json:"update_available"`
 }

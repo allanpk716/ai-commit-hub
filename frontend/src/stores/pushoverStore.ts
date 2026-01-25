@@ -6,7 +6,9 @@ import {
   SetPushoverNotificationMode,
   GetPushoverExtensionInfo,
   ClonePushoverExtension,
-  UpdatePushoverExtension
+  UpdatePushoverExtension,
+  CheckPushoverUpdates,
+  UpdatePushoverHook
 } from '../../wailsjs/go/main/App'
 import type {
   HookStatus,
@@ -21,6 +23,7 @@ export const usePushoverStore = defineStore('pushover', () => {
     downloaded: false,
     path: '',
     version: '',
+    current_version: '',
     latest_version: '',
     update_available: false
   })
@@ -34,26 +37,6 @@ export const usePushoverStore = defineStore('pushover', () => {
   const isUpdateAvailable = computed(() => extensionInfo.value.update_available)
 
   // Actions
-
-  /**
-   * 检查扩展状态
-   */
-  async function checkExtensionStatus() {
-    loading.value = true
-    error.value = null
-
-    try {
-      const info = await GetPushoverExtensionInfo()
-      if (info) {
-        extensionInfo.value = info
-      }
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '未知错误'
-      error.value = `获取扩展信息失败: ${message}`
-    } finally {
-      loading.value = false
-    }
-  }
 
   /**
    * 克隆扩展仓库
@@ -172,10 +155,76 @@ export const usePushoverStore = defineStore('pushover', () => {
   }
 
   /**
+   * 更新项目的 Hook
+   */
+  async function updateHook(projectPath: string): Promise<InstallResult> {
+    loading.value = true
+    error.value = null
+
+    try {
+      const result = await UpdatePushoverHook(projectPath)
+      if (result && result.success) {
+        // 刷新项目状态
+        await getProjectHookStatus(projectPath)
+      }
+      return result || { success: false, message: '更新失败' }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      error.value = `更新 Hook 失败: ${message}`
+      return { success: false, message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
    * 获取缓存的项目状态
    */
   function getCachedProjectStatus(projectPath: string): HookStatus | undefined {
     return projectHookStatus.value.get(projectPath)
+  }
+
+  /**
+   * 检查扩展更新
+   */
+  async function checkExtensionStatus() {
+    loading.value = true
+    error.value = null
+
+    try {
+      const info = await GetPushoverExtensionInfo()
+      if (info) {
+        extensionInfo.value = info
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      error.value = `获取扩展信息失败: ${message}`
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 检查项目的 Hook 更新
+   */
+  async function checkForUpdates(projectPath: string) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const result = await CheckPushoverUpdates(projectPath)
+      return {
+        updateAvailable: result.update_available as boolean,
+        currentVersion: result.current_version as string,
+        latestVersion: result.latest_version as string
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      error.value = `检查更新失败: ${message}`
+      throw e
+    } finally {
+      loading.value = false
+    }
   }
 
   /**
@@ -204,6 +253,8 @@ export const usePushoverStore = defineStore('pushover', () => {
     installHook,
     setNotificationMode,
     getCachedProjectStatus,
-    clearCache
+    clearCache,
+    checkForUpdates,
+    updateHook
   }
 })
