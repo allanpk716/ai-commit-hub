@@ -20,7 +20,14 @@
           </div>
           <div class="info-row">
             <span class="label">扩展路径:</span>
-            <span class="value value-path">{{ pushoverStore.extensionInfo.path || '-' }}</span>
+            <span
+              v-if="pushoverStore.extensionInfo.path"
+              class="value value-path clickable"
+              @click="handleOpenConfigFolder"
+            >
+              {{ pushoverStore.extensionInfo.path }}
+            </span>
+            <span v-else class="value value-path">-</span>
           </div>
         </div>
 
@@ -323,6 +330,16 @@ async function handleOpenConfigFolder() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.info-row .value-path.clickable {
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.info-row .value-path.clickable:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
 }
 
 .text-success {
