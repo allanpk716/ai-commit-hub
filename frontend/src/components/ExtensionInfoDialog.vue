@@ -96,13 +96,6 @@
             >
               GitHub 仓库
             </button>
-
-            <button
-              class="btn btn-secondary"
-              @click="handleOpenConfigFolder"
-            >
-              打开配置文件夹
-            </button>
           </div>
         </div>
 
