@@ -228,6 +228,50 @@ export const usePushoverStore = defineStore('pushover', () => {
   }
 
   /**
+   * 检查扩展自身更新（而非项目 Hook）
+   */
+  async function checkForExtensionUpdates() {
+    loading.value = true
+    error.value = null
+
+    try {
+      const { CheckPushoverExtensionUpdates } = await import('../../wailsjs/go/main/App')
+      const result = await CheckPushoverExtensionUpdates()
+      return {
+        updateAvailable: result.needs_update as boolean,
+        currentVersion: result.current_version as string,
+        latestVersion: result.latest_version as string
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      error.value = `检查扩展更新失败: ${message}`
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 重新下载扩展（删除并克隆）
+   */
+  async function recloneExtension() {
+    loading.value = true
+    error.value = null
+
+    try {
+      const { ReclonePushoverExtension } = await import('../../wailsjs/go/main/App')
+      await ReclonePushoverExtension()
+      await checkExtensionStatus()
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      error.value = `重新下载扩展失败: ${message}`
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
    * 清除缓存
    */
   function clearCache() {
@@ -255,6 +299,8 @@ export const usePushoverStore = defineStore('pushover', () => {
     getCachedProjectStatus,
     clearCache,
     checkForUpdates,
-    updateHook
+    updateHook,
+    checkForExtensionUpdates,
+    recloneExtension
   }
 })
