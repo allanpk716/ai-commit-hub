@@ -151,3 +151,18 @@ func (rm *RepositoryManager) GetExtensionInfo() (*ExtensionInfo, error) {
 
 	return info, nil
 }
+
+// Reclone 删除并重新克隆扩展
+func (rm *RepositoryManager) Reclone() error {
+	extensionPath := rm.GetExtensionPath()
+
+	// 删除现有扩展目录
+	if rm.IsCloned() {
+		if err := os.RemoveAll(extensionPath); err != nil {
+			return fmt.Errorf("删除扩展目录失败: %w", err)
+		}
+	}
+
+	// 重新克隆
+	return rm.Clone()
+}

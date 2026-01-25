@@ -636,6 +636,17 @@ func (a *App) UpdatePushoverExtension() error {
 	return a.pushoverService.UpdateExtension()
 }
 
+// ReclonePushoverExtension 重新下载 cc-pushover-hook 扩展
+func (a *App) ReclonePushoverExtension() error {
+	if a.initError != nil {
+		return a.initError
+	}
+	if a.pushoverService == nil {
+		return fmt.Errorf("pushover service 未初始化")
+	}
+	return a.pushoverService.RecloneExtension()
+}
+
 // CheckPushoverUpdates 检查项目的 Pushover Hook 更新
 func (a *App) CheckPushoverUpdates(projectPath string) (map[string]interface{}, error) {
 	if a.initError != nil {

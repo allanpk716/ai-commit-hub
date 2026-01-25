@@ -104,6 +104,11 @@ func (s *Service) GetExtensionVersion() (string, error) {
 	return s.repoManager.GetVersion()
 }
 
+// RecloneExtension 删除并重新下载扩展
+func (s *Service) RecloneExtension() error {
+	return s.repoManager.Reclone()
+}
+
 // CheckForUpdates 检查是否有可用更新
 // 返回: (是否需要更新, 当前版本, 最新版本, 错误)
 func (s *Service) CheckForUpdates() (bool, string, string, error) {
