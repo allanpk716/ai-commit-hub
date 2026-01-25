@@ -45,6 +45,9 @@
           <div v-if="pushoverStore.isUpdateAvailable" class="update-hint">
             有新版本可用，建议更新扩展
           </div>
+          <div v-if="!pushoverStore.isUpdateAvailable && pushoverStore.isExtensionDownloaded" class="latest-hint">
+            ✅ 已是最新版本
+          </div>
         </div>
 
         <!-- 操作按钮 -->
@@ -376,6 +379,17 @@ async function handleOpenExtensionFolder() {
   border: 1px solid rgba(6, 182, 212, 0.3);
   border-radius: var(--radius-sm);
   color: var(--accent-primary);
+  font-size: 13px;
+  text-align: center;
+}
+
+.latest-hint {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius-sm);
+  color: #22c55e;
   font-size: 13px;
   text-align: center;
 }
