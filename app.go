@@ -622,6 +622,67 @@ func (a *App) SetPushoverNotificationMode(projectPath string, mode string) error
 	return a.pushoverService.SetNotificationMode(projectPath, pushover.NotificationMode(mode))
 }
 
+// ToggleNotification 切换指定项目的通知类型
+// 通过创建或删除 .no-pushover 或 .no-windows 文件来实现
+func (a *App) ToggleNotification(projectPath string, notificationType string) error {
+	fmt.Printf("切换通知状态: 项目=%s, 类型=%s\n", projectPath, notificationType)
+
+	// 检查初始化错误
+	if a.initError != nil {
+		return fmt.Errorf("应用未正确初始化: %w", a.initError)
+	}
+
+	// 验证项目路径
+	if projectPath == "" {
+		return fmt.Errorf("项目路径不能为空")
+	}
+
+	// 验证通知类型
+	var fileName string
+	switch notificationType {
+	case "pushover":
+		fileName = ".no-pushover"
+	case "windows":
+		fileName = ".no-windows"
+	default:
+		return fmt.Errorf("不支持的通知类型: %s", notificationType)
+	}
+
+	filePath := filepath.Join(projectPath, fileName)
+
+	// 检查文件是否存在
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// 文件不存在，创建文件来禁用通知
+			file, err := os.Create(filePath)
+			if err != nil {
+				fmt.Printf("创建禁用文件失败: %v\n", err)
+				return fmt.Errorf("创建禁用文件失败: %w", err)
+			}
+			file.Close()
+			fmt.Printf("已禁用 %s 通知: 创建 %s\n", notificationType, fileName)
+			return nil
+		}
+		// 其他错误
+		fmt.Printf("检查文件失败: %v\n", err)
+		return fmt.Errorf("检查文件失败: %w", err)
+	}
+
+	// 文件存在，删除文件来启用通知
+	if fileInfo.IsDir() {
+		return fmt.Errorf("%s 是目录，不是文件", fileName)
+	}
+
+	if err := os.Remove(filePath); err != nil {
+		fmt.Printf("删除禁用文件失败: %v\n", err)
+		return fmt.Errorf("删除禁用文件失败: %w", err)
+	}
+
+	fmt.Printf("已启用 %s 通知: 删除 %s\n", notificationType, fileName)
+	return nil
+}
+
 // GetPushoverExtensionInfo 获取 cc-pushover-hook 扩展信息
 func (a *App) GetPushoverExtensionInfo() (*pushover.ExtensionInfo, error) {
 	if a.initError != nil {
