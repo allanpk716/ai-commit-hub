@@ -72,3 +72,12 @@ func (r *GitProjectRepository) GetMaxSortOrder() (int, error) {
 	}
 	return maxOrder, nil
 }
+
+// GetByPath 根据路径获取项目
+func (r *GitProjectRepository) GetByPath(path string) (*models.GitProject, error) {
+	var project models.GitProject
+	if err := r.db.Where("path = ?", path).First(&project).Error; err != nil {
+		return nil, fmt.Errorf("failed to get project by path: %w", err)
+	}
+	return &project, nil
+}

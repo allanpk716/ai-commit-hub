@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { usePushoverStore } from '../stores/pushoverStore'
 import { NOTIFICATION_MODES, type NotificationMode } from '../types/pushover'
 
@@ -100,9 +100,16 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 
 // 获取状态
-const status = computed(() =>
-  pushoverStore.getCachedProjectStatus(props.projectPath)
-)
+const status = computed(() => {
+  const s = pushoverStore.getCachedProjectStatus(props.projectPath)
+  console.log('[DEBUG PushoverStatusCard] status for', props.projectPath, ':', s)
+  return s
+})
+
+// 监听 status 变化
+watch(status, (newStatus) => {
+  console.log('[DEBUG PushoverStatusCard] status changed:', newStatus)
+}, { immediate: true })
 
 // 状态图标
 const statusIcon = computed(() => {

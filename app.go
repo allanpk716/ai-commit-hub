@@ -101,6 +101,14 @@ func (a *App) startup(ctx context.Context) {
 		a.pushoverService = pushover.NewService(appPath)
 	}
 
+	// 同步所有项目的 Hook 状态（阻塞执行，确保前端获取到最新状态）
+	if a.pushoverService != nil {
+		fmt.Println("准备启动 Hook 状态同步...")
+		a.syncAllProjectsHookStatus()
+	} else {
+		fmt.Println("Pushover service 未初始化，跳过 Hook 状态同步")
+	}
+
 	fmt.Println("AI Commit Hub initialized successfully")
 }
 
@@ -481,7 +489,45 @@ func (a *App) InstallPushoverHook(projectPath string, force bool) (*pushover.Ins
 	if a.pushoverService == nil {
 		return &pushover.InstallResult{Success: false, Message: "pushover service 未初始化"}, nil
 	}
-	return a.pushoverService.InstallHook(projectPath, force)
+
+	// 调用 Service 层安装
+	result, err := a.pushoverService.InstallHook(projectPath, force)
+	if err != nil {
+		return result, err
+	}
+
+	// 安装成功后同步数据库状态
+	if result.Success {
+		if syncErr := a.syncProjectHookStatusByPath(projectPath); syncErr != nil {
+			fmt.Printf("同步 Hook 状态失败: %v\n", syncErr)
+			// 不影响安装结果，只记录错误
+		}
+	}
+
+	return result, nil
+}
+
+// UninstallPushoverHook 卸载项目的 Pushover Hook
+func (a *App) UninstallPushoverHook(projectPath string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+	if a.pushoverService == nil {
+		return fmt.Errorf("pushover service 未初始化")
+	}
+
+	// 调用 Service 层卸载
+	if err := a.pushoverService.UninstallHook(projectPath); err != nil {
+		return err
+	}
+
+	// 卸载成功后同步数据库状态
+	if syncErr := a.syncProjectHookStatusByPath(projectPath); syncErr != nil {
+		fmt.Printf("同步 Hook 状态失败: %v\n", syncErr)
+		// 不影响卸载结果，只记录错误
+	}
+
+	return nil
 }
 
 // SetPushoverNotificationMode 设置项目的通知模式
@@ -526,4 +572,147 @@ func (a *App) UpdatePushoverExtension() error {
 		return fmt.Errorf("pushover service 未初始化")
 	}
 	return a.pushoverService.UpdateExtension()
+}
+
+// syncAllProjectsHookStatus 同步所有项目的 Pushover Hook 状态
+func (a *App) syncAllProjectsHookStatus() {
+	projects, err := a.gitProjectRepo.GetAll()
+	if err != nil {
+		fmt.Printf("获取项目列表失败: %v\n", err)
+		return
+	}
+
+	fmt.Printf("开始同步 %d 个项目的 Hook 状态...\n", len(projects))
+
+	for _, project := range projects {
+		if err := a.syncProjectHookStatus(&project); err != nil {
+			fmt.Printf("同步项目 %s Hook 状态失败: %v\n", project.Name, err)
+		}
+	}
+
+	fmt.Printf("Hook 状态同步完成\n")
+}
+
+// syncProjectHookStatus 同步单个项目的 Hook 状态
+func (a *App) syncProjectHookStatus(project *models.GitProject) error {
+	fmt.Printf("[DEBUG] 正在检查项目 %s (路径: %s) 的 Hook 状态...\n", project.Name, project.Path)
+	status, err := a.pushoverService.GetHookStatus(project.Path)
+	if err != nil {
+		return fmt.Errorf("获取 Hook 状态失败: %w", err)
+	}
+
+	fmt.Printf("[DEBUG] 项目 %s Hook 状态: installed=%v, mode=%s\n", project.Name, status.Installed, status.Mode)
+	fmt.Printf("[DEBUG] 数据库中状态: installed=%v, mode=%s\n", project.HookInstalled, project.NotificationMode)
+
+	// 只在状态发生变化时更新数据库
+	needsUpdate := project.HookInstalled != status.Installed ||
+		(status.Installed && project.NotificationMode != string(status.Mode))
+
+	if !needsUpdate {
+		fmt.Printf("[DEBUG] 项目 %s 状态无需更新\n", project.Name)
+		return nil
+	}
+
+	project.HookInstalled = status.Installed
+	project.NotificationMode = string(status.Mode)
+	project.HookVersion = status.Version
+
+	if status.Installed && status.InstalledAt != nil {
+		project.HookInstalledAt = status.InstalledAt
+	} else {
+		project.HookInstalledAt = nil
+	}
+
+	if err := a.gitProjectRepo.Update(project); err != nil {
+		return fmt.Errorf("更新数据库失败: %w", err)
+	}
+
+	fmt.Printf("已更新项目 %s 的 Hook 状态: installed=%v, mode=%s\n",
+		project.Name, status.Installed, status.Mode)
+
+	return nil
+}
+
+// syncProjectHookStatusByPath 根据路径同步项目状态
+func (a *App) syncProjectHookStatusByPath(projectPath string) error {
+	// 根据 path 获取项目
+	project, err := a.gitProjectRepo.GetByPath(projectPath)
+	if err != nil {
+		return fmt.Errorf("获取项目失败: %w", err)
+	}
+
+	return a.syncProjectHookStatus(project)
+}
+
+// SyncProjectHookStatus 同步单个项目的 Hook 状态
+func (a *App) SyncProjectHookStatus(projectPath string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+	if a.pushoverService == nil {
+		return fmt.Errorf("pushover service 未初始化")
+	}
+
+	return a.syncProjectHookStatusByPath(projectPath)
+}
+
+// SyncAllProjectsHookStatus 手动同步所有项目的 Hook 状态
+func (a *App) SyncAllProjectsHookStatus() error {
+	if a.initError != nil {
+		return a.initError
+	}
+	if a.pushoverService == nil {
+		return fmt.Errorf("pushover service 未初始化")
+	}
+
+	a.syncAllProjectsHookStatus()
+	return nil
+}
+
+// DebugHookStatus 调试方法：返回所有项目的 Hook 状态
+func (a *App) DebugHookStatus() map[string]interface{} {
+	result := make(map[string]interface{})
+
+	if a.initError != nil {
+		result["error"] = a.initError.Error()
+		return result
+	}
+
+	if a.pushoverService == nil {
+		result["error"] = "pushover service 未初始化"
+		return result
+	}
+
+	projects, err := a.gitProjectRepo.GetAll()
+	if err != nil {
+		result["error"] = fmt.Sprintf("获取项目失败: %v", err)
+		return result
+	}
+
+	projectStatus := make([]map[string]interface{}, 0, len(projects))
+	for _, project := range projects {
+		status, err := a.pushoverService.GetHookStatus(project.Path)
+		statusInfo := map[string]interface{}{
+			"name":            project.Name,
+			"path":            project.Path,
+			"db_hook_installed": project.HookInstalled,
+			"db_notification_mode": project.NotificationMode,
+			"db_hook_version":  project.HookVersion,
+		}
+
+		if err != nil {
+			statusInfo["api_error"] = err.Error()
+		} else {
+			statusInfo["api_installed"] = status.Installed
+			statusInfo["api_mode"] = status.Mode
+			statusInfo["api_version"] = status.Version
+			statusInfo["match"] = project.HookInstalled == status.Installed
+		}
+
+		projectStatus = append(projectStatus, statusInfo)
+	}
+
+	result["projects"] = projectStatus
+	result["total"] = len(projects)
+	return result
 }

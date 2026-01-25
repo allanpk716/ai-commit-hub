@@ -26,15 +26,21 @@ func NewStatusChecker(projectPath string) *StatusChecker {
 func (sc *StatusChecker) CheckInstalled() bool {
 	// 优先检查新位置
 	newHookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-hook", "pushover-notify.py")
+	fmt.Printf("[DEBUG] StatusChecker: 检查新位置: %s\n", newHookPath)
 	if _, err := os.Stat(newHookPath); err == nil {
+		fmt.Printf("[DEBUG] StatusChecker: 找到文件！\n")
 		return true
 	}
+	fmt.Printf("[DEBUG] StatusChecker: 新位置不存在\n")
 
 	// 兼容旧位置
 	oldHookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-notify.py")
+	fmt.Printf("[DEBUG] StatusChecker: 检查旧位置: %s\n", oldHookPath)
 	if _, err := os.Stat(oldHookPath); err == nil {
+		fmt.Printf("[DEBUG] StatusChecker: 找到文件！\n")
 		return true
 	}
+	fmt.Printf("[DEBUG] StatusChecker: 旧位置不存在\n")
 
 	return false
 }

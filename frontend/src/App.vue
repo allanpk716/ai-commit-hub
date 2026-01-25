@@ -63,8 +63,14 @@ const commitStore = useCommitStore()
 const selectedProjectId = ref<number>()
 const settingsOpen = ref(false)
 
-onMounted(() => {
-  projectStore.loadProjects()
+onMounted(async () => {
+  await projectStore.loadProjects()
+  // 自动调试：输出 Hook 状态
+  setTimeout(async () => {
+    console.log('[App.vue] === 自动调试开始 ===')
+    await projectStore.debugHookStatus()
+    console.log('[App.vue] === 自动调试结束 ===')
+  }, 2000)
 })
 
 async function openAddProject() {
@@ -82,6 +88,7 @@ async function openAddProject() {
 
 function handleSelectProject(project: GitProject) {
   selectedProjectId.value = project.id
+  projectStore.selectProject(project.path)  // 同步到 projectStore
   commitStore.loadProjectStatus(project.path)
 }
 

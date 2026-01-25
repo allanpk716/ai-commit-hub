@@ -97,11 +97,13 @@ export const usePushoverStore = defineStore('pushover', () => {
    * 获取项目 Hook 状态
    */
   async function getProjectHookStatus(projectPath: string): Promise<HookStatus | null> {
+    console.log('[DEBUG pushoverStore] getProjectHookStatus called for:', projectPath)
     loading.value = true
     error.value = null
 
     try {
       const status = await GetPushoverHookStatus(projectPath)
+      console.log('[DEBUG pushoverStore] GetPushoverHookStatus returned:', status)
       if (status) {
         // 确保返回类型正确
         const hookStatus: HookStatus = {
@@ -111,11 +113,14 @@ export const usePushoverStore = defineStore('pushover', () => {
           installed_at: status.installed_at
         }
         projectHookStatus.value.set(projectPath, hookStatus)
+        console.log('[DEBUG pushoverStore] Cached hookStatus for', projectPath, ':', hookStatus)
         return hookStatus
       }
+      console.log('[DEBUG pushoverStore] status is null')
       return null
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '未知错误'
+      console.error('[DEBUG pushoverStore] Error:', e)
       error.value = `获取 Hook 状态失败: ${message}`
       return null
     } finally {

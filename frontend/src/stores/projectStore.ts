@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { GitProject } from '../types'
-import { GetAllProjects, AddProject, DeleteProject, MoveProject, ReorderProjects } from '../../wailsjs/go/main/App'
+import { GetAllProjects, AddProject, DeleteProject, MoveProject, ReorderProjects, DebugHookStatus } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 
 export const useProjectStore = defineStore('project', () => {
@@ -28,7 +28,11 @@ export const useProjectStore = defineStore('project', () => {
         provider: p.provider ?? null,
         language: p.language ?? null,
         model: p.model ?? null,
-        use_default: p.use_default
+        use_default: p.use_default,
+        hook_installed: p.hook_installed,
+        notification_mode: p.notification_mode,
+        hook_version: p.hook_version,
+        hook_installed_at: p.hook_installed_at
       }))
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '加载项目失败'
@@ -52,7 +56,11 @@ export const useProjectStore = defineStore('project', () => {
         provider: result.provider ?? null,
         language: result.language ?? null,
         model: result.model ?? null,
-        use_default: result.use_default
+        use_default: result.use_default,
+        hook_installed: result.hook_installed,
+        notification_mode: result.notification_mode,
+        hook_version: result.hook_version,
+        hook_installed_at: result.hook_installed_at
       }
       projects.value.push(newProject)
       return newProject
@@ -127,6 +135,18 @@ export const useProjectStore = defineStore('project', () => {
     selectedPath.value = path
   }
 
+  async function debugHookStatus() {
+    try {
+      const debug = await DebugHookStatus()
+      console.log('=== Hook Status Debug ===')
+      console.table(debug.projects || [])
+      return debug
+    } catch (e) {
+      console.error('Debug failed:', e)
+      return null
+    }
+  }
+
   return {
     projects,
     loading,
@@ -138,6 +158,7 @@ export const useProjectStore = defineStore('project', () => {
     deleteProject,
     moveProject,
     reorderProjects,
-    selectProject
+    selectProject,
+    debugHookStatus
   }
 })
