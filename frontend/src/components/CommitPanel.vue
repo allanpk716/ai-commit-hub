@@ -12,12 +12,6 @@
             <span class="icon">⑂</span>
             {{ commitStore.projectStatus.branch }}
           </div>
-          <PushoverStatusBadge
-            v-if="currentProject"
-            :status="pushoverStatus"
-            :loading="pushoverStore.loading"
-            :compact="true"
-          />
         </div>
       </div>
 
