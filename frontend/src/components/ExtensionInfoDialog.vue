@@ -117,7 +117,6 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { usePushoverStore } from '../stores/pushoverStore'
-import { OpenConfigFolder } from '../../wailsjs/go/main/App'
 
 interface Props {
   open: boolean
@@ -194,16 +193,6 @@ async function handleReclone() {
 // 打开 GitHub 仓库
 function handleOpenGitHub() {
   window.open('https://github.com/allanpk716/cc-pushover-hook', '_blank')
-}
-
-// 打开配置文件夹
-async function handleOpenConfigFolder() {
-  try {
-    await OpenConfigFolder()
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : '未知错误'
-    console.error('打开配置文件夹失败:', message)
-  }
 }
 
 // 打开扩展文件夹
