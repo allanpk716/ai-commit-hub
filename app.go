@@ -99,6 +99,21 @@ func (a *App) startup(ctx context.Context) {
 	} else {
 		appPath := filepath.Dir(execPath)
 		a.pushoverService = pushover.NewService(appPath)
+
+		// 自动下载 cc-pushover-hook 扩展（如果不存在）
+		if a.pushoverService != nil {
+			if !a.pushoverService.IsExtensionDownloaded() {
+				fmt.Println("cc-pushover-hook 扩展未安装，开始自动下载...")
+				if err := a.pushoverService.CloneExtension(); err != nil {
+					fmt.Printf("自动下载 cc-pushover-hook 扩展失败: %v\n", err)
+					// 不中断启动流程，继续运行
+				} else {
+					fmt.Println("cc-pushover-hook 扩展下载成功")
+				}
+			} else {
+				fmt.Println("cc-pushover-hook 扩展已存在")
+			}
+		}
 	}
 
 	// 同步所有项目的 Hook 状态（阻塞执行，确保前端获取到最新状态）
@@ -572,6 +587,18 @@ func (a *App) UpdatePushoverExtension() error {
 		return fmt.Errorf("pushover service 未初始化")
 	}
 	return a.pushoverService.UpdateExtension()
+}
+
+// CheckPushoverUpdates 检查 cc-pushover-hook 扩展更新
+// 返回: (是否需要更新, 当前版本, 最新版本, 错误)
+func (a *App) CheckPushoverUpdates() (bool, string, string, error) {
+	if a.initError != nil {
+		return false, "", "", a.initError
+	}
+	if a.pushoverService == nil {
+		return false, "", "", fmt.Errorf("pushover service 未初始化")
+	}
+	return a.pushoverService.CheckForUpdates()
 }
 
 // syncAllProjectsHookStatus 同步所有项目的 Pushover Hook 状态
