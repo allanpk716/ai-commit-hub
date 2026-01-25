@@ -1,7 +1,6 @@
 package pushover
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -76,47 +75,31 @@ func (sc *StatusChecker) GetNotificationMode() NotificationMode {
 }
 
 // GetHookVersion 获取 Hook 版本
+// 优先从 VERSION 文件读取，如果不存在则返回空字符串（表示旧版本）
 func (sc *StatusChecker) GetHookVersion() (string, error) {
-	settingsPath := filepath.Join(sc.projectPath, ".claude", "settings.json")
-
-	data, err := os.ReadFile(settingsPath)
+	// 检查新版本的 VERSION 文件
+	versionFilePath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-hook", "VERSION")
+	data, err := os.ReadFile(versionFilePath)
 	if err != nil {
-		return "", fmt.Errorf("无法读取 settings.json: %w", err)
+		// 文件不存在，可能是旧版本安装
+		return "", fmt.Errorf("VERSION file not found: %w", err)
 	}
 
-	var settings map[string]interface{}
-	if err := json.Unmarshal(data, &settings); err != nil {
-		return "", fmt.Errorf("无法解析 settings.json: %w", err)
-	}
-
-	// 尝试从命令中提取版本信息（如果包含版本标记）
-	hooks, ok := settings["hooks"].(map[string]interface{})
-	if !ok {
-		return "", nil
-	}
-
-	for _, eventHooks := range hooks {
-		if eventArray, ok := eventHooks.([]interface{}); ok {
-			for _, eventConfig := range eventArray {
-				if configMap, ok := eventConfig.(map[string]interface{}); ok {
-					if hooksList, ok := configMap["hooks"].([]interface{}); ok {
-						for _, hook := range hooksList {
-							if hookMap, ok := hook.(map[string]interface{}); ok {
-								if command, ok := hookMap["command"].(string); ok {
-									if strings.Contains(command, "pushover-notify.py") {
-										// 目前版本信息存储在其他地方，返回默认值
-										return "1.0.0", nil
-									}
-								}
-							}
-						}
-					}
-				}
+	// 解析 version= 行
+	content := strings.TrimSpace(string(data))
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "version=") {
+			version := strings.TrimPrefix(line, "version=")
+			version = strings.TrimSpace(version)
+			if version != "" {
+				return version, nil
 			}
 		}
 	}
 
-	return "1.0.0", nil
+	return "", fmt.Errorf("no version found in VERSION file")
 }
 
 // GetInstalledAt 获取安装时间
@@ -150,7 +133,11 @@ func (sc *StatusChecker) GetStatus() (*HookStatus, error) {
 	}
 
 	mode := sc.GetNotificationMode()
-	version, _ := sc.GetHookVersion()
+	version, err := sc.GetHookVersion()
+	if err != nil {
+		// VERSION 文件不存在，可能是旧版本安装
+		version = "unknown"
+	}
 	installedAt, _ := sc.GetInstalledAt()
 
 	return &HookStatus{
