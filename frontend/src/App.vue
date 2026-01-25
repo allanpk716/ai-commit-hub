@@ -18,6 +18,8 @@
           <span class="icon">＋</span>
           <span>添加项目</span>
         </button>
+        <!-- 扩展状态按钮 -->
+        <ExtensionStatusButton @open="extensionDialogOpen = true" />
         <button @click="openSettings" class="btn btn-secondary">
           <span class="icon">⚙</span>
           <span>设置</span>
@@ -27,6 +29,9 @@
 
     <!-- Settings Dialog -->
     <SettingsDialog v-model="settingsOpen" />
+
+    <!-- Extension Info Dialog -->
+    <ExtensionInfoDialog :open="extensionDialogOpen" @close="extensionDialogOpen = false" />
 
     <!-- Main content area -->
     <main class="content">
@@ -56,21 +61,18 @@ import { SelectProjectFolder } from '../wailsjs/go/main/App'
 import ProjectList from './components/ProjectList.vue'
 import CommitPanel from './components/CommitPanel.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
+import ExtensionStatusButton from './components/ExtensionStatusButton.vue'
+import ExtensionInfoDialog from './components/ExtensionInfoDialog.vue'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
 const commitStore = useCommitStore()
 const selectedProjectId = ref<number>()
 const settingsOpen = ref(false)
+const extensionDialogOpen = ref(false)
 
 onMounted(async () => {
   await projectStore.loadProjects()
-  // 自动调试：输出 Hook 状态
-  setTimeout(async () => {
-    console.log('[App.vue] === 自动调试开始 ===')
-    await projectStore.debugHookStatus()
-    console.log('[App.vue] === 自动调试结束 ===')
-  }, 2000)
 })
 
 async function openAddProject() {
