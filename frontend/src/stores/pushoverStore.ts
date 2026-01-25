@@ -34,6 +34,7 @@ export const usePushoverStore = defineStore('pushover', () => {
   const projectHookStatus = ref<Map<string, HookStatus>>(new Map())
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const configValid = ref(false)
 
   // Computed
   const isExtensionDownloaded = computed(() => extensionInfo.value.downloaded)
@@ -311,6 +312,7 @@ export const usePushoverStore = defineStore('pushover', () => {
   async function checkPushoverConfig(): Promise<PushoverConfigStatus> {
     try {
       const result = await CheckPushoverConfig()
+      configValid.value = result.valid as boolean
       return {
         valid: result.valid as boolean,
         tokenSet: result.token_set as boolean,
@@ -319,6 +321,7 @@ export const usePushoverStore = defineStore('pushover', () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '未知错误'
       error.value = `检查 Pushover 配置失败: ${message}`
+      configValid.value = false
       throw e
     }
   }
@@ -329,6 +332,7 @@ export const usePushoverStore = defineStore('pushover', () => {
     projectHookStatus,
     loading,
     error,
+    configValid,
 
     // Computed
     isExtensionDownloaded,

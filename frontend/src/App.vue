@@ -57,6 +57,7 @@
 import { ref, onMounted } from 'vue'
 import { useProjectStore } from './stores/projectStore'
 import { useCommitStore } from './stores/commitStore'
+import { usePushoverStore } from './stores/pushoverStore'
 import { SelectProjectFolder } from '../wailsjs/go/main/App'
 import ProjectList from './components/ProjectList.vue'
 import CommitPanel from './components/CommitPanel.vue'
@@ -67,12 +68,18 @@ import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
 const commitStore = useCommitStore()
+const pushoverStore = usePushoverStore()
 const selectedProjectId = ref<number>()
 const settingsOpen = ref(false)
 const extensionDialogOpen = ref(false)
 
 onMounted(async () => {
   await projectStore.loadProjects()
+  // 检查 Pushover 配置
+  await pushoverStore.checkPushoverConfig()
+  if (!pushoverStore.configValid) {
+    console.warn('Pushover 环境变量未配置，通知功能可能不可用')
+  }
 })
 
 async function openAddProject() {
