@@ -109,6 +109,11 @@ func (s *Service) RecloneExtension() error {
 	return s.repoManager.Reclone()
 }
 
+// GetExtensionPath 获取扩展目录路径
+func (s *Service) GetExtensionPath() string {
+	return s.repoManager.GetExtensionPath()
+}
+
 // CheckForUpdates 检查是否有可用更新
 // 返回: (是否需要更新, 当前版本, 最新版本, 错误)
 func (s *Service) CheckForUpdates() (bool, string, string, error) {

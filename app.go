@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	stdruntime "runtime"
 	"os"
 	"os/exec"
 	"path/filepath"
+	stdruntime "runtime"
 
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
@@ -154,6 +154,37 @@ func (a *App) OpenConfigFolder() error {
 		cmd = exec.Command("open", configDir)
 	default:
 		cmd = exec.Command("xdg-open", configDir)
+	}
+
+	return cmd.Start()
+}
+
+// OpenExtensionFolder opens the cc-pushover-hook extension folder in system file manager
+func (a *App) OpenExtensionFolder() error {
+	if a.initError != nil {
+		return a.initError
+	}
+	if a.pushoverService == nil {
+		return fmt.Errorf("pushover service 未初始化")
+	}
+
+	// 获取扩展路径
+	extensionPath := a.pushoverService.GetExtensionPath()
+
+	// 检查目录是否存在
+	if _, err := os.Stat(extensionPath); os.IsNotExist(err) {
+		return fmt.Errorf("extension directory not found: %s", extensionPath)
+	}
+
+	// 根据操作系统选择命令
+	var cmd *exec.Cmd
+	switch stdruntime.GOOS {
+	case "windows":
+		cmd = exec.Command("explorer", extensionPath)
+	case "darwin":
+		cmd = exec.Command("open", extensionPath)
+	default:
+		cmd = exec.Command("xdg-open", extensionPath)
 	}
 
 	return cmd.Start()
@@ -608,9 +639,9 @@ func (a *App) CheckPushoverExtensionUpdates() (map[string]interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		"needs_update":     needsUpdate,
-		"current_version":  currentVersion,
-		"latest_version":   latestVersion,
+		"needs_update":    needsUpdate,
+		"current_version": currentVersion,
+		"latest_version":  latestVersion,
 	}, nil
 }
 
@@ -809,11 +840,11 @@ func (a *App) DebugHookStatus() map[string]interface{} {
 	for _, project := range projects {
 		status, err := a.pushoverService.GetHookStatus(project.Path)
 		statusInfo := map[string]interface{}{
-			"name":            project.Name,
-			"path":            project.Path,
-			"db_hook_installed": project.HookInstalled,
+			"name":                 project.Name,
+			"path":                 project.Path,
+			"db_hook_installed":    project.HookInstalled,
 			"db_notification_mode": project.NotificationMode,
-			"db_hook_version":  project.HookVersion,
+			"db_hook_version":      project.HookVersion,
 		}
 
 		if err != nil {
