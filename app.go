@@ -593,6 +593,27 @@ func (a *App) GetPushoverExtensionInfo() (*pushover.ExtensionInfo, error) {
 	return a.pushoverService.GetExtensionInfo()
 }
 
+// CheckPushoverExtensionUpdates 检查 cc-pushover-hook 扩展更新
+func (a *App) CheckPushoverExtensionUpdates() (map[string]interface{}, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+	if a.pushoverService == nil {
+		return nil, fmt.Errorf("pushover service 未初始化")
+	}
+
+	needsUpdate, currentVersion, latestVersion, err := a.pushoverService.CheckForUpdates()
+	if err != nil {
+		return nil, fmt.Errorf("检查扩展更新失败: %w", err)
+	}
+
+	return map[string]interface{}{
+		"needs_update":     needsUpdate,
+		"current_version":  currentVersion,
+		"latest_version":   latestVersion,
+	}, nil
+}
+
 // ClonePushoverExtension 克隆 cc-pushover-hook 扩展
 func (a *App) ClonePushoverExtension() error {
 	if a.initError != nil {
