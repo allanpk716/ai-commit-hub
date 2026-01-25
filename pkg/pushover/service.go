@@ -80,3 +80,28 @@ func (s *Service) GetExtensionInfo() (*ExtensionInfo, error) {
 func (s *Service) IsExtensionDownloaded() bool {
 	return s.repoManager.IsCloned()
 }
+
+// CheckForUpdates 检查是否有可用更新
+// 返回: (是否需要更新, 当前版本, 最新版本, 错误)
+func (s *Service) CheckForUpdates() (bool, string, string, error) {
+	// 检查扩展是否已下载
+	if !s.repoManager.IsCloned() {
+		return false, "", "", fmt.Errorf("扩展未下载")
+	}
+
+	// 获取当前版本和最新版本
+	currentVersion, err := s.repoManager.GetVersion()
+	if err != nil {
+		return false, "", "", fmt.Errorf("获取当前版本失败: %w", err)
+	}
+
+	latestVersion, err := s.repoManager.GetLatestVersion()
+	if err != nil {
+		return false, "", "", fmt.Errorf("获取最新版本失败: %w", err)
+	}
+
+	// 比较版本
+	needsUpdate := CompareVersions(currentVersion, latestVersion) < 0
+
+	return needsUpdate, currentVersion, latestVersion, nil
+}
