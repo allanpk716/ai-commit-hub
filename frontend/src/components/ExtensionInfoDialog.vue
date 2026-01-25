@@ -36,11 +36,11 @@
           <h3>版本信息</h3>
           <div class="info-row">
             <span class="label">当前版本:</span>
-            <span class="value">v{{ pushoverStore.extensionInfo.current_version || pushoverStore.extensionInfo.version }}</span>
+            <span class="value">{{ pushoverStore.extensionInfo.current_version || pushoverStore.extensionInfo.version }}</span>
           </div>
           <div v-if="pushoverStore.isUpdateAvailable" class="info-row">
             <span class="label">最新版本:</span>
-            <span class="value text-accent">v{{ pushoverStore.extensionInfo.latest_version }}</span>
+            <span class="value text-accent">{{ pushoverStore.extensionInfo.latest_version }}</span>
           </div>
           <div v-if="pushoverStore.isUpdateAvailable" class="update-hint">
             有新版本可用，建议更新扩展
