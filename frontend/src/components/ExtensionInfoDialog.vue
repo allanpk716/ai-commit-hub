@@ -23,7 +23,7 @@
             <span
               v-if="pushoverStore.extensionInfo.path"
               class="value value-path clickable"
-              @click="handleOpenConfigFolder"
+              @click="handleOpenExtensionFolder"
             >
               {{ pushoverStore.extensionInfo.path }}
             </span>
@@ -207,6 +207,17 @@ async function handleOpenConfigFolder() {
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : '未知错误'
     console.error('打开配置文件夹失败:', message)
+  }
+}
+
+// 打开扩展文件夹
+async function handleOpenExtensionFolder() {
+  try {
+    const { OpenExtensionFolder } = await import('../../wailsjs/go/main/App')
+    await OpenExtensionFolder()
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '未知错误'
+    pushoverStore.error = `打开扩展文件夹失败: ${message}`
   }
 }
 </script>
