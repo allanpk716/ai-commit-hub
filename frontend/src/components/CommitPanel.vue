@@ -21,6 +21,16 @@
         </div>
       </div>
 
+      <!-- Pushover Status Row -->
+      <PushoverStatusRow
+        v-if="currentProject"
+        :project-path="currentProject.path"
+        :status="pushoverStatus"
+        :loading="pushoverStore.loading"
+        @install="handleInstallPushover"
+        @update="handleUpdatePushover"
+      />
+
       <div class="staged-files-container">
         <div v-if="!commitStore.projectStatus.has_staged" class="empty-state-compact">
           <div class="icon">📄</div>
@@ -49,12 +59,6 @@
       <h2>未选择项目</h2>
       <p>请从左侧列表选择一个项目</p>
     </div>
-
-    <!-- Pushover Hook Status -->
-    <PushoverStatusCard
-      v-if="commitStore.projectStatus && currentProject"
-      :project-path="currentProject.path"
-    />
 
     <!-- AI Settings -->
     <section class="panel-section" v-if="commitStore.projectStatus">
@@ -236,8 +240,7 @@ import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
 import { GetProjectHistory, SaveCommitHistory, CommitLocally } from '../../wailsjs/go/main/App'
-import PushoverStatusBadge from './PushoverStatusBadge.vue'
-import PushoverStatusCard from './PushoverStatusCard.vue'
+import PushoverStatusRow from './PushoverStatusRow.vue'
 import type { CommitHistory } from '../types'
 
 const commitStore = useCommitStore()
@@ -393,6 +396,30 @@ async function handleCommit() {
 async function handleRegenerate() {
   commitStore.clearMessage()
   await commitStore.generateCommit()
+}
+
+// 处理安装 Pushover Hook
+async function handleInstallPushover() {
+  if (!currentProject.value) return
+  const result = await pushoverStore.installHook(currentProject.value.path, false)
+  if (result.success) {
+    // 刷新状态
+    await pushoverStore.getProjectHookStatus(currentProject.value.path)
+  } else {
+    alert('安装失败: ' + (result.message || '未知错误'))
+  }
+}
+
+// 处理更新 Pushover Hook
+async function handleUpdatePushover() {
+  if (!currentProject.value) return
+  const result = await pushoverStore.updateHook(currentProject.value.path)
+  if (result.success) {
+    // 刷新状态
+    await pushoverStore.getProjectHookStatus(currentProject.value.path)
+  } else {
+    alert('更新失败: ' + (result.message || '未知错误'))
+  }
 }
 
 // 组件挂载时加载 provider 列表
