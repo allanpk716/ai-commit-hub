@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	stdruntime "runtime"
 
+	"github.com/WQGroup/logger"
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 	"github.com/allanpk716/ai-commit-hub/pkg/pushover"
@@ -681,6 +682,31 @@ func (a *App) ToggleNotification(projectPath string, notificationType string) er
 
 	fmt.Printf("已启用 %s 通知: 删除 %s\n", notificationType, fileName)
 	return nil
+}
+
+// CheckPushoverConfig 检查 Pushover 环境变量是否已配置
+// 返回配置状态，用于应用启动时的检查
+func (a *App) CheckPushoverConfig() map[string]interface{} {
+	token := os.Getenv("PUSHOVER_TOKEN")
+	user := os.Getenv("PUSHOVER_USER")
+
+	tokenSet := token != ""
+	userSet := user != ""
+	valid := tokenSet && userSet
+
+	result := map[string]interface{}{
+		"valid":     valid,
+		"token_set": tokenSet,
+		"user_set":  userSet,
+	}
+
+	if valid {
+		logger.Info("Pushover 配置检查: 已配置")
+	} else {
+		logger.Warn("Pushover 配置检查: 未配置 (TOKEN=%t, USER=%t)", tokenSet, userSet)
+	}
+
+	return result
 }
 
 // GetPushoverExtensionInfo 获取 cc-pushover-hook 扩展信息
