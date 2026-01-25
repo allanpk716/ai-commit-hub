@@ -263,6 +263,7 @@ function openSettings() {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  overflow-y: auto;
 }
 
 /* Empty state */

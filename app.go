@@ -15,6 +15,15 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gorm.io/gorm"
+
+	// Provider 注册 - 匿名导入以触发 init()
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/anthropic"
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/deepseek"
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/google"
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/ollama"
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/openai"
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/openrouter"
+	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/phind"
 )
 
 // App struct

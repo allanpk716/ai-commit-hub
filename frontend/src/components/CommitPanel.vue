@@ -407,7 +407,6 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   padding: var(--space-lg);
-  overflow-y: auto;
   gap: var(--space-md);
 }
 
