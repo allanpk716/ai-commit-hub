@@ -7,6 +7,9 @@
 *.test
 *.out
 
+# Windows resource files
+*.syso
+
 # Go workspace file
 go.work
 
