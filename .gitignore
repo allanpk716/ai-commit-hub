@@ -7,8 +7,12 @@
 *.test
 *.out
 
-# Windows resource files
+# Windows resource files (track the ones we need for build)
 *.syso
+!rsrc_windows_amd64.syso
+!rsrc_windows_386.syso
+winres/icon*.png
+winres/*.syso
 
 # Go workspace file
 go.work
