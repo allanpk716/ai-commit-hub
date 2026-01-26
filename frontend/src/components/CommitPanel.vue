@@ -1313,7 +1313,7 @@ onUnmounted(() => {
 /* Toast Notification */
 .toast-notification {
   position: fixed;
-  top: var(--space-lg);
+  bottom: var(--space-lg);
   right: var(--space-lg);
   display: flex;
   align-items: center;
