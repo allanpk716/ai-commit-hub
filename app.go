@@ -357,40 +357,65 @@ func (a *App) GetProjectStatus(projectPath string) (map[string]interface{}, erro
 
 // GenerateCommit generates a commit message using AI
 func (a *App) GenerateCommit(projectPath, provider, language string) error {
+	logger.Info("App.GenerateCommit 被调用")
+	logger.Infof("参数 - projectPath: %s, provider: %s, language: %s", projectPath, provider, language)
+
 	if a.initError != nil {
+		errMsg := fmt.Sprintf("应用未正确初始化: %v", a.initError)
+		logger.Errorf(errMsg)
 		return a.initError
 	}
 
 	commitService := service.NewCommitService(a.ctx)
-	return commitService.GenerateCommit(projectPath, provider, language)
+	logger.Info("CommitService 创建成功，开始生成...")
+	err := commitService.GenerateCommit(projectPath, provider, language)
+	if err != nil {
+		logger.Errorf("CommitService.GenerateCommit 返回错误: %v", err)
+	} else {
+		logger.Info("CommitService.GenerateCommit 执行完成（已启动异步生成）")
+	}
+	return err
 }
 
 // CommitLocally commits changes to local git repository
 func (a *App) CommitLocally(projectPath, message string) error {
+	logger.Infof("CommitLocally 被调用 - projectPath: %s, message: %s", projectPath, message)
+
 	if a.initError != nil {
+		logger.Errorf("数据库初始化错误: %v", a.initError)
 		return a.initError
 	}
 
 	if message == "" {
-		return fmt.Errorf("commit 消息不能为空")
+		err := fmt.Errorf("commit 消息不能为空")
+		logger.Errorf("提交失败: %v", err)
+		return err
 	}
 
 	// Save current directory and change to project path
 	originalDir, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
-	}
-
-	if err := os.Chdir(projectPath); err != nil {
-		return fmt.Errorf("failed to change directory: %w", err)
-	}
-	defer os.Chdir(originalDir)
-
-	// Use the existing CommitChanges function from git package
-	if err := git.CommitChanges(context.Background(), message); err != nil {
+		err := fmt.Errorf("failed to get current directory: %w", err)
+		logger.Errorf("获取当前目录失败: %v", err)
 		return err
 	}
 
+	if err := os.Chdir(projectPath); err != nil {
+		err := fmt.Errorf("failed to change directory: %w", err)
+		logger.Errorf("切换到项目目录失败: %v", err)
+		return err
+	}
+	defer os.Chdir(originalDir)
+
+	logger.Infof("准备提交 - 目录: %s", projectPath)
+
+	// Use the existing CommitChanges function from git package
+	if err := git.CommitChanges(context.Background(), message); err != nil {
+		logger.Errorf("CommitChanges 失败: %v", err)
+		return err
+	}
+
+	logger.Infof("提交成功 - 目录: %s", projectPath)
 	return nil
 }
 

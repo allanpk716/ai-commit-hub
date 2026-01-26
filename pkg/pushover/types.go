@@ -37,3 +37,21 @@ type InstallResult struct {
 	HookPath string `json:"hook_path,omitempty"`
 	Version  string `json:"version,omitempty"`
 }
+
+// PythonInstallResult Python 脚本输出的 JSON 格式
+type PythonInstallResult struct {
+	Status   string `json:"status"`   // "success", "error", "cancelled"
+	Message  string `json:"message,omitempty"`
+	HookPath string `json:"hook_path,omitempty"`
+	Version  string `json:"version,omitempty"`
+}
+
+// ToInstallResult 将 Python 格式的结果转换为 InstallResult
+func (p *PythonInstallResult) ToInstallResult() InstallResult {
+	return InstallResult{
+		Success:  p.Status == "success",
+		Message:  p.Message,
+		HookPath: p.HookPath,
+		Version:  p.Version,
+	}
+}

@@ -5,7 +5,7 @@ import (
 
 	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/ai"
 	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/config"
-	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/provider/registry"
+	"github.com/allanpk716/ai-commit-hub/pkg/provider/registry"
 )
 
 const ProviderName = "deepseek"

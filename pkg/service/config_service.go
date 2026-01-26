@@ -16,7 +16,7 @@ import (
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/openai"
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/openrouter"
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/phind"
-	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/provider/registry"
+	"github.com/allanpk716/ai-commit-hub/pkg/provider/registry"
 	"gopkg.in/yaml.v3"
 )
 

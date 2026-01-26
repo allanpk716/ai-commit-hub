@@ -77,23 +77,33 @@ func (in *Installer) Install(projectPath string, force bool) (*InstallResult, er
 	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
 	lastLine := lines[len(lines)-1]
 
-	var result InstallResult
-	if err := json.Unmarshal([]byte(lastLine), &result); err != nil {
-		// 如果不是 JSON 格式，可能是旧版本或输出格式错误
-		if strings.Contains(outputStr, "success") || strings.Contains(outputStr, "complete") {
-			return &InstallResult{
-				Success:  true,
-				Message:  "安装成功",
-				HookPath: filepath.Join(projectPath, ".claude", "hooks", "pushover-hook"),
-			}, nil
-		}
+	// 尝试解析 Python 格式的输出 (status: "success")
+	var pythonResult PythonInstallResult
+	if err := json.Unmarshal([]byte(lastLine), &pythonResult); err == nil {
+		// 成功解析 Python 格式
+		result := pythonResult.ToInstallResult()
+		return &result, nil
+	}
+
+	// 尝试解析标准格式的输出 (success: true)
+	var standardResult InstallResult
+	if err := json.Unmarshal([]byte(lastLine), &standardResult); err == nil {
+		return &standardResult, nil
+	}
+
+	// 如果两种格式都无法解析，检查输出中是否包含成功关键字
+	if strings.Contains(outputStr, "success") || strings.Contains(outputStr, "complete") {
 		return &InstallResult{
-			Success: false,
-			Message: fmt.Sprintf("无法解析安装结果: %v\n输出: %s", err, outputStr),
+			Success:  true,
+			Message:  "安装成功",
+			HookPath: filepath.Join(projectPath, ".claude", "hooks", "pushover-hook"),
 		}, nil
 	}
 
-	return &result, nil
+	return &InstallResult{
+		Success: false,
+		Message: fmt.Sprintf("无法解析安装结果: %v\n输出: %s", err, outputStr),
+	}, nil
 }
 
 // Uninstall 卸载 Hook
@@ -156,23 +166,33 @@ func (in *Installer) Update(projectPath string) (*InstallResult, error) {
 	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
 	lastLine := lines[len(lines)-1]
 
-	var result InstallResult
-	if err := json.Unmarshal([]byte(lastLine), &result); err != nil {
-		// 如果不是 JSON 格式，可能是旧版本或输出格式错误
-		if strings.Contains(outputStr, "success") || strings.Contains(outputStr, "complete") {
-			return &InstallResult{
-				Success:  true,
-				Message:  "更新成功",
-				HookPath: filepath.Join(projectPath, ".claude", "hooks", "pushover-hook"),
-			}, nil
-		}
+	// 尝试解析 Python 格式的输出 (status: "success")
+	var pythonResult PythonInstallResult
+	if err := json.Unmarshal([]byte(lastLine), &pythonResult); err == nil {
+		// 成功解析 Python 格式
+		result := pythonResult.ToInstallResult()
+		return &result, nil
+	}
+
+	// 尝试解析标准格式的输出 (success: true)
+	var standardResult InstallResult
+	if err := json.Unmarshal([]byte(lastLine), &standardResult); err == nil {
+		return &standardResult, nil
+	}
+
+	// 如果两种格式都无法解析，检查输出中是否包含成功关键字
+	if strings.Contains(outputStr, "success") || strings.Contains(outputStr, "complete") {
 		return &InstallResult{
-			Success: false,
-			Message: fmt.Sprintf("无法解析更新结果: %v\n输出: %s", err, outputStr),
+			Success:  true,
+			Message:  "更新成功",
+			HookPath: filepath.Join(projectPath, ".claude", "hooks", "pushover-hook"),
 		}, nil
 	}
 
-	return &result, nil
+	return &InstallResult{
+		Success: false,
+		Message: fmt.Sprintf("无法解析更新结果: 输出: %s", outputStr),
+	}, nil
 }
 
 // SetNotificationMode 设置通知模式

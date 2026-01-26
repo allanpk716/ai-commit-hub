@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/WQGroup/logger"
 	"github.com/allanpk716/ai-commit-hub/pkg/ai"
-	"github.com/allanpk716/ai-commit-hub/pkg/config"
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/prompt"
 	"github.com/allanpk716/ai-commit-hub/pkg/provider/registry"
@@ -27,44 +27,64 @@ func NewCommitService(ctx context.Context) *CommitService {
 }
 
 func (s *CommitService) GenerateCommit(projectPath, providerName, language string) error {
-	// Load config
-	cfg, _ := config.LoadOrCreateConfig()
+	logger.Info("开始生成 Commit 消息")
+	logger.Infof("项目路径: %s", projectPath)
+	logger.Infof("请求的 Provider: %s", providerName)
+	logger.Infof("请求的语言: %s", language)
+
+	// 加载配置检查 provider 是否已配置
+	logger.Info("正在加载配置...")
+	cfg, err := s.configService.LoadConfig(s.ctx)
+	if err != nil {
+		errMsg := fmt.Sprintf("加载配置失败: %v", err)
+		logger.Errorf(errMsg)
+		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
+		return fmt.Errorf("加载配置失败: %w", err)
+	}
+	logger.Info("配置加载成功")
+	logger.Infof("当前默认 Provider: %s", cfg.Provider)
 
 	// Override provider if specified
 	if providerName != "" {
 		cfg.Provider = providerName
+		logger.Infof("使用指定的 Provider: %s", providerName)
 	}
 	if language != "" {
 		cfg.Language = language
-	}
-
-	// 加载配置检查 provider 是否已配置
-	configuredCfg, err := s.configService.LoadConfig(s.ctx)
-	if err != nil {
-		runtime.EventsEmit(s.ctx, "commit-error", fmt.Sprintf("加载配置失败: %v", err))
-		return fmt.Errorf("加载配置失败: %w", err)
+		logger.Infof("使用指定的语言: %s", language)
 	}
 
 	// 检查 provider 是否已配置
-	providers := s.configService.GetConfiguredProviders(configuredCfg)
+	logger.Info("检查 Provider 配置状态...")
+	providers := s.configService.GetConfiguredProviders(cfg)
+	logger.Infof("找到 %d 个已配置的 Provider", len(providers))
+
 	providerConfigured := false
 	for _, p := range providers {
+		logger.Debugf("Provider: %s, 配置状态: %v", p.Name, p.Configured)
 		if p.Name == cfg.Provider && p.Configured {
 			providerConfigured = true
+			logger.Infof("找到已配置的 Provider: %s", cfg.Provider)
 			break
 		}
 	}
 
 	if !providerConfigured {
-		errMsg := fmt.Sprintf("Provider '%s' 未配置，请先在配置文件中添加", cfg.Provider)
+		errMsg := fmt.Sprintf("Provider '%s' 未配置或不可用，请先在设置中配置 API Key", cfg.Provider)
+		logger.Errorf(errMsg)
+		logger.Infof("可用的 Provider: %v", providers)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("provider not configured: %s", cfg.Provider)
 	}
 
 	// Get AI client from registry (imports provider packages for side effects)
 	// The providers are already registered via their init() functions
+	logger.Infof("从注册表获取 Provider: %s", cfg.Provider)
 	factory, ok := registry.Get(cfg.Provider)
 	if !ok {
+		errMsg := fmt.Sprintf("未知的 provider: %s", cfg.Provider)
+		logger.Errorf(errMsg)
+		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("未知的 provider: %s", cfg.Provider)
 	}
 
@@ -75,40 +95,66 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 		Model:   providerSettings.Model,
 		BaseURL: providerSettings.BaseURL,
 	}
+	logger.Infof("Provider 配置 - Model: %s, BaseURL: %s", providerSettings.Model, providerSettings.BaseURL)
 
+	logger.Info("创建 AI Client...")
 	client, err := factory(context.Background(), cfg.Provider, ps)
 	if err != nil {
+		errMsg := fmt.Sprintf("创建 AI client 失败: %v", err)
+		logger.Errorf(errMsg)
+		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("创建 AI client 失败: %w", err)
 	}
+	logger.Info("AI Client 创建成功")
 
 	// Get diff
+	logger.Info("获取 Git Diff...")
 	originalDir, _ := os.Getwd()
-	os.Chdir(projectPath)
+	err = os.Chdir(projectPath)
+	if err != nil {
+		errMsg := fmt.Sprintf("切换到项目目录失败: %v", err)
+		logger.Errorf(errMsg)
+		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
+		return fmt.Errorf("切换目录失败: %w", err)
+	}
 	defer os.Chdir(originalDir)
 
 	diff, err := git.GetGitDiffIgnoringMoves(context.Background())
 	if err != nil {
+		errMsg := fmt.Sprintf("获取 diff 失败: %v", err)
+		logger.Errorf(errMsg)
+		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("获取 diff 失败: %w", err)
 	}
+	logger.Infof("Git Diff 获取成功，长度: %d 字符", len(diff))
 
 	if diff == "" {
-		runtime.EventsEmit(s.ctx, "commit-error", "暂存区没有变更")
+		errMsg := "暂存区没有变更"
+		logger.Warn(errMsg)
+		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return nil
 	}
 
 	// Build prompt
+	logger.Info("构建 Prompt...")
 	promptText := prompt.BuildCommitPrompt(diff, cfg.Language, "", "", "")
+	logger.Debugf("Prompt 长度: %d 字符", len(promptText))
 
 	// Stream commit message
 	if sc, ok := client.(ai.StreamingAIClient); ok {
+		logger.Info("使用流式生成模式")
 		go func() {
+			logger.Info("开始流式生成...")
 			final, err := sc.StreamCommitMessage(context.Background(), promptText, func(delta string) {
 				runtime.EventsEmit(s.ctx, "commit-delta", delta)
 			})
 
 			if err != nil {
-				runtime.EventsEmit(s.ctx, "commit-error", err.Error())
+				errMsg := fmt.Sprintf("生成失败: %v", err)
+				logger.Errorf(errMsg)
+				runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 			} else {
+				logger.Info("Commit 消息生成成功")
 				runtime.EventsEmit(s.ctx, "commit-complete", final)
 			}
 		}()
@@ -116,12 +162,16 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	}
 
 	// Fallback: non-streaming
+	logger.Info("使用非流式生成模式")
 	msg, err := client.GetCommitMessage(context.Background(), promptText)
 	if err != nil {
-		runtime.EventsEmit(s.ctx, "commit-error", err.Error())
+		errMsg := fmt.Sprintf("生成失败: %v", err)
+		logger.Errorf(errMsg)
+		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return err
 	}
 
+	logger.Info("Commit 消息生成成功")
 	runtime.EventsEmit(s.ctx, "commit-complete", msg)
 	return nil
 }
