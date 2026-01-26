@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -44,7 +43,7 @@ func GetProjectStatus(ctx context.Context, projectPath string) (*ProjectStatus, 
 }
 
 func getCurrentBranch(projectPath string) (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd := Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	cmd.Dir = projectPath
 	output, err := cmd.Output()
 	if err != nil {
@@ -54,7 +53,7 @@ func getCurrentBranch(projectPath string) (string, error) {
 }
 
 func getStagedFiles(projectPath string) ([]StagedFile, error) {
-	cmd := exec.Command("git", "diff", "--cached", "--name-status")
+	cmd := Command("git", "diff", "--cached", "--name-status")
 	cmd.Dir = projectPath
 	output, err := cmd.Output()
 	if err != nil {

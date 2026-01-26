@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -547,7 +546,7 @@ func partialCommit(chunks []DiffChunk, selected map[int]bool, client any) error 
 		return fmt.Errorf("no chunks selected")
 	}
 
-	cmd := exec.CommandContext(ctx, "git", "apply", "--cached", "-")
+	cmd := Command("git", "apply", "--cached", "-")
 	cmd.Stdin = strings.NewReader(patch)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -591,7 +590,7 @@ Diff:
 // GetStagedDiff returns the diff of staged changes using git diff --cached.
 // This is more reliable than GetGitDiffIgnoringMoves for getting only staged changes.
 func GetStagedDiff(ctx context.Context) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "diff", "--cached")
+	cmd := Command("git", "diff", "--cached")
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {

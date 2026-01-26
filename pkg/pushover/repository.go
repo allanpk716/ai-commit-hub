@@ -3,7 +3,6 @@ package pushover
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -48,7 +47,7 @@ func (rm *RepositoryManager) Clone() error {
 
 	// 克隆仓库
 	extensionPath := rm.GetExtensionPath()
-	cmd := exec.Command("git", "clone", "-b", pushoverBranch, "--single-branch", pushoverRepoURL, extensionPath)
+	cmd := Command("git", "clone", "-b", pushoverBranch, "--single-branch", pushoverRepoURL, extensionPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("克隆失败: %v\n输出: %s", err, string(output))
@@ -66,7 +65,7 @@ func (rm *RepositoryManager) Update() error {
 	extensionPath := rm.GetExtensionPath()
 
 	// 执行 git pull
-	cmd := exec.Command("git", "pull", "origin", pushoverBranch)
+	cmd := Command("git", "pull", "origin", pushoverBranch)
 	cmd.Dir = extensionPath
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -85,12 +84,12 @@ func (rm *RepositoryManager) GetVersion() (string, error) {
 	extensionPath := rm.GetExtensionPath()
 
 	// 获取 git describe 输出作为版本
-	cmd := exec.Command("git", "describe", "--tags", "--always")
+	cmd := Command("git", "describe", "--tags", "--always")
 	cmd.Dir = extensionPath
 	output, err := cmd.Output()
 	if err != nil {
 		// 如果没有 tag，使用 commit hash
-		cmd = exec.Command("git", "rev-parse", "--short", "HEAD")
+		cmd = Command("git", "rev-parse", "--short", "HEAD")
 		cmd.Dir = extensionPath
 		output, err = cmd.Output()
 		if err != nil {
@@ -110,12 +109,12 @@ func (rm *RepositoryManager) GetLatestVersion() (string, error) {
 	extensionPath := rm.GetExtensionPath()
 
 	// 获取远程最新 tag
-	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0", "origin/main")
+	cmd := Command("git", "describe", "--tags", "--abbrev=0", "origin/main")
 	cmd.Dir = extensionPath
 	output, err := cmd.Output()
 	if err != nil {
 		// 如果没有 tag，返回 commit hash
-		cmd = exec.Command("git", "rev-parse", "--short", "origin/main")
+		cmd = Command("git", "rev-parse", "--short", "origin/main")
 		cmd.Dir = extensionPath
 		output, err = cmd.Output()
 		if err != nil {
