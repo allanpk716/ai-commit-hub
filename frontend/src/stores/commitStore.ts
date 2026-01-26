@@ -10,7 +10,6 @@ import {
   ConfirmResetProjectConfig,
   GetConfiguredProviders
 } from '../../wailsjs/go/main/App'
-import { EventsOn } from '../../wailsjs/runtime/runtime'
 
 export const useCommitStore = defineStore('commit', () => {
   const selectedProjectPath = ref<string>('')
@@ -165,21 +164,21 @@ export const useCommitStore = defineStore('commit', () => {
     generatedMessage.value = ''
   }
 
-  // Setup event listeners
-  EventsOn('commit-delta', (delta: string) => {
+  // 事件处理函数（供组件调用）
+  function handleDelta(delta: string) {
     streamingMessage.value += delta
-  })
+  }
 
-  EventsOn('commit-complete', (message: string) => {
+  function handleComplete(message: string) {
     generatedMessage.value = message
     streamingMessage.value = message
     isGenerating.value = false
-  })
+  }
 
-  EventsOn('commit-error', (err: string) => {
+  function handleError(err: string) {
     error.value = err
     isGenerating.value = false
-  })
+  }
 
   return {
     selectedProjectPath,
@@ -201,6 +200,9 @@ export const useCommitStore = defineStore('commit', () => {
     saveProjectConfig,
     confirmResetConfig,
     generateCommit,
-    clearMessage
+    clearMessage,
+    handleDelta,
+    handleComplete,
+    handleError
   }
 })

@@ -239,11 +239,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
 import { GetProjectHistory, SaveCommitHistory, CommitLocally } from '../../wailsjs/go/main/App'
+import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 import PushoverStatusRow from './PushoverStatusRow.vue'
 import type { CommitHistory } from '../types'
 
@@ -442,9 +443,22 @@ async function handleUpdatePushover() {
   }
 }
 
-// 组件挂载时加载 provider 列表
+// 组件挂载时加载 provider 列表并注册事件监听
 onMounted(() => {
   commitStore.loadAvailableProviders()
+
+  // 注册 Wails 事件监听器
+  EventsOn('commit-delta', commitStore.handleDelta)
+  EventsOn('commit-complete', commitStore.handleComplete)
+  EventsOn('commit-error', commitStore.handleError)
+})
+
+// 组件卸载时清理事件监听器
+onUnmounted(() => {
+  // 清理 Wails 事件监听器
+  EventsOff('commit-delta')
+  EventsOff('commit-complete')
+  EventsOff('commit-error')
 })
 </script>
 
