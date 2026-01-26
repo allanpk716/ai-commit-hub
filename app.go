@@ -209,22 +209,35 @@ type Terminal struct {
 
 // OpenInFileExplorer 在系统文件管理器中打开项目路径
 func (a *App) OpenInFileExplorer(projectPath string) error {
+	// 转换为绝对路径并清理格式
+	absPath, err := filepath.Abs(projectPath)
+	if err != nil {
+		return fmt.Errorf("获取绝对路径失败: %w", err)
+	}
+	absPath = filepath.Clean(absPath)
+
+	fmt.Printf("DEBUG OpenInFileExplorer: 原始路径=%s, 绝对路径=%s\n", projectPath, absPath)
+
 	// 检查路径是否存在
-	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
-		return fmt.Errorf("项目路径不存在: %s", projectPath)
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		return fmt.Errorf("项目路径不存在: %s", absPath)
 	}
 
 	var cmd *exec.Cmd
 	switch stdruntime.GOOS {
 	case "windows":
-		cmd = exec.Command("explorer", projectPath)
+		// 使用 rundll32 调用 Shell API，这是 Windows 打开文件管理器的标准方式
+		// 不会打开命令行窗口，正确处理各种路径格式
+		cmd = exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", absPath)
 	case "darwin":
-		cmd = exec.Command("open", projectPath)
+		cmd = exec.Command("open", absPath)
 	case "linux":
-		cmd = exec.Command("xdg-open", projectPath)
+		cmd = exec.Command("xdg-open", absPath)
 	default:
 		return fmt.Errorf("unsupported platform: %s", stdruntime.GOOS)
 	}
+
+	fmt.Printf("DEBUG OpenInFileExplorer: 执行命令=%s %v\n", cmd.Path, cmd.Args)
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("打开文件管理器失败: %w", err)
