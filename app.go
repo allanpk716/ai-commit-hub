@@ -1134,13 +1134,13 @@ func (a *App) PushToRemote(projectPath string) error {
 	// 保存当前目录并切换到项目路径
 	originalDir, err := os.Getwd()
 	if err != nil {
-		err := fmt.Errorf("failed to get current directory: %w", err)
+		err = fmt.Errorf("failed to get current directory: %w", err)
 		logger.Errorf("获取当前目录失败: %v", err)
 		return err
 	}
 
 	if err := os.Chdir(projectPath); err != nil {
-		err := fmt.Errorf("failed to change directory: %w", err)
+		err = fmt.Errorf("failed to change directory: %w", err)
 		logger.Errorf("切换到项目目录失败: %v", err)
 		return err
 	}
