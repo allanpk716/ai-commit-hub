@@ -166,16 +166,20 @@ export const useCommitStore = defineStore('commit', () => {
 
   // 事件处理函数（供组件调用）
   function handleDelta(delta: string) {
+    console.log('[commit-delta] 收到 delta:', delta.substring(0, 50) + '...')
     streamingMessage.value += delta
+    console.log('[commit-delta] 当前 streamingMessage 长度:', streamingMessage.value.length)
   }
 
   function handleComplete(message: string) {
+    console.log('[commit-complete] 收到完整消息:', message.substring(0, 50) + '...')
     generatedMessage.value = message
     streamingMessage.value = message
     isGenerating.value = false
   }
 
   function handleError(err: string) {
+    console.log('[commit-error] 收到错误:', err)
     error.value = err
     isGenerating.value = false
   }

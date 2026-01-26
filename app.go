@@ -674,7 +674,9 @@ func (a *App) ToggleNotification(projectPath string, notificationType string) er
 		return fmt.Errorf("不支持的通知类型: %s", notificationType)
 	}
 
-	filePath := filepath.Join(projectPath, fileName)
+	// 文件应该放在 .claude 目录下，与 GetNotificationMode 的逻辑一致
+	claudeDir := filepath.Join(projectPath, ".claude")
+	filePath := filepath.Join(claudeDir, fileName)
 
 	// 检查文件是否存在
 	fileInfo, err := os.Stat(filePath)

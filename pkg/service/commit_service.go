@@ -107,8 +107,8 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	}
 	logger.Info("AI Client 创建成功")
 
-	// Get diff
-	logger.Info("获取 Git Diff...")
+	// Get diff - 使用 GetStagedDiff 读取暂存区变更（匹配 ai-commit 项目行为）
+	logger.Info("获取暂存区 Diff（使用 git diff --cached）...")
 	originalDir, _ := os.Getwd()
 	err = os.Chdir(projectPath)
 	if err != nil {
@@ -119,14 +119,14 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	}
 	defer os.Chdir(originalDir)
 
-	diff, err := git.GetGitDiffIgnoringMoves(context.Background())
+	diff, err := git.GetStagedDiff(context.Background())
 	if err != nil {
-		errMsg := fmt.Sprintf("获取 diff 失败: %v", err)
+		errMsg := fmt.Sprintf("获取暂存区 diff 失败: %v", err)
 		logger.Errorf(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
-		return fmt.Errorf("获取 diff 失败: %w", err)
+		return fmt.Errorf("获取暂存区 diff 失败: %w", err)
 	}
-	logger.Infof("Git Diff 获取成功，长度: %d 字符", len(diff))
+	logger.Infof("暂存区 Diff 获取成功，长度: %d 字符", len(diff))
 
 	if diff == "" {
 		errMsg := "暂存区没有变更"

@@ -32,6 +32,7 @@ export const usePushoverStore = defineStore('pushover', () => {
   })
 
   const projectHookStatus = ref<Map<string, HookStatus>>(new Map())
+  const statusVersion = ref(0) // 版本号，用于触发响应式更新
   const loading = ref(false)
   const error = ref<string | null>(null)
   const configValid = ref(false)
@@ -100,6 +101,7 @@ export const usePushoverStore = defineStore('pushover', () => {
           installed_at: status.installed_at
         }
         projectHookStatus.value.set(projectPath, hookStatus)
+        statusVersion.value++ // 触发响应式更新
         console.log('[DEBUG pushoverStore] Cached hookStatus for', projectPath, ':', hookStatus)
         return hookStatus
       }
@@ -330,6 +332,7 @@ export const usePushoverStore = defineStore('pushover', () => {
     // State
     extensionInfo,
     projectHookStatus,
+    statusVersion,
     loading,
     error,
     configValid,

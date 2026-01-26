@@ -70,21 +70,24 @@
       </div>
 
       <div class="message-container">
-        <!-- Streaming indicator -->
-        <div v-if="commitStore.isGenerating" class="streaming-indicator">
+        <!-- Streaming indicator (shown above content when generating) -->
+        <div v-if="commitStore.isGenerating && !commitStore.streamingMessage" class="streaming-indicator">
           <span class="streaming-dot"></span>
           <span class="streaming-dot"></span>
           <span class="streaming-dot"></span>
         </div>
 
         <!-- Placeholder when no message -->
-        <div v-else-if="!commitStore.streamingMessage && !commitStore.generatedMessage" class="message-placeholder">
+        <div v-if="!commitStore.streamingMessage && !commitStore.generatedMessage" class="message-placeholder">
           <span class="icon">⏳</span>
           <p>等待生成...</p>
           <span class="hint">配置 AI 设置后点击下方按钮生成</span>
         </div>
 
-        <pre v-else class="message-content">{{ commitStore.streamingMessage || commitStore.generatedMessage }}</pre>
+        <!-- Message content (always shown when available) -->
+        <pre v-if="commitStore.streamingMessage || commitStore.generatedMessage" class="message-content" :class="{ 'generating': commitStore.isGenerating }">
+          {{ commitStore.streamingMessage || commitStore.generatedMessage }}
+        </pre>
       </div>
 
       <div class="action-buttons" v-if="commitStore.streamingMessage || commitStore.generatedMessage">
@@ -235,6 +238,14 @@
         <button @click="commitStore.error = null" class="error-dismiss">×</button>
       </div>
     </transition>
+
+    <!-- Toast Notification -->
+    <transition name="toast-fade">
+      <div v-if="toast.show" :class="['toast-notification', toast.type]">
+        <span class="toast-icon">{{ toast.type === 'success' ? '✓' : '✕' }}</span>
+        <span class="toast-message">{{ toast.message }}</span>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -254,16 +265,29 @@ const pushoverStore = usePushoverStore()
 const history = ref<CommitHistory[]>([])
 const aiSettingsExpanded = ref(false) // AI 配置区域默认折叠
 
+// Toast 通知状态
+const toast = ref<{
+  show: boolean
+  type: 'success' | 'error'
+  message: string
+}>({
+  show: false,
+  type: 'success',
+  message: ''
+})
+
 // 当前选中项目的路径
 const currentProjectPath = computed(() => commitStore.selectedProjectPath)
 // 当前选中项目
 const currentProject = computed(() =>
   projectStore.projects.find(p => p.path === currentProjectPath.value)
 )
-// Pushover Hook 状态
+// Pushover Hook 状态 - 直接访问响应式 Map 并依赖版本号以触发更新
 const pushoverStatus = computed(() => {
+  // 依赖 statusVersion 以确保在状态更新时重新计算
+  void pushoverStore.statusVersion
   if (currentProjectPath.value) {
-    return pushoverStore.getCachedProjectStatus(currentProjectPath.value)
+    return pushoverStore.projectHookStatus.get(currentProjectPath.value)
   }
   return null
 })
@@ -366,6 +390,14 @@ function formatResetFields(fields: string[]): string {
   return fields.map(f => fieldNames[f] || f).join('、')
 }
 
+// 显示 Toast 通知
+function showToast(type: 'success' | 'error', message: string) {
+  toast.value = { show: true, type, message }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
+}
+
 async function handleGenerate() {
   await commitStore.generateCommit()
 }
@@ -373,18 +405,18 @@ async function handleGenerate() {
 async function handleCopy() {
   const text = commitStore.streamingMessage || commitStore.generatedMessage
   await navigator.clipboard.writeText(text)
-  alert('已复制到剪贴板')
+  showToast('success', '已复制到剪贴板')
 }
 
 async function handleCommit() {
   if (!commitStore.selectedProjectPath) {
-    alert('请先选择项目')
+    showToast('error', '请先选择项目')
     return
   }
 
   const message = commitStore.streamingMessage || commitStore.generatedMessage
   if (!message) {
-    alert('请先生成 commit 消息')
+    showToast('error', '请先生成 commit 消息')
     return
   }
 
@@ -396,7 +428,7 @@ async function handleCommit() {
       await SaveCommitHistory(project.id, message, commitStore.provider, commitStore.language)
     }
 
-    alert('提交成功!')
+    showToast('success', '提交成功!')
     await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
     await loadHistoryForProject()
     commitStore.clearMessage()
@@ -410,7 +442,7 @@ async function handleCommit() {
       errMessage = JSON.stringify(e)
     }
     console.error('提交失败详细错误:', e)
-    alert('提交失败: ' + errMessage)
+    showToast('error', '提交失败: ' + errMessage)
   }
 }
 
@@ -448,9 +480,23 @@ onMounted(() => {
   commitStore.loadAvailableProviders()
 
   // 注册 Wails 事件监听器
-  EventsOn('commit-delta', commitStore.handleDelta)
-  EventsOn('commit-complete', commitStore.handleComplete)
-  EventsOn('commit-error', commitStore.handleError)
+  console.log('[CommitPanel] 注册 commit-delta 事件监听器')
+  EventsOn('commit-delta', (delta: string) => {
+    console.log('[CommitPanel] commit-delta 事件触发', delta.substring(0, 20))
+    commitStore.handleDelta(delta)
+  })
+
+  console.log('[CommitPanel] 注册 commit-complete 事件监听器')
+  EventsOn('commit-complete', (message: string) => {
+    console.log('[CommitPanel] commit-complete 事件触发')
+    commitStore.handleComplete(message)
+  })
+
+  console.log('[CommitPanel] 注册 commit-error 事件监听器')
+  EventsOn('commit-error', (err: string) => {
+    console.log('[CommitPanel] commit-error 事件触发')
+    commitStore.handleError(err)
+  })
 })
 
 // 组件卸载时清理事件监听器
@@ -833,6 +879,26 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 
+.message-content.generating {
+  position: relative;
+}
+
+.message-content.generating::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 16px;
+  background: var(--accent-primary);
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
 .action-buttons {
   display: flex;
   gap: var(--space-sm);
@@ -1059,6 +1125,73 @@ onUnmounted(() => {
 
 .error-dismiss:hover {
   background: rgba(239, 68, 68, 0.2);
+}
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  z-index: var(--z-modal);
+  min-width: 280px;
+}
+
+.toast-notification.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.toast-notification.success .toast-icon {
+  color: var(--accent-success);
+}
+
+.toast-notification.success .toast-message {
+  color: var(--accent-success);
+}
+
+.toast-notification.error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.toast-notification.error .toast-icon {
+  color: var(--accent-error);
+}
+
+.toast-notification.error .toast-message {
+  color: var(--accent-error);
+}
+
+.toast-icon {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Toast transition */
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: all 0.3s ease-out;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 
 /* Transitions */
