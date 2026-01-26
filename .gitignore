@@ -7,10 +7,9 @@
 *.test
 *.out
 
-# Windows resource files (track the ones we need for build)
+# Windows resource files (only track 64-bit)
 *.syso
 !rsrc_windows_amd64.syso
-!rsrc_windows_386.syso
 winres/icon*.png
 winres/*.syso
 

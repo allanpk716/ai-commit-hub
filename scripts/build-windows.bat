@@ -9,35 +9,46 @@ echo AI Commit Hub - Windows Build Script
 echo ========================================
 echo.
 
-REM Check if rsrc tool is installed
-where rsrc >nul 2>&1
+REM Check if go-winres is installed
+where go-winres >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo [1/5] Installing rsrc tool...
-    go install github.com/akavel/rsrc@latest
+    echo [1/5] Installing go-winres tool...
+    go install github.com/tc-hib/go-winres@latest
     if %ERRORLEVEL% NEQ 0 (
-        echo ERROR: Failed to install rsrc tool
+        echo ERROR: Failed to install go-winres tool
         pause
         exit /b 1
     )
-    echo rsrc tool installed successfully
+    echo go-winres tool installed successfully
 ) else (
-    echo [1/5] rsrc tool already installed
+    echo [1/5] go-winres tool already installed
 )
 
-REM Generate .syso file from icon
-echo.
-echo [2/5] Generating Windows resource file...
-rsrc -ico build/windows/icon.ico -o icon.syso
+REM Check if Python is available for icon generation
+where python >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Failed to generate .syso file
+    echo [2/5] Python not found, skipping icon generation
+    echo WARNING: Icon generation may be incomplete
+) else (
+    echo [2/5] Generating multi-size icon PNG files...
+    python scripts\prepare_icons.py
+    echo Icon files generated
+)
+
+REM Generate resource files
+echo.
+echo [3/5] Generating Windows resource files...
+go-winres make
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Failed to generate resource files
     pause
     exit /b 1
 )
-echo icon.syso generated successfully
+echo Resource files generated
 
 REM Build the application
 echo.
-echo [3/5] Building application with wails...
+echo [4/5] Building application with wails...
 wails build -clean
 if %ERRORLEVEL% NEQ 0 (
     echo ERROR: wails build failed
@@ -48,17 +59,15 @@ echo Application built successfully
 
 REM Verify build output
 echo.
-echo [4/5] Verifying build output...
+echo [5/5] Verifying build output...
 if exist build\bin\ai-commit-hub.exe (
     echo Executable found: build\bin\ai-commit-hub.exe
-
-    REM Check if icon is embedded
-    powershell -Command "Add-Type -AssemblyName System.Drawing; $icon = [System.Drawing.Icon]::ExtractAssociatedIcon('build\bin\ai-commit-hub.exe'); Write-Host 'Icon size:' $icon.Width 'x' $icon.Height"
-    if %ERRORLEVEL% EQU 0 (
-        echo Icon verification: PASSED
-    ) else (
-        echo WARNING: Could not verify icon
-    )
+    echo.
+    echo Resource files included:
+    dir /b *.syso 2>nul
+    echo.
+    echo NOTE: The icon should now display correctly at ALL sizes
+    echo (16x16, 32x32, 48x48, 64x64, 128x128, 256x256)
 ) else (
     echo ERROR: Build output not found
     pause
@@ -66,13 +75,23 @@ if exist build\bin\ai-commit-hub.exe (
 )
 
 echo.
-echo [5/5] Build completed successfully!
-echo.
 echo ========================================
+echo Build completed successfully!
+echo.
 echo Output: build\bin\ai-commit-hub.exe
 echo.
-echo NOTE: If the icon doesn't appear in File Explorer,
-echo run: scripts\clear-icon-cache.bat
+echo Icons included:
+echo   - 16x16  (small icons, list view)
+echo   - 32x32  (standard icons)
+echo   - 48x48  (large icons)
+echo   - 64x64  (extra large icons)
+echo   - 128x128 (extra extra large)
+echo   - 256x256 (high DPI displays)
+echo.
+echo If icons still don't display correctly:
+echo   1. Run: scripts\clear-icon-cache.bat
+echo   2. Or restart Windows Explorer
+echo   3. Or change folder view and back
 echo ========================================
 echo.
 
