@@ -4,13 +4,19 @@
 
 ### 标准构建
 
-项目已包含预生成的 Windows 资源文件（`.syso`），直接运行 Wails 构建命令即可：
+项目已包含预生成的 Windows 资源文件（`.syso`），但推荐使用构建脚本以避免资源冲突警告：
 
+**推荐方式（无警告）**：
+```bash
+scripts\build-windows.bat
+```
+
+**快速方式（有警告但可用）**：
 ```bash
 wails build
 ```
 
-构建的 `build/bin/ai-commit-hub.exe` 会自动包含完整的多尺寸图标。
+**注意**：`wails build` 会产生链接器警告（duplicate leaf），但生成的 exe 文件正常可用。使用构建脚本可以避免这些警告。
 
 ### 图标资源说明
 
@@ -61,8 +67,9 @@ scripts\build-windows.bat
 1. 安装 go-winres 工具（如果需要）
 2. 使用 Python 生成多尺寸 PNG 图标
 3. 生成 Windows 资源文件（.syso）
-4. 构建 Wails 应用
-5. 验证图标是否嵌入
+4. 构建前端
+5. 使用 `go build` 编译后端（避免资源冲突警告）
+6. 验证图标是否嵌入
 
 ## 手动构建
 
@@ -75,8 +82,14 @@ python scripts\prepare_icons.py
 # 2. 生成资源文件
 go-winres make
 
-# 3. 构建应用
-wails build
+# 3. 构建前端
+cd frontend && npm run build && cd ..
+
+# 4. 构建应用（推荐使用 go build 避免警告）
+go build -o build/bin/ai-commit-hub.exe .
+
+# 或者使用 wails build（会有链接器警告但可用）
+# wails build
 ```
 
 ## 文件结构
@@ -148,6 +161,27 @@ rsrc 工具只支持单个 ICO 文件，难以生成高质量的多尺寸图标�
 - 更好的质量控制
 - 内置 manifest 和版本信息支持
 
+### 资源冲突说明
+
+使用 `wails build` 时会出现链接器警告：
+```
+.rsrc merge failure: duplicate leaf: type: 3 (ICON) name: X lang: 0
+```
+
+**原因**：
+- Wails 构建时会自动生成 Windows 资源（包含图标和 manifest）
+- go-winres 也生成了图标资源
+- 链接器在合并资源时发现重复定义
+
+**影响**：
+- 警告是非致命的，exe 文件可以正常生成和使用
+- 图标仍然能正确显示
+
+**解决方案**：
+- **推荐**：使用 `scripts\build-windows.bat`，它会用 `go build` 避免冲突
+- **快速**：直接用 `wails build`，忽略警告
+- 注意：`build/windows/icon.ico` 已重命名为 `.bak` 以避免冲突
+
 ## 相关工具
 
 - **go-winres** - Windows 资源文件生成工具
@@ -182,6 +216,8 @@ Write-Host "Icon size: $($icon.Width) x $($icon.Height)"
 
 ## 更新日志
 
+- **2026-01-26** - 解决 Wails/go-winres 资源冲突，使用 go build 避免警告
+- **2026-01-26** - 将资源文件加入版本控制，简化构建流程
 - **2026-01-26** - 切换到 go-winres，支持完整的多尺寸图标
 - **2026-01-26** - 修复 Windows 图标缓存问题
 - **2026-01-26** - 添加自动化构建脚本

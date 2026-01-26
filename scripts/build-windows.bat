@@ -46,12 +46,25 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo Resource files generated
 
-REM Build the application
+REM Build frontend
 echo.
-echo [4/5] Building application with wails...
-wails build -clean
+echo [4/5] Building frontend...
+cd frontend
+call npm run build
 if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: wails build failed
+    echo ERROR: Frontend build failed
+    pause
+    exit /b 1
+)
+cd ..
+echo Frontend built successfully
+
+REM Build the application with go build (avoids resource conflict warnings)
+echo.
+echo [5/6] Building application with go build...
+go build -o build\bin\ai-commit-hub.exe .
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: go build failed
     pause
     exit /b 1
 )
@@ -59,7 +72,7 @@ echo Application built successfully
 
 REM Verify build output
 echo.
-echo [5/5] Verifying build output...
+echo [6/6] Verifying build output...
 if exist build\bin\ai-commit-hub.exe (
     echo Executable found: build\bin\ai-commit-hub.exe
     echo.
