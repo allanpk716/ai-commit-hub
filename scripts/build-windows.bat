@@ -77,10 +77,29 @@ if exist build\bin\ai-commit-hub.exe (
     echo Executable found: build\bin\ai-commit-hub.exe
     echo.
     echo Resource files included:
-    dir /b *.syso 2>nul
+    for %%f in (*.syso) do echo   %%f
     echo.
     echo NOTE: The icon should now display correctly at ALL sizes
     echo (16x16, 32x32, 48x48, 64x64, 128x128, 256x256)
+    echo.
+    echo ========================================
+    echo Build completed successfully!
+    echo.
+    echo Output: build\bin\ai-commit-hub.exe
+    echo.
+    echo Icons included:
+    echo   - 16x16  (small icons, list view)
+    echo   - 32x32  (standard icons)
+    echo   - 48x48  (large icons)
+    echo   - 64x64  (extra large icons)
+    echo   - 128x128 (extra extra large)
+    echo   - 256x256 (high DPI displays)
+    echo.
+    echo If icons still don't display correctly:
+    echo   1. Run: scripts\clear-icon-cache.bat
+    echo   2. Or restart Windows Explorer
+    echo   3. Or change folder view and back
+    echo ========================================
 ) else (
     echo ERROR: Build output not found
     pause
@@ -88,24 +107,4 @@ if exist build\bin\ai-commit-hub.exe (
 )
 
 echo.
-echo ========================================
-echo Build completed successfully!
-echo.
-echo Output: build\bin\ai-commit-hub.exe
-echo.
-echo Icons included:
-echo   - 16x16  (small icons, list view)
-echo   - 32x32  (standard icons)
-echo   - 48x48  (large icons)
-echo   - 64x64  (extra large icons)
-echo   - 128x128 (extra extra large)
-echo   - 256x256 (high DPI displays)
-echo.
-echo If icons still don't display correctly:
-echo   1. Run: scripts\clear-icon-cache.bat
-echo   2. Or restart Windows Explorer
-echo   3. Or change folder view and back
-echo ========================================
-echo.
-
 pause
