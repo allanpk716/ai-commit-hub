@@ -66,18 +66,6 @@
 
         <div class="project-actions">
           <button
-            @click.stop="moveUp(project, index)"
-            :disabled="index === 0"
-            class="action-btn"
-            title="上移"
-          >↑</button>
-          <button
-            @click.stop="moveDown(project, index)"
-            :disabled="index === filteredProjects.length - 1"
-            class="action-btn"
-            title="下移"
-          >↓</button>
-          <button
             @click.stop="handleDelete(project)"
             class="action-btn danger"
             title="删除"
@@ -120,28 +108,6 @@ const filteredProjects = computed(() => {
 
 function selectProject(project: GitProject) {
   emit('select', project)
-}
-
-async function moveUp(project: GitProject, index: number) {
-  if (index > 0) {
-    try {
-      await projectStore.moveProject(project.id, 'up')
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '移动失败'
-      alert('移动失败: ' + message)
-    }
-  }
-}
-
-async function moveDown(project: GitProject, index: number) {
-  if (index < filteredProjects.value.length - 1) {
-    try {
-      await projectStore.moveProject(project.id, 'down')
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '移动失败'
-      alert('移动失败: ' + message)
-    }
-  }
 }
 
 async function handleDelete(project: GitProject) {
