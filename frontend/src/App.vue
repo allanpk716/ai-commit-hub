@@ -7,7 +7,7 @@
     <header class="toolbar">
       <div class="toolbar-left">
         <div class="logo">
-          <div class="logo-icon">✨</div>
+          <img src="./assets/app-icon.png" alt="AI Commit Hub" class="logo-icon" />
           <h1>AI Commit Hub</h1>
         </div>
         <div class="toolbar-divider"></div>
@@ -159,15 +159,10 @@ function openSettings() {
 .logo-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  object-fit: contain;
   border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   box-shadow: var(--glow-primary);
   animation: pulse-glow 3s ease-in-out infinite;
-  font-size: 20px;
-  line-height: 1;
 }
 
 .logo h1 {
