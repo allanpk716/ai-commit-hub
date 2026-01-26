@@ -259,14 +259,13 @@ func (a *App) OpenInTerminal(projectPath, terminalType string) error {
 	case "windows":
 		switch terminalType {
 		case "powershell":
-			// 使用 PowerShell 的 -NoExit 参数保持窗口打开
-			// 使用 -Command 执行 Set-Location 切换目录
-			cmd = exec.Command("powershell", "-NoExit", "-Command",
-				fmt.Sprintf("Set-Location -Path '%s'", projectPath))
+			// 使用 cmd /c start 在新窗口启动 PowerShell
+			cmd = exec.Command("cmd", "/c", "start", "powershell", "-NoExit",
+				"-Command", fmt.Sprintf("Set-Location -Path '%s'", projectPath))
 		case "cmd":
-			// 使用 cmd 的 /K 参数保持窗口打开
-			// 使用 cd /d 切换驱动器和目录
-			cmd = exec.Command("cmd", "/K", fmt.Sprintf("cd /d \"%s\"", projectPath))
+			// 使用 cmd /c start 在新窗口启动 CMD
+			cmd = exec.Command("cmd", "/c", "start", "cmd", "/K",
+				fmt.Sprintf("cd /d \"%s\"", projectPath))
 		case "windows-terminal":
 			// 使用 Windows Terminal 的 -d 参数直接设置工作目录
 			cmd = exec.Command("wt", "-d", projectPath)
