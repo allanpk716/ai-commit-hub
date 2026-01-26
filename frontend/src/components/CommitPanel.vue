@@ -54,28 +54,90 @@
       <p>请从左侧列表选择一个项目</p>
     </div>
 
+    <!-- Generated Message -->
+    <section class="panel-section result-section" v-if="commitStore.projectStatus">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon">✅</span>
+          <h3>生成结果</h3>
+        </div>
+        <button
+          v-if="commitStore.streamingMessage || commitStore.generatedMessage"
+          @click="commitStore.clearMessage"
+          class="icon-btn"
+          title="清除"
+        >×</button>
+      </div>
+
+      <div class="message-container">
+        <!-- Streaming indicator -->
+        <div v-if="commitStore.isGenerating" class="streaming-indicator">
+          <span class="streaming-dot"></span>
+          <span class="streaming-dot"></span>
+          <span class="streaming-dot"></span>
+        </div>
+
+        <!-- Placeholder when no message -->
+        <div v-else-if="!commitStore.streamingMessage && !commitStore.generatedMessage" class="message-placeholder">
+          <span class="icon">⏳</span>
+          <p>等待生成...</p>
+          <span class="hint">配置 AI 设置后点击下方按钮生成</span>
+        </div>
+
+        <pre v-else class="message-content">{{ commitStore.streamingMessage || commitStore.generatedMessage }}</pre>
+      </div>
+
+      <div class="action-buttons" v-if="commitStore.streamingMessage || commitStore.generatedMessage">
+        <button @click="handleCopy" class="btn-action btn-secondary">
+          <span class="icon">📋</span>
+          复制
+        </button>
+        <button @click="handleCommit" class="btn-action btn-primary" :disabled="!commitStore.projectStatus?.has_staged">
+          <span class="icon">✓</span>
+          提交到本地
+        </button>
+        <button
+          @click="handleRegenerate"
+          :disabled="commitStore.isGenerating"
+          class="btn-action btn-tertiary"
+        >
+          <span class="icon">🔄</span>
+          重新生成
+        </button>
+      </div>
+    </section>
+
     <!-- AI Settings -->
     <section class="panel-section" v-if="commitStore.projectStatus">
-      <div class="section-header">
+      <div class="section-header" @click="toggleAISettings" style="cursor: pointer;">
         <div class="section-title">
           <span class="icon">🤖</span>
           <h3>AI 配置</h3>
           <span v-if="!commitStore.isDefaultConfig" class="config-badge">自定义</span>
+          <!-- 折叠状态显示 -->
+          <span v-if="!aiSettingsExpanded" class="collapsed-info">
+            {{ getProviderDisplayName(commitStore.provider) }} · {{ commitStore.language === 'zh' ? '中文' : 'English' }}
+          </span>
         </div>
-        <button
-          v-if="!commitStore.isDefaultConfig"
-          @click="handleResetToDefault"
-          class="btn-reset"
-          title="重置为默认配置"
-        >
-          <span class="icon">↺</span>
-          恢复默认
-        </button>
+        <div class="header-actions">
+          <button
+            v-if="!commitStore.isDefaultConfig && aiSettingsExpanded"
+            @click.stop="handleResetToDefault"
+            class="btn-reset"
+            title="重置为默认配置"
+          >
+            <span class="icon">↺</span>
+            恢复默认
+          </button>
+          <span class="collapse-icon" :class="{ expanded: aiSettingsExpanded }">
+            ▼
+          </span>
+        </div>
       </div>
 
       <!-- 配置不一致警告 -->
       <div
-        v-if="commitStore.configValidation && !commitStore.configValidation.valid"
+        v-if="aiSettingsExpanded && commitStore.configValidation && !commitStore.configValidation.valid"
         class="config-warning-banner"
       >
         <div class="warning-content">
@@ -90,7 +152,7 @@
         </button>
       </div>
 
-      <div class="settings-grid">
+      <div class="settings-grid" v-show="aiSettingsExpanded">
         <div class="setting-group">
           <label class="setting-label">
             <span class="icon">🌐</span>
@@ -144,76 +206,24 @@
       </button>
     </section>
 
-    <!-- Generated Message -->
-    <section class="panel-section result-section" v-if="commitStore.streamingMessage || commitStore.generatedMessage">
-      <div class="section-header">
-        <div class="section-title">
-          <span class="icon">✅</span>
-          <h3>生成结果</h3>
-        </div>
-        <button
-          @click="commitStore.clearMessage"
-          class="icon-btn"
-          title="清除"
-        >×</button>
-      </div>
-
-      <div class="message-container">
-        <!-- Streaming indicator -->
-        <div v-if="commitStore.isGenerating" class="streaming-indicator">
-          <span class="streaming-dot"></span>
-          <span class="streaming-dot"></span>
-          <span class="streaming-dot"></span>
-        </div>
-
-        <pre class="message-content">{{ commitStore.streamingMessage || commitStore.generatedMessage }}</pre>
-      </div>
-
-      <div class="action-buttons">
-        <button @click="handleCopy" class="btn-action btn-secondary">
-          <span class="icon">📋</span>
-          复制
-        </button>
-        <button @click="handleCommit" class="btn-action btn-primary">
-          <span class="icon">✓</span>
-          提交到本地
-        </button>
-        <button
-          @click="handleRegenerate"
-          :disabled="commitStore.isGenerating"
-          class="btn-action btn-tertiary"
-        >
-          <span class="icon">🔄</span>
-          重新生成
-        </button>
-      </div>
-    </section>
-
-    <!-- History Section -->
-    <section class="panel-section history-section" v-if="history.length > 0">
+    <!-- History Section - 只显示最后一条 -->
+    <section class="panel-section history-section" v-if="lastHistoryItem">
       <div class="section-header">
         <div class="section-title">
           <span class="icon">📜</span>
-          <h3>历史记录</h3>
+          <h3>上次生成</h3>
         </div>
-        <span class="history-count">{{ history.length }}</span>
+        <span class="history-time">{{ formatTime(lastHistoryItem.created_at) }}</span>
       </div>
 
-      <div class="history-list">
-        <div
-          v-for="item in history"
-          :key="item.id"
-          class="history-item"
-          @click="loadHistory(item)"
-        >
-          <div class="history-header">
-            <span class="history-provider" :class="'provider-' + item.provider">
-              {{ item.provider }}
-            </span>
-            <span class="history-time">{{ formatTime(item.created_at) }}</span>
-          </div>
-          <div class="history-message">{{ item.message.substring(0, 80) }}{{ item.message.length > 80 ? '...' : '' }}</div>
+      <div class="history-single-item">
+        <div class="history-header">
+          <span class="history-provider" :class="'provider-' + lastHistoryItem.provider">
+            {{ getProviderDisplayName(lastHistoryItem.provider) }}
+          </span>
+          <span class="history-lang">{{ lastHistoryItem.language === 'zh' ? '中文' : 'English' }}</span>
         </div>
+        <div class="history-message-full">{{ lastHistoryItem.message }}</div>
       </div>
     </section>
 
@@ -241,6 +251,7 @@ const commitStore = useCommitStore()
 const projectStore = useProjectStore()
 const pushoverStore = usePushoverStore()
 const history = ref<CommitHistory[]>([])
+const aiSettingsExpanded = ref(false) // AI 配置区域默认折叠
 
 // 当前选中项目的路径
 const currentProjectPath = computed(() => commitStore.selectedProjectPath)
@@ -254,6 +265,10 @@ const pushoverStatus = computed(() => {
     return pushoverStore.getCachedProjectStatus(currentProjectPath.value)
   }
   return null
+})
+// 最后一条历史记录
+const lastHistoryItem = computed(() => {
+  return history.value.length > 0 ? history.value[0] : null
 })
 
 const MINUTE = 60 * 1000
@@ -293,7 +308,10 @@ async function loadHistoryForProject() {
 
   try {
     const result = await GetProjectHistory(project.id)
-    history.value = result || []
+    // 按时间倒序排序，最新的在前
+    history.value = (result || []).sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
   } catch (e) {
     console.error('Failed to load history:', e)
   }
@@ -310,8 +328,8 @@ function formatTime(dateStr: string): string {
   return date.toLocaleDateString()
 }
 
-function loadHistory(item: CommitHistory) {
-  commitStore.generatedMessage = item.message
+function toggleAISettings() {
+  aiSettingsExpanded.value = !aiSettingsExpanded.value
 }
 
 // 配置变更时立即保存
@@ -382,7 +400,15 @@ async function handleCommit() {
     await loadHistoryForProject()
     commitStore.clearMessage()
   } catch (e: unknown) {
-    const errMessage = e instanceof Error ? e.message : '提交失败'
+    let errMessage = '提交失败'
+    if (e instanceof Error) {
+      errMessage = e.message
+    } else if (typeof e === 'string') {
+      errMessage = e
+    } else {
+      errMessage = JSON.stringify(e)
+    }
+    console.error('提交失败详细错误:', e)
     alert('提交失败: ' + errMessage)
   }
 }
@@ -1170,5 +1196,102 @@ onMounted(() => {
 .setting-select:disabled {
   opacity: 0.6;
   cursor: wait;
+}
+
+/* 新增样式：折叠/展开功能 */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.collapse-icon {
+  font-size: 12px;
+  transition: transform var(--transition-fast);
+}
+
+.collapse-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.collapsed-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-left: var(--space-sm);
+  padding: 2px 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+/* 生成结果占位符 */
+.message-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.message-placeholder .icon {
+  font-size: 32px;
+  margin-bottom: var(--space-sm);
+  opacity: 0.4;
+}
+
+.message-placeholder p {
+  margin: var(--space-xs) 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.message-placeholder .hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 历史记录单条显示 */
+.history-single-item {
+  padding: var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.history-message-full {
+  margin: var(--space-sm) 0;
+  padding: var(--space-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.history-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.history-lang {
+  padding: 2px 8px;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+
+.btn-sm {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 12px;
 }
 </style>
