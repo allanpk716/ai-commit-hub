@@ -197,9 +197,9 @@ func (in *Installer) Update(projectPath string) (*InstallResult, error) {
 
 // SetNotificationMode 设置通知模式
 func (in *Installer) SetNotificationMode(projectPath string, mode NotificationMode) error {
-	claudeDir := filepath.Join(projectPath, ".claude")
-	noPushoverPath := filepath.Join(claudeDir, ".no-pushover")
-	noWindowsPath := filepath.Join(claudeDir, ".no-windows")
+	// 文件直接放在项目根目录下，与 Python hook 的路径一致
+	noPushoverPath := filepath.Join(projectPath, ".no-pushover")
+	noWindowsPath := filepath.Join(projectPath, ".no-windows")
 
 	switch mode {
 	case ModeEnabled:

@@ -46,10 +46,9 @@ func (sc *StatusChecker) CheckInstalled() bool {
 
 // GetNotificationMode 获取当前通知模式
 func (sc *StatusChecker) GetNotificationMode() NotificationMode {
-	claudeDir := filepath.Join(sc.projectPath, ".claude")
-
-	noPushoverPath := filepath.Join(claudeDir, ".no-pushover")
-	noWindowsPath := filepath.Join(claudeDir, ".no-windows")
+	// 文件直接放在项目根目录下，与 Python hook 的路径一致
+	noPushoverPath := filepath.Join(sc.projectPath, ".no-pushover")
+	noWindowsPath := filepath.Join(sc.projectPath, ".no-windows")
 
 	_, hasNoPushover := os.Stat(noPushoverPath)
 	_, hasNoWindows := os.Stat(noWindowsPath)
