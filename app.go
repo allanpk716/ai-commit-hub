@@ -1121,3 +1121,39 @@ func (a *App) DebugHookStatus() map[string]interface{} {
 	result["total"] = len(projects)
 	return result
 }
+
+// PushToRemote 推送项目到远程仓库
+func (a *App) PushToRemote(projectPath string) error {
+	logger.Infof("PushToRemote 被调用 - projectPath: %s", projectPath)
+
+	if a.initError != nil {
+		logger.Errorf("数据库初始化错误: %v", a.initError)
+		return a.initError
+	}
+
+	// 保存当前目录并切换到项目路径
+	originalDir, err := os.Getwd()
+	if err != nil {
+		err := fmt.Errorf("failed to get current directory: %w", err)
+		logger.Errorf("获取当前目录失败: %v", err)
+		return err
+	}
+
+	if err := os.Chdir(projectPath); err != nil {
+		err := fmt.Errorf("failed to change directory: %w", err)
+		logger.Errorf("切换到项目目录失败: %v", err)
+		return err
+	}
+	defer os.Chdir(originalDir)
+
+	logger.Infof("准备推送 - 目录: %s", projectPath)
+
+	// 调用 git 包执行推送
+	if err := git.PushToRemote(context.Background()); err != nil {
+		logger.Errorf("PushToRemote 失败: %v", err)
+		return err
+	}
+
+	logger.Infof("推送成功 - 目录: %s", projectPath)
+	return nil
+}
