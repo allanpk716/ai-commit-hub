@@ -1273,12 +1273,6 @@ onMounted(() => {
   word-break: break-word;
 }
 
-.history-actions {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-}
-
 .history-lang {
   padding: 2px 8px;
   background: rgba(6, 182, 212, 0.15);
@@ -1288,10 +1282,5 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   color: var(--accent-primary);
-}
-
-.btn-sm {
-  padding: var(--space-xs) var(--space-sm);
-  font-size: 12px;
 }
 </style>
