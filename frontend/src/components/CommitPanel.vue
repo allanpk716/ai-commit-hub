@@ -109,6 +109,10 @@
           <span class="icon">✓</span>
           提交到本地
         </button>
+        <button @click="handlePush" class="btn-action btn-primary-push" :disabled="!canPush || isPushing">
+          <span class="icon" :class="{ spin: isPushing }">↑</span>
+          {{ isPushing ? '推送中...' : '推送到远程' }}
+        </button>
         <button @click="handleRegenerate" :disabled="commitStore.isGenerating" class="btn-action btn-tertiary">
           <span class="icon">🔄</span>
           重新生成
@@ -262,6 +266,8 @@ const projectStore = useProjectStore()
 const pushoverStore = usePushoverStore()
 const history = ref<CommitHistory[]>([])
 const aiSettingsExpanded = ref(false) // AI 配置区域默认折叠
+const canPush = ref(false) // 推送按钮是否可用
+const isPushing = ref(false) // 是否正在推送
 
 // Toast 通知状态
 const toast = ref<{
@@ -444,6 +450,11 @@ async function handleCommit() {
     console.error('提交失败详细错误:', e)
     showToast('error', '提交失败: ' + errMessage)
   }
+}
+
+async function handlePush() {
+  // Task 4 会实现完整逻辑
+  console.log('Push button clicked - will be implemented in Task 4')
 }
 
 async function handleRegenerate() {
@@ -1080,6 +1091,10 @@ onUnmounted(() => {
   line-height: 1;
 }
 
+.icon.spin {
+  animation: spin 1s linear infinite;
+}
+
 .btn-primary {
   background: var(--accent-success);
   color: white;
@@ -1109,6 +1124,22 @@ onUnmounted(() => {
 .btn-tertiary:hover:not(:disabled) {
   background: var(--bg-tertiary);
   border-color: var(--accent-primary);
+}
+
+.btn-primary-push {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: white;
+  border-color: #8b5cf6;
+}
+
+.btn-primary-push:hover:not(:disabled) {
+  background: #7c3aed;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+}
+
+.btn-primary-push:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .btn-action:disabled {
