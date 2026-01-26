@@ -14,7 +14,7 @@ go.work
 vendor/
 
 # Build output
-build/
+/build/
 frontend/dist/
 frontend/wailsjs/
 

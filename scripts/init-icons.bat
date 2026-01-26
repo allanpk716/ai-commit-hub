@@ -11,6 +11,9 @@ if not exist "build\windows" mkdir "build\windows"
 REM Copy source icon to build directory
 copy /Y "assets\icons\appicon.png" "build\appicon.png" >nul 2>&1
 
+REM Copy Windows icon to build directory
+copy /Y "assets\build\windows\icon.ico" "build\windows\icon.ico" >nul 2>&1
+
 echo.
 echo [OK] Build icons initialized!
 echo You can now run: wails dev
