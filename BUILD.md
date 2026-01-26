@@ -1,77 +1,187 @@
 # Windows 构建说明
 
-## 图标已成功嵌入！
+## 快速开始
 
-构建的应用程序 `build\bin\ai-commit-hub.exe` 已成功嵌入了自定义图标。
+### 标准构建
+
+项目已包含预生成的 Windows 资源文件（`.syso`），直接运行 Wails 构建命令即可：
+
+```bash
+wails build
+```
+
+构建的 `build/bin/ai-commit-hub.exe` 会自动包含完整的多尺寸图标。
+
+### 图标资源说明
+
+项目包含的 `rsrc_windows_amd64.syso` 文件提供了以下图标尺寸：
+- **16x16** - 小图标（列表视图）
+- **32x32** - 标准图标
+- **48x48** - 大图标
+- **64x64** - 超大图标
+- **128x128** - 超超大图标
+- **256x256** - 高 DPI 显示
+
+这些资源文件已提交到版本控制，所有开发者 clone 仓库后都可以直接构建。
+
+## 如何更新图标
+
+如果你需要更新应用图标：
+
+1. 替换源图标文件：`assets/icons/appicon.png`
+2. 运行图标生成脚本：
+   ```bash
+   python scripts/prepare_icons.py
+   go-winres make
+   ```
+3. 提交更新后的 `rsrc_windows_amd64.syso` 文件
+4. 重新构建：`wails build`
+
+## 多尺寸图标支持
+
+应用现在支持完整的 Windows 图标尺寸，包括：
+- **16x16** - 小图标（列表视图）
+- **32x32** - 标准图标
+- **48x48** - 大图标
+- **64x64** - 超大图标
+- **128x128** - 超超大图标
+- **256x256** - 高 DPI 显示
+
+这确保了应用在 Windows 文件管理器的任何视图大小下都能显示清晰的图标。
 
 ## 快速构建
 
-使用自动化脚本构建：
+使用自动化脚本构建（推荐）：
 
 ```bash
 scripts\build-windows.bat
 ```
 
 这个脚本会自动：
-1. 安装 rsrc 工具（如果需要）
-2. 生成 icon.syso 文件
-3. 构建 Wails 应用
-4. 验证图标是否嵌入
+1. 安装 go-winres 工具（如果需要）
+2. 使用 Python 生成多尺寸 PNG 图标
+3. 生成 Windows 资源文件（.syso）
+4. 构建 Wails 应用
+5. 验证图标是否嵌入
 
-## 图标相关文件
+## 手动构建
 
-- `build/windows/icon.ico` - Windows 图标源文件
-- `icon.syso` - 自动生成的资源文件（不需要手动编辑）
-- `assets/build/windows/icon.ico` - 图标备份
+如果需要手动构建：
+
+```bash
+# 1. 生成多尺寸图标
+python scripts\prepare_icons.py
+
+# 2. 生成资源文件
+go-winres make
+
+# 3. 构建应用
+wails build
+```
+
+## 文件结构
+
+```
+ai-commit-hub/
+├── assets/icons/appicon.png      # 源图标（最高分辨率）
+├── build/windows/icon.ico        # Windows ICO 文件
+├── winres/                       # go-winres 工作目录
+│   ├── winres.json              # 资源配置文件
+│   ├── icon16.png               # 自动生成的 16x16 图标
+│   ├── icon32.png               # 自动生成的 32x32 图标
+│   ├── icon48.png               # 自动生成的 48x48 图标
+│   ├── icon64.png               # 自动生成的 64x64 图标
+│   ├── icon128.png              # 自动生成的 128x128 图标
+│   └── icon256.png              # 自动生成的 256x256 图标
+└── scripts/
+    ├── build-windows.bat        # 自动化构建脚本
+    ├── prepare_icons.py         # 生成多尺寸图标
+    └── clear-icon-cache.bat     # 清除 Windows 图标缓存
+```
 
 ## 常见问题
 
+### Q: 小图标正常，大图标显示不正确？
+
+A: 这是 ICO 文件缺少多尺寸的问题。新的构建系统已经解决：
+
+```bash
+scripts\build-windows.bat
+```
+
 ### Q: 构建后看不到图标？
 
-A: 这是 Windows 图标缓存问题。运行：
+A: Windows 图标缓存问题。运行：
 
 ```bash
 scripts\clear-icon-cache.bat
 ```
 
-### Q: wails dev 有图标，但 wails build 没有？
+### Q: 某些尺寸的图标模糊？
 
-A: 确保在构建前生成了 `icon.syso` 文件。使用 `scripts\build-windows.bat` 脚本会自动处理。
+A: 确保：
+1. `assets/icons/appicon.png` 是高分辨率源图（建议 512x512 或更高）
+2. 重新运行 `scripts\build-windows.bat`
 
-### Q: 图标没有更新？
+### Q: 如何更新图标？
 
-A: Windows 会缓存图标。尝试：
-1. 运行 `scripts\clear-icon-cache.bat`
-2. 重启文件管理器（Win+R → `restart`）
-3. 或注销后重新登录
+A: 只需替换 `assets/icons/appicon.png`，然后重新构建：
 
-## 验证图标
-
-运行验证脚本：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File test_icon.ps1
-```
-
-或手动验证：
-
-```powershell
-Add-Type -AssemblyName System.Drawing
-$icon = [System.Drawing.Icon]::ExtractAssociatedIcon("build\bin\ai-commit-hub.exe")
-$bitmap = $icon.ToBitmap()
-$bitmap.Save("verify_icon.png")
+```bash
+scripts\build-windows.bat
 ```
 
 ## 技术细节
 
-Windows 应用图标需要通过 `.syso` 文件嵌入。这是 Go 编译器的标准方式：
+### 图标生成流程
 
-1. 使用 `rsrc` 工具将 `.ico` 文件转换为 `.syso`
-2. `.syso` 文件与 `main.go` 在同一目录
-3. Go 编译器自动将 `.syso` 链接到可执行文件
+1. **源图**：`assets/icons/appicon.png` (高分辨率)
+2. **多尺寸生成**：Python PIL 将源图缩放到 6 个标准尺寸
+3. **资源打包**：go-winres 将所有 PNG 打包到 .syso 文件
+4. **嵌入 exe**：Go 编译器自动将 .syso 链接到可执行文件
 
-## 相关脚本
+### 为什么不用 rsrc？
 
-- `scripts/build-windows.bat` - 完整构建脚本
-- `scripts/clear-icon-cache.bat` - 清除 Windows 图标缓存
-- `scripts/init-icons.bat` - 初始化图标文件
+rsrc 工具只支持单个 ICO 文件，难以生成高质量的多尺寸图标。go-winres 支持：
+- 多个 PNG 文件作为输入
+- 自动生成所有标准尺寸
+- 更好的质量控制
+- 内置 manifest 和版本信息支持
+
+## 相关工具
+
+- **go-winres** - Windows 资源文件生成工具
+  - 安装：`go install github.com/tc-hib/go-winres@latest`
+  - 文档：https://github.com/tc-hib/go-winres
+
+- **Python PIL** - 图像处理库
+  - 用于生成多尺寸 PNG 图标
+  - 安装：`pip install pillow`
+
+## 验证图标
+
+### 方法 1：文件管理器
+
+1. 打开 `build\bin\` 目录
+2. 右键 → 查看 → 选择不同的图标大小
+3. 验证所有尺寸下图标都清晰
+
+### 方法 2：桌面快捷方式
+
+1. 创建桌面快捷方式
+2. 右键快捷方式 → 属性 → 更改图标
+3. 查看不同尺寸的预览
+
+### 方法 3：PowerShell
+
+```powershell
+Add-Type -AssemblyName System.Drawing
+$icon = [System.Drawing.Icon]::ExtractAssociatedIcon("build\bin\ai-commit-hub.exe")
+Write-Host "Icon size: $($icon.Width) x $($icon.Height)"
+```
+
+## 更新日志
+
+- **2026-01-26** - 切换到 go-winres，支持完整的多尺寸图标
+- **2026-01-26** - 修复 Windows 图标缓存问题
+- **2026-01-26** - 添加自动化构建脚本
