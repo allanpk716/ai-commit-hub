@@ -49,4 +49,5 @@ func TestPushToRemote_NoOriginRemote(t *testing.T) {
 
 	// 应该返回错误，因为没有 origin 远程仓库
 	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "origin")
 }

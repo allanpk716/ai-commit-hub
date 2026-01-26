@@ -41,7 +41,7 @@ func PushToRemote(ctx context.Context) error {
 	refSpec := fmt.Sprintf("%s:%s", branchName.String(), branchName.String())
 
 	// Execute the push
-	err = remote.Push(&gogit.PushOptions{
+	err = remote.PushContext(ctx, &gogit.PushOptions{
 		RemoteName: "origin",
 		RefSpecs:   []config.RefSpec{config.RefSpec(refSpec)},
 		Progress:   nil,
@@ -53,7 +53,6 @@ func PushToRemote(ctx context.Context) error {
 			// First push to an empty repository is fine
 			return nil
 		}
-		// Check if it's a "nothing to push" error (local and remote are the same)
 		if err == transport.ErrAuthenticationRequired {
 			return fmt.Errorf("authentication required for push: %w", err)
 		}
