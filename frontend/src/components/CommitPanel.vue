@@ -26,12 +26,8 @@
                 </div>
                 <div class="menu-divider"></div>
                 <div class="menu-header">在终端中打开</div>
-                <div
-                  v-for="terminal in availableTerminals"
-                  :key="terminal.id"
-                  @click="openInTerminal(terminal.id)"
-                  class="menu-item"
-                >
+                <div v-for="terminal in availableTerminals" :key="terminal.id" @click="openInTerminal(terminal.id)"
+                  class="menu-item">
                   <span class="menu-icon">{{ terminal.icon }}</span>
                   <span>{{ terminal.name }}</span>
                   <span v-if="preferredTerminal === terminal.id" class="check-mark">✓</span>
@@ -46,14 +42,8 @@
       </div>
 
       <!-- Pushover Status Row -->
-      <PushoverStatusRow
-        v-if="currentProject"
-        :project-path="currentProject.path"
-        :status="pushoverStatus"
-        :loading="pushoverStore.loading"
-        @install="handleInstallPushover"
-        @update="handleUpdatePushover"
-      />
+      <PushoverStatusRow v-if="currentProject" :project-path="currentProject.path" :status="pushoverStatus"
+        :loading="pushoverStore.loading" @install="handleInstallPushover" @update="handleUpdatePushover" />
 
       <div class="staged-files-container">
         <div v-if="!commitStore.projectStatus.has_staged" class="empty-hint-inline">
@@ -61,11 +51,7 @@
           <span>暂存区为空，请先使用 git add 添加文件</span>
         </div>
         <div v-else class="files-list">
-          <div
-            v-for="file in commitStore.projectStatus.staged_files"
-            :key="file.path"
-            class="file-item"
-          >
+          <div v-for="file in commitStore.projectStatus.staged_files" :key="file.path" class="file-item">
             <span class="file-status" :class="file.status.toLowerCase()">
               {{ file.status }}
             </span>
@@ -90,12 +76,8 @@
           <span class="icon">✅</span>
           <h3>生成结果</h3>
         </div>
-        <button
-          v-if="commitStore.streamingMessage || commitStore.generatedMessage"
-          @click="commitStore.clearMessage"
-          class="icon-btn"
-          title="清除"
-        >×</button>
+        <button v-if="commitStore.streamingMessage || commitStore.generatedMessage" @click="commitStore.clearMessage"
+          class="icon-btn" title="清除">×</button>
       </div>
 
       <div class="message-container">
@@ -113,8 +95,8 @@
         </div>
 
         <!-- Message content (always shown when available) -->
-        <pre v-if="commitStore.streamingMessage || commitStore.generatedMessage" class="message-content" :class="{ 'generating': commitStore.isGenerating }">
-          {{ commitStore.streamingMessage || commitStore.generatedMessage }}
+        <pre v-if="commitStore.streamingMessage || commitStore.generatedMessage" class="message-content"
+          :class="{ 'generating': commitStore.isGenerating }">{{ commitStore.streamingMessage || commitStore.generatedMessage }}
         </pre>
       </div>
 
@@ -127,11 +109,7 @@
           <span class="icon">✓</span>
           提交到本地
         </button>
-        <button
-          @click="handleRegenerate"
-          :disabled="commitStore.isGenerating"
-          class="btn-action btn-tertiary"
-        >
+        <button @click="handleRegenerate" :disabled="commitStore.isGenerating" class="btn-action btn-tertiary">
           <span class="icon">🔄</span>
           重新生成
         </button>
@@ -151,12 +129,8 @@
           </span>
         </div>
         <div class="header-actions">
-          <button
-            v-if="!commitStore.isDefaultConfig && aiSettingsExpanded"
-            @click.stop="handleResetToDefault"
-            class="btn-reset"
-            title="重置为默认配置"
-          >
+          <button v-if="!commitStore.isDefaultConfig && aiSettingsExpanded" @click.stop="handleResetToDefault"
+            class="btn-reset" title="重置为默认配置">
             <span class="icon">↺</span>
             恢复默认
           </button>
@@ -167,10 +141,8 @@
       </div>
 
       <!-- 配置不一致警告 -->
-      <div
-        v-if="aiSettingsExpanded && commitStore.configValidation && !commitStore.configValidation.valid"
-        class="config-warning-banner"
-      >
+      <div v-if="aiSettingsExpanded && commitStore.configValidation && !commitStore.configValidation.valid"
+        class="config-warning-banner">
         <div class="warning-content">
           <span class="icon">⚠️</span>
           <div class="warning-text">
@@ -190,18 +162,9 @@
             Provider
             <span v-if="commitStore.isSavingConfig" class="saving-indicator">保存中...</span>
           </label>
-          <select
-            v-model="commitStore.provider"
-            class="setting-select"
-            @change="handleConfigChange"
-            :disabled="commitStore.isSavingConfig"
-          >
-            <option
-              v-for="p in commitStore.availableProviders"
-              :key="p.name"
-              :value="p.name"
-              :disabled="!p.configured"
-            >
+          <select v-model="commitStore.provider" class="setting-select" @change="handleConfigChange"
+            :disabled="commitStore.isSavingConfig">
+            <option v-for="p in commitStore.availableProviders" :key="p.name" :value="p.name" :disabled="!p.configured">
               {{ getProviderDisplayName(p.name) }}
               <template v-if="!p.configured"> (未配置: {{ p.reason }})</template>
             </option>
@@ -213,24 +176,16 @@
             <span class="icon">🌍</span>
             语言
           </label>
-          <select
-            v-model="commitStore.language"
-            class="setting-select"
-            @change="handleConfigChange"
-            :disabled="commitStore.isSavingConfig"
-          >
+          <select v-model="commitStore.language" class="setting-select" @change="handleConfigChange"
+            :disabled="commitStore.isSavingConfig">
             <option value="zh">中文</option>
             <option value="en">English</option>
           </select>
         </div>
       </div>
 
-      <button
-        @click="handleGenerate"
-        :disabled="!commitStore.projectStatus.has_staged || commitStore.isGenerating"
-        class="btn-generate"
-        :class="{ generating: commitStore.isGenerating }"
-      >
+      <button @click="handleGenerate" :disabled="!commitStore.projectStatus.has_staged || commitStore.isGenerating"
+        class="btn-generate" :class="{ generating: commitStore.isGenerating }">
         <span class="icon" v-if="!commitStore.isGenerating">⚡</span>
         <span class="icon spin" v-else>⏳</span>
         {{ commitStore.isGenerating ? '生成中...' : '生成 Commit 消息' }}
@@ -247,8 +202,8 @@
         <span class="history-time">{{ formatTime(lastHistoryItem.created_at) }}</span>
       </div>
 
-      <div class="history-single-item">
-        <div class="history-header">
+      <div class="history-content">
+        <div class="history-header-inline">
           <span class="history-provider" :class="'provider-' + lastHistoryItem.provider">
             {{ getProviderDisplayName(lastHistoryItem.provider) }}
           </span>
@@ -278,21 +233,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import {
+  CommitLocally,
+  GetAvailableTerminals,
+  GetProjectHistory,
+  OpenInFileExplorer,
+  OpenInTerminal,
+  SaveCommitHistory
+} from '../../wailsjs/go/main/App'
+import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
-import {
-  GetProjectHistory,
-  SaveCommitHistory,
-  CommitLocally,
-  OpenInFileExplorer,
-  OpenInTerminal,
-  GetAvailableTerminals
-} from '../../wailsjs/go/main/App'
-import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
-import PushoverStatusRow from './PushoverStatusRow.vue'
 import type { CommitHistory } from '../types'
+import PushoverStatusRow from './PushoverStatusRow.vue'
 
 // 用户偏好存储键
 const PREFERRED_TERMINAL_KEY = 'ai-commit-hub:preferred-terminal'
@@ -996,8 +951,13 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Result section */
@@ -1011,7 +971,7 @@ onUnmounted(() => {
   background: var(--bg-primary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-xs);
   max-height: 250px;
   overflow-y: auto;
   margin-bottom: var(--space-md);
@@ -1042,10 +1002,14 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 60%, 100% {
+
+  0%,
+  60%,
+  100% {
     transform: scale(0.8);
     opacity: 0.4;
   }
+
   30% {
     transform: scale(1);
     opacity: 1;
@@ -1078,8 +1042,16 @@ onUnmounted(() => {
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .action-buttons {
@@ -1179,11 +1151,11 @@ onUnmounted(() => {
   background: var(--bg-tertiary);
 }
 
-.history-header {
+.history-header-inline {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-xs);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 .history-provider {
@@ -1398,6 +1370,7 @@ onUnmounted(() => {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1409,6 +1382,7 @@ onUnmounted(() => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1420,6 +1394,7 @@ onUnmounted(() => {
     opacity: 0;
     transform: translateX(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -1519,8 +1494,15 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .setting-select:disabled {
@@ -1553,17 +1535,14 @@ onUnmounted(() => {
   border-radius: var(--radius-sm);
 }
 
-/* 历史记录单条显示 */
-.history-single-item {
-  padding: var(--space-md);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+/* 历史记录内容区域 */
+.history-content {
+  /* 不需要额外的 padding，直接贴边 */
 }
 
 .history-message-full {
-  margin: var(--space-sm) 0;
-  padding: var(--space-md);
+  margin: 0;
+  padding: var(--space-sm) var(--space-xs) var(--space-sm) var(--space-xs);
   background: var(--bg-primary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
