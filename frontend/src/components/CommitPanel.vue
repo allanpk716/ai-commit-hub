@@ -240,6 +240,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   CommitLocally,
+  PushToRemote,
   GetAvailableTerminals,
   GetProjectHistory,
   OpenInFileExplorer,
@@ -325,6 +326,7 @@ watch(() => projectStore.selectedProject, async (project) => {
   if (project) {
     // 立即清除上一次的生成结果，避免项目切换时显示错误的内容
     commitStore.clearMessage()
+    canPush.value = false  // 重置推送按钮状态
     await commitStore.loadProjectAIConfig(project.id)
     await commitStore.loadProjectStatus(project.path)
     await loadHistoryForProject()
@@ -438,6 +440,9 @@ async function handleCommit() {
     await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
     await loadHistoryForProject()
     commitStore.clearMessage()
+
+    // 启用推送按钮
+    canPush.value = true
   } catch (e: unknown) {
     let errMessage = '提交失败'
     if (e instanceof Error) {
@@ -449,12 +454,36 @@ async function handleCommit() {
     }
     console.error('提交失败详细错误:', e)
     showToast('error', '提交失败: ' + errMessage)
+    canPush.value = false
   }
 }
 
 async function handlePush() {
-  // Task 4 会实现完整逻辑
-  console.log('Push button clicked - will be implemented in Task 4')
+  if (!commitStore.selectedProjectPath) {
+    showToast('error', '请先选择项目')
+    return
+  }
+
+  isPushing.value = true
+  try {
+    await PushToRemote(commitStore.selectedProjectPath)
+    showToast('success', '推送成功!')
+    canPush.value = false  // 推送成功后禁用按钮
+    await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
+  } catch (e) {
+    let errMessage = '推送失败'
+    if (e instanceof Error) {
+      errMessage = e.message
+    } else if (typeof e === 'string') {
+      errMessage = e
+    } else {
+      errMessage = JSON.stringify(e)
+    }
+    console.error('推送失败详细错误:', e)
+    showToast('error', '推送失败: ' + errMessage)
+  } finally {
+    isPushing.value = false
+  }
 }
 
 async function handleRegenerate() {
@@ -539,6 +568,7 @@ async function handleRefresh() {
 
   try {
     await commitStore.loadProjectStatus(currentProjectPath.value)
+    canPush.value = false  // 重置推送按钮状态
     showToast('success', '已刷新')
   } catch (e) {
     const message = e instanceof Error ? e.message : '刷新失败'
