@@ -317,6 +317,8 @@ function getProviderDisplayName(name: string): string {
 // 监听选中的项目变化
 watch(() => projectStore.selectedProject, async (project) => {
   if (project) {
+    // 立即清除上一次的生成结果，避免项目切换时显示错误的内容
+    commitStore.clearMessage()
     await commitStore.loadProjectAIConfig(project.id)
     await commitStore.loadProjectStatus(project.path)
     await loadHistoryForProject()
