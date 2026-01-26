@@ -200,6 +200,122 @@ func (a *App) OpenExtensionFolder() error {
 	return cmd.Start()
 }
 
+// Terminal 终端类型
+type Terminal struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Icon string `json:"icon"`
+}
+
+// OpenInFileExplorer 在系统文件管理器中打开项目路径
+func (a *App) OpenInFileExplorer(projectPath string) error {
+	// 检查路径是否存在
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		return fmt.Errorf("项目路径不存在: %s", projectPath)
+	}
+
+	var cmd *exec.Cmd
+	switch stdruntime.GOOS {
+	case "windows":
+		cmd = exec.Command("explorer", projectPath)
+	case "darwin":
+		cmd = exec.Command("open", projectPath)
+	case "linux":
+		cmd = exec.Command("xdg-open", projectPath)
+	default:
+		return fmt.Errorf("unsupported platform: %s", stdruntime.GOOS)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("打开文件管理器失败: %w", err)
+	}
+
+	return nil
+}
+
+// OpenInTerminal 在指定终端中打开项目路径
+func (a *App) OpenInTerminal(projectPath, terminalType string) error {
+	// 检查路径是否存在
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		return fmt.Errorf("项目路径不存在: %s", projectPath)
+	}
+
+	var cmd *exec.Cmd
+
+	switch stdruntime.GOOS {
+	case "windows":
+		switch terminalType {
+		case "powershell":
+			// 使用 PowerShell 的 -NoExit 参数保持窗口打开
+			// 使用 -Command 执行 Set-Location 切换目录
+			cmd = exec.Command("powershell", "-NoExit", "-Command",
+				fmt.Sprintf("Set-Location -Path '%s'", projectPath))
+		case "cmd":
+			// 使用 cmd 的 /K 参数保持窗口打开
+			// 使用 cd /d 切换驱动器和目录
+			cmd = exec.Command("cmd", "/K", fmt.Sprintf("cd /d \"%s\"", projectPath))
+		case "windows-terminal":
+			// 使用 Windows Terminal 的 -d 参数直接设置工作目录
+			cmd = exec.Command("wt", "-d", projectPath)
+		default:
+			return fmt.Errorf("不支持的终端类型: %s", terminalType)
+		}
+	case "darwin":
+		switch terminalType {
+		case "terminal":
+			// 使用 AppleScript 打开 Terminal 并执行 cd 命令
+			script := fmt.Sprintf(`tell application "Terminal" to do script "cd %s"`, projectPath)
+			cmd = exec.Command("osascript", "-e", script)
+		case "iterm2":
+			// 使用 AppleScript 打开 iTerm2 并执行 cd 命令
+			script := fmt.Sprintf(`tell application "iTerm" to tell current window to create tab with default profile and tell current session to write text "cd %s"`, projectPath)
+			cmd = exec.Command("osascript", "-e", script)
+		default:
+			return fmt.Errorf("不支持的终端类型: %s", terminalType)
+		}
+	case "linux":
+		// Linux 默认使用系统默认终端
+		switch terminalType {
+		case "default":
+			// 尝试使用常见的 Linux 终端模拟器
+			cmd = exec.Command("x-terminal-emulator", "-e", fmt.Sprintf("cd %s && exec $SHELL", projectPath))
+		default:
+			return fmt.Errorf("不支持的终端类型: %s", terminalType)
+		}
+	default:
+		return fmt.Errorf("unsupported platform: %s", stdruntime.GOOS)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("打开终端失败: %w", err)
+	}
+
+	return nil
+}
+
+// GetAvailableTerminals 返回当前平台可用的终端列表
+func (a *App) GetAvailableTerminals() []Terminal {
+	switch stdruntime.GOOS {
+	case "windows":
+		return []Terminal{
+			{ID: "powershell", Name: "PowerShell", Icon: "💠"},
+			{ID: "cmd", Name: "命令提示符", Icon: "📟"},
+			{ID: "windows-terminal", Name: "Windows Terminal", Icon: "🪟"},
+		}
+	case "darwin":
+		return []Terminal{
+			{ID: "terminal", Name: "Terminal", Icon: "📟"},
+			{ID: "iterm2", Name: "iTerm2", Icon: "🔷"},
+		}
+	case "linux":
+		return []Terminal{
+			{ID: "default", Name: "默认终端", Icon: "💻"},
+		}
+	default:
+		return []Terminal{}
+	}
+}
+
 // GetAllProjects retrieves all projects
 func (a *App) GetAllProjects() ([]models.GitProject, error) {
 	if a.initError != nil {

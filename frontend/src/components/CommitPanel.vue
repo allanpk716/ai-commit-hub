@@ -12,6 +12,36 @@
             <span class="icon">⑂</span>
             {{ commitStore.projectStatus.branch }}
           </div>
+          <!-- 操作按钮组 -->
+          <div class="action-buttons-inline">
+            <div style="position: relative;">
+              <button @click.stop="toggleTerminalMenu" class="icon-btn" title="打开项目">
+                <span class="icon">📁</span>
+              </button>
+              <!-- 下拉菜单 -->
+              <div v-if="showTerminalMenu" class="dropdown-menu">
+                <div @click="openInExplorer" class="menu-item">
+                  <span class="menu-icon">📂</span>
+                  <span>在文件管理器中打开</span>
+                </div>
+                <div class="menu-divider"></div>
+                <div class="menu-header">在终端中打开</div>
+                <div
+                  v-for="terminal in availableTerminals"
+                  :key="terminal.id"
+                  @click="openInTerminal(terminal.id)"
+                  class="menu-item"
+                >
+                  <span class="menu-icon">{{ terminal.icon }}</span>
+                  <span>{{ terminal.name }}</span>
+                  <span v-if="preferredTerminal === terminal.id" class="check-mark">✓</span>
+                </div>
+              </div>
+            </div>
+            <button @click.stop="handleRefresh" class="icon-btn" title="刷新状态">
+              <span class="icon">🔄</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -26,10 +56,9 @@
       />
 
       <div class="staged-files-container">
-        <div v-if="!commitStore.projectStatus.has_staged" class="empty-state-compact">
-          <div class="icon">📄</div>
-          <p>暂存区为空</p>
-          <span class="hint">请先使用 git add 添加文件</span>
+        <div v-if="!commitStore.projectStatus.has_staged" class="empty-hint-inline">
+          <span class="hint-icon">ℹ️</span>
+          <span>暂存区为空，请先使用 git add 添加文件</span>
         </div>
         <div v-else class="files-list">
           <div
@@ -78,10 +107,9 @@
         </div>
 
         <!-- Placeholder when no message -->
-        <div v-if="!commitStore.streamingMessage && !commitStore.generatedMessage" class="message-placeholder">
-          <span class="icon">⏳</span>
-          <p>等待生成...</p>
-          <span class="hint">配置 AI 设置后点击下方按钮生成</span>
+        <div v-if="!commitStore.streamingMessage && !commitStore.generatedMessage" class="message-hint-inline">
+          <span class="hint-icon">⏳</span>
+          <span>等待生成... 配置 AI 设置后点击下方按钮生成</span>
         </div>
 
         <!-- Message content (always shown when available) -->
@@ -254,10 +282,25 @@ import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
-import { GetProjectHistory, SaveCommitHistory, CommitLocally } from '../../wailsjs/go/main/App'
+import {
+  GetProjectHistory,
+  SaveCommitHistory,
+  CommitLocally,
+  OpenInFileExplorer,
+  OpenInTerminal,
+  GetAvailableTerminals
+} from '../../wailsjs/go/main/App'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 import PushoverStatusRow from './PushoverStatusRow.vue'
 import type { CommitHistory } from '../types'
+
+// 用户偏好存储键
+const PREFERRED_TERMINAL_KEY = 'ai-commit-hub:preferred-terminal'
+
+// 下拉菜单状态
+const showTerminalMenu = ref(false)
+const availableTerminals = ref<Array<{ id: string; name: string; icon: string }>>([])
+const preferredTerminal = ref<string>('')
 
 const commitStore = useCommitStore()
 const projectStore = useProjectStore()
@@ -475,9 +518,86 @@ async function handleUpdatePushover() {
   }
 }
 
+// 加载用户偏好的终端类型
+function loadPreferredTerminal(): string {
+  const stored = localStorage.getItem(PREFERRED_TERMINAL_KEY)
+  return stored || 'powershell' // 默认 PowerShell
+}
+
+// 保存用户偏好的终端类型
+function savePreferredTerminal(terminalId: string) {
+  localStorage.setItem(PREFERRED_TERMINAL_KEY, terminalId)
+  preferredTerminal.value = terminalId
+}
+
+// 切换终端菜单显示
+function toggleTerminalMenu() {
+  showTerminalMenu.value = !showTerminalMenu.value
+}
+
+// 在文件管理器中打开
+async function openInExplorer() {
+  if (!currentProjectPath.value) return
+
+  try {
+    await OpenInFileExplorer(currentProjectPath.value)
+    showToast('success', '已在文件管理器中打开')
+    showTerminalMenu.value = false
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '打开失败'
+    showToast('error', message)
+  }
+}
+
+// 在终端中打开
+async function openInTerminal(terminalId: string) {
+  if (!currentProjectPath.value) return
+
+  try {
+    await OpenInTerminal(currentProjectPath.value, terminalId)
+    // 保存用户偏好
+    savePreferredTerminal(terminalId)
+    showToast('success', '已在终端中打开')
+    showTerminalMenu.value = false
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '打开失败'
+    showToast('error', message)
+  }
+}
+
+// 手动刷新项目状态
+async function handleRefresh() {
+  if (!currentProjectPath.value) return
+
+  try {
+    await commitStore.loadProjectStatus(currentProjectPath.value)
+    showToast('success', '已刷新')
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '刷新失败'
+    showToast('error', message)
+  }
+}
+
+// 点击外部关闭菜单
+function handleClickOutside(event: MouseEvent) {
+  const target = event.target as HTMLElement
+  if (showTerminalMenu.value && !target.closest('.dropdown-menu') && !target.closest('.icon-btn')) {
+    showTerminalMenu.value = false
+  }
+}
+
 // 组件挂载时加载 provider 列表并注册事件监听
-onMounted(() => {
+onMounted(async () => {
   commitStore.loadAvailableProviders()
+
+  // 加载可用终端列表
+  try {
+    const terminals = await GetAvailableTerminals()
+    availableTerminals.value = terminals
+    preferredTerminal.value = loadPreferredTerminal()
+  } catch (e) {
+    console.error('Failed to load terminals:', e)
+  }
 
   // 注册 Wails 事件监听器
   console.log('[CommitPanel] 注册 commit-delta 事件监听器')
@@ -497,6 +617,9 @@ onMounted(() => {
     console.log('[CommitPanel] commit-error 事件触发')
     commitStore.handleError(err)
   })
+
+  // 注册点击外部关闭菜单
+  document.addEventListener('click', handleClickOutside)
 })
 
 // 组件卸载时清理事件监听器
@@ -505,6 +628,9 @@ onUnmounted(() => {
   EventsOff('commit-delta')
   EventsOff('commit-complete')
   EventsOff('commit-error')
+
+  // 清理点击外部关闭菜单
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -603,37 +729,94 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
+/* 操作按钮组 */
+.action-buttons-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: var(--space-md);
+}
+
+/* 下拉菜单 */
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  min-width: 200px;
+  max-width: 280px;
+  padding: var(--space-xs) 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.menu-item:hover {
+  background: var(--bg-elevated);
+}
+
+.menu-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--border-default);
+  margin: var(--space-xs) 0;
+}
+
+.menu-header {
+  padding: var(--space-xs) var(--space-md);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.check-mark {
+  margin-left: auto;
+  color: var(--accent-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* Staged files */
 .staged-files-container {
   max-height: 200px;
   overflow-y: auto;
 }
 
-.empty-state-compact {
+/* 内联提示 */
+.empty-hint-inline,
+.message-hint-inline {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: var(--space-xl) var(--space-lg);
-  text-align: center;
-}
-
-.empty-state-compact .icon {
-  font-size: 32px;
-  margin-bottom: var(--space-sm);
-  opacity: 0.4;
-}
-
-.empty-state-compact p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.empty-state-compact .hint {
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
   font-size: 12px;
   color: var(--text-muted);
-  margin-top: var(--space-xs);
+}
+
+.hint-icon {
+  font-size: 14px;
+  opacity: 0.7;
+  flex-shrink: 0;
 }
 
 .files-list {
@@ -1368,34 +1551,6 @@ onUnmounted(() => {
   padding: 2px 8px;
   background: var(--bg-elevated);
   border-radius: var(--radius-sm);
-}
-
-/* 生成结果占位符 */
-.message-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-xl) var(--space-lg);
-  text-align: center;
-  color: var(--text-muted);
-}
-
-.message-placeholder .icon {
-  font-size: 32px;
-  margin-bottom: var(--space-sm);
-  opacity: 0.4;
-}
-
-.message-placeholder p {
-  margin: var(--space-xs) 0;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.message-placeholder .hint {
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 /* 历史记录单条显示 */
