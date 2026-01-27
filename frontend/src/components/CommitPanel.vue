@@ -14,17 +14,21 @@
           </div>
           <!-- 操作按钮组 -->
           <div class="action-buttons-inline">
-            <div style="position: relative;">
-              <button @click.stop="toggleTerminalMenu" class="icon-btn" title="打开项目">
-                <span class="icon">📁</span>
+            <!-- 文件夹按钮：只打开文件管理器 -->
+            <button @click="openInExplorer" class="icon-btn" title="在文件管理器中打开">
+              <span class="icon">📁</span>
+            </button>
+
+            <!-- 终端按钮：复合设计 -->
+            <div class="terminal-button-wrapper">
+              <button @click="openInTerminalDirectly" class="icon-btn terminal-btn-main" title="在终端中打开">
+                <span class="icon">_>_</span>
+              </button>
+              <button @click.stop="toggleTerminalMenu" class="icon-btn terminal-btn-dropdown" title="选择终端类型">
+                <span class="dropdown-arrow">▼</span>
               </button>
               <!-- 下拉菜单 -->
-              <div v-if="showTerminalMenu" class="dropdown-menu">
-                <div @click="openInExplorer" class="menu-item">
-                  <span class="menu-icon">📂</span>
-                  <span>在文件管理器中打开</span>
-                </div>
-                <div class="menu-divider"></div>
+              <div v-if="showTerminalMenu" class="dropdown-menu terminal-menu">
                 <div class="menu-header">在终端中打开</div>
                 <div v-for="terminal in availableTerminals" :key="terminal.id" @click="openInTerminal(terminal.id)"
                   class="menu-item">
@@ -34,6 +38,7 @@
                 </div>
               </div>
             </div>
+
             <button @click.stop="handleRefresh" class="icon-btn" title="刷新状态">
               <span class="icon">🔄</span>
             </button>
@@ -542,14 +547,28 @@ async function openInExplorer() {
   try {
     await OpenInFileExplorer(currentProjectPath.value)
     showToast('success', '已在文件管理器中打开')
-    showTerminalMenu.value = false
   } catch (e) {
     const message = e instanceof Error ? e.message : '打开失败'
     showToast('error', message)
   }
 }
 
-// 在终端中打开
+// 直接打开用户偏好的终端
+async function openInTerminalDirectly() {
+  if (!currentProjectPath.value) return
+
+  const terminalId = preferredTerminal.value || 'powershell'
+
+  try {
+    await OpenInTerminal(currentProjectPath.value, terminalId)
+    showToast('success', '已在终端中打开')
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '打开失败'
+    showToast('error', message)
+  }
+}
+
+// 在终端中打开（从菜单选择）
 async function openInTerminal(terminalId: string) {
   if (!currentProjectPath.value) return
 
@@ -736,6 +755,49 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   margin-left: var(--space-md);
+}
+
+/* 终端按钮组合 */
+.terminal-button-wrapper {
+  display: flex;
+  position: relative;
+}
+
+.terminal-btn-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+  padding-right: 6px;
+}
+
+.terminal-btn-main:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.terminal-btn-dropdown {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding-left: 6px;
+  padding-right: 6px;
+  font-size: 12px;
+}
+
+.terminal-btn-dropdown:hover {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--accent-primary);
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* 终端菜单 */
+.terminal-menu {
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 180px;
 }
 
 /* 下拉菜单 */
