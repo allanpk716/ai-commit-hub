@@ -2,7 +2,6 @@ package git
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 )
 
@@ -38,7 +37,7 @@ func GetStagingStatus(repoPath string) (*StagingStatus, error) {
 
 // getUnstagedFiles 获取未暂存文件列表
 func getUnstagedFiles(repoPath string) ([]StagedFile, error) {
-	cmd := exec.Command("git", "-C", repoPath,
+	cmd := Command("git", "-C", repoPath,
 		"diff", "--name-status", "--diff-filter=ADM")
 	output, err := cmd.Output()
 	if err != nil {
@@ -50,7 +49,7 @@ func getUnstagedFiles(repoPath string) ([]StagedFile, error) {
 
 // StageFile 暂存单个文件
 func StageFile(repoPath, filePath string) error {
-	cmd := exec.Command("git", "-C", repoPath, "add", "-f", filePath)
+	cmd := Command("git", "-C", repoPath, "add", "-f", filePath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("stage file: %s", string(output))
@@ -60,7 +59,7 @@ func StageFile(repoPath, filePath string) error {
 
 // StageAllFiles 暂存所有未暂存文件
 func StageAllFiles(repoPath string) error {
-	cmd := exec.Command("git", "-C", repoPath, "add", "-f", "-u")
+	cmd := Command("git", "-C", repoPath, "add", "-f", "-u")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("stage all: %s", string(output))
@@ -70,7 +69,7 @@ func StageAllFiles(repoPath string) error {
 
 // UnstageFile 取消暂存单个文件
 func UnstageFile(repoPath, filePath string) error {
-	cmd := exec.Command("git", "-C", repoPath, "reset", filePath)
+	cmd := Command("git", "-C", repoPath, "reset", filePath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unstage file: %s", string(output))
@@ -80,7 +79,7 @@ func UnstageFile(repoPath, filePath string) error {
 
 // UnstageAllFiles 取消暂存所有文件
 func UnstageAllFiles(repoPath string) error {
-	cmd := exec.Command("git", "-C", repoPath, "reset")
+	cmd := Command("git", "-C", repoPath, "reset")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unstage all: %s", string(output))
@@ -129,7 +128,7 @@ func parseGitFilesToStaged(output []byte) []StagedFile {
 
 // checkFileIgnored 检查文件是否被 .gitignore 忽略
 func checkFileIgnored(repoPath, filePath string) bool {
-	cmd := exec.Command("git", "-C", repoPath, "check-ignore", "-q", filePath)
+	cmd := Command("git", "-C", repoPath, "check-ignore", "-q", filePath)
 	err := cmd.Run()
 	// 如果命令返回 0，说明文件被忽略；返回 1，说明文件未被忽略
 	return err == nil

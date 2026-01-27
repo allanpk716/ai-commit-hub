@@ -1157,3 +1157,51 @@ func (a *App) PushToRemote(projectPath string) error {
 	logger.Infof("推送成功 - 目录: %s", projectPath)
 	return nil
 }
+
+// GetStagingStatus 获取项目的暂存区状态
+func (a *App) GetStagingStatus(projectPath string) (*git.StagingStatus, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+	return git.GetStagingStatus(projectPath)
+}
+
+// GetFileDiff 获取文件 diff
+func (a *App) GetFileDiff(projectPath, filePath string, staged bool) (string, error) {
+	if a.initError != nil {
+		return "", a.initError
+	}
+	return git.GetFileDiff(projectPath, filePath, staged)
+}
+
+// StageFile 暂存文件
+func (a *App) StageFile(projectPath, filePath string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+	return git.StageFile(projectPath, filePath)
+}
+
+// StageAllFiles 暂存所有文件
+func (a *App) StageAllFiles(projectPath string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+	return git.StageAllFiles(projectPath)
+}
+
+// UnstageFile 取消暂存文件
+func (a *App) UnstageFile(projectPath, filePath string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+	return git.UnstageFile(projectPath, filePath)
+}
+
+// UnstageAllFiles 取消暂存所有文件
+func (a *App) UnstageAllFiles(projectPath string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+	return git.UnstageAllFiles(projectPath)
+}
