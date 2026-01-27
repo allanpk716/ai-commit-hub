@@ -305,12 +305,12 @@ defineExpose({
 /* 响应式设计 */
 @media (max-width: 768px) {
   .status-header-top {
-    flex-wrap: wrap;
-    gap: var(--space-sm);
+    gap: var(--space-xs);
   }
 
   .branch-badge {
     font-size: 12px;
+    padding: var(--space-xs) var(--space-xs);
   }
 
   .branch-badge .icon {
