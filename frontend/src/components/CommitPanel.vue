@@ -50,21 +50,8 @@
       <PushoverStatusRow v-if="currentProject" :project-path="currentProject.path" :status="pushoverStatus"
         :loading="pushoverStore.loading" @install="handleInstallPushover" @update="handleUpdatePushover" />
 
-      <div class="staged-files-container">
-        <div v-if="!commitStore.projectStatus.has_staged" class="empty-hint-inline">
-          <span class="hint-icon">ℹ️</span>
-          <span>暂存区为空，请先使用 git add 添加文件</span>
-        </div>
-        <div v-else class="files-list">
-          <div v-for="file in commitStore.projectStatus.staged_files" :key="file.path" class="file-item">
-            <span class="file-status" :class="file.status.toLowerCase()">
-              {{ file.status }}
-            </span>
-            <span class="file-icon">📄</span>
-            <span class="file-path">{{ file.path }}</span>
-          </div>
-        </div>
-      </div>
+      <!-- Staging Area -->
+      <StagingArea v-if="commitStore.stagingStatus" />
     </section>
 
     <!-- Empty State -->
@@ -261,6 +248,7 @@ import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
 import type { CommitHistory } from '../types'
 import PushoverStatusRow from './PushoverStatusRow.vue'
+import StagingArea from './StagingArea.vue'
 
 // 用户偏好存储键
 const PREFERRED_TERMINAL_KEY = 'ai-commit-hub:preferred-terminal'
@@ -337,9 +325,13 @@ watch(() => projectStore.selectedProject, async (project) => {
     canPush.value = false  // 重置推送按钮状态
     await commitStore.loadProjectAIConfig(project.id)
     await commitStore.loadProjectStatus(project.path)
+    await commitStore.loadStagingStatus(project.path)
     await loadHistoryForProject()
     // 加载 Pushover Hook 状态
     await pushoverStore.getProjectHookStatus(project.path)
+  } else {
+    // 清空暂存区状态
+    commitStore.clearStagingState()
   }
 }, { immediate: true })
 
@@ -446,6 +438,7 @@ async function handleCommit() {
 
     showToast('success', '提交成功!')
     await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
+    await commitStore.loadStagingStatus(commitStore.selectedProjectPath)
     await loadHistoryForProject()
     commitStore.clearMessage()
 
@@ -590,6 +583,7 @@ async function handleRefresh() {
 
   try {
     await commitStore.loadProjectStatus(currentProjectPath.value)
+    await commitStore.loadStagingStatus(currentProjectPath.value)
     canPush.value = false  // 重置推送按钮状态
     showToast('success', '已刷新')
   } catch (e) {
@@ -857,14 +851,12 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* Staged files */
-.staged-files-container {
-  max-height: 200px;
-  overflow-y: auto;
+/* Staging Area */
+.staging-area {
+  margin-top: var(--space-md);
 }
 
 /* 内联提示 */
-.empty-hint-inline,
 .message-hint-inline {
   display: flex;
   align-items: center;
@@ -880,78 +872,6 @@ onUnmounted(() => {
   font-size: 14px;
   opacity: 0.7;
   flex-shrink: 0;
-}
-
-.files-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.file-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-}
-
-.file-item:hover {
-  border-color: var(--border-hover);
-}
-
-.file-status {
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-  font-weight: 600;
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  flex-shrink: 0;
-}
-
-.file-status.modified {
-  background: rgba(245, 158, 11, 0.2);
-  color: var(--accent-warning);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.file-status.new {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--accent-success);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.file-status.deleted {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--accent-error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.file-status.renamed {
-  background: rgba(59, 130, 246, 0.2);
-  color: var(--accent-info);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.file-icon {
-  color: var(--text-muted);
-  flex-shrink: 0;
-  font-size: 14px;
-  line-height: 1;
-}
-
-.file-path {
-  flex: 1;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Settings */
