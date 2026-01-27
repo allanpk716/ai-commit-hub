@@ -15,7 +15,7 @@
         </button>
 
         <!-- 终端按钮：复合设计 -->
-        <div class="terminal-button-wrapper">
+        <div class="terminal-button-wrapper" ref="terminalButtonWrapper">
           <button @click="handleOpenInTerminalDirectly" class="icon-btn terminal-btn-main" title="在终端中打开">
             <span class="icon">_>_</span>
           </button>
@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import PushoverStatusRow from './PushoverStatusRow.vue'
 
 // Props
@@ -89,6 +89,7 @@ const emit = defineEmits<{
 
 // 终端菜单状态
 const showTerminalMenu = ref(false)
+const terminalButtonWrapper = ref<HTMLElement | null>(null)
 
 // 切换终端菜单
 function toggleTerminalMenu() {
@@ -98,6 +99,16 @@ function toggleTerminalMenu() {
 // 点击外部关闭菜单
 function closeTerminalMenu() {
   showTerminalMenu.value = false
+}
+
+// 处理点击外部区域
+function handleClickOutside(event: MouseEvent) {
+  if (
+    terminalButtonWrapper.value &&
+    !terminalButtonWrapper.value.contains(event.target as Node)
+  ) {
+    closeTerminalMenu()
+  }
 }
 
 // 事件处理函数
@@ -125,6 +136,15 @@ function handleInstallPushover() {
 function handleUpdatePushover() {
   emit('updatePushover')
 }
+
+// 生命周期钩子
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // 暴露关闭菜单方法供父组件调用
 defineExpose({
@@ -275,5 +295,38 @@ defineExpose({
   margin-left: auto;
   color: var(--color-primary);
   font-weight: bold;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .status-header-top {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .branch-badge {
+    font-size: 12px;
+  }
+
+  .branch-badge .icon {
+    font-size: 13px;
+  }
+
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .icon-btn .icon {
+    font-size: 14px;
+  }
+
+  .terminal-btn-dropdown {
+    width: 18px;
+  }
+
+  .dropdown-menu {
+    min-width: 160px;
+  }
 }
 </style>
