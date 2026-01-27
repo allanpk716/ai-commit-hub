@@ -17,7 +17,8 @@ import {
   UnstageAllFiles,
   GetUntrackedFiles,
   StageFiles,
-  AddToGitIgnore
+  AddToGitIgnore,
+  DiscardFileChanges
 } from '../../wailsjs/go/main/App'
 
 export const useCommitStore = defineStore('commit', () => {
@@ -337,6 +338,26 @@ export const useCommitStore = defineStore('commit', () => {
     }
   }
 
+  async function discardFileChanges(filePath: string) {
+    if (!selectedProjectPath.value) {
+      error.value = '请先选择项目'
+      return
+    }
+
+    try {
+      await DiscardFileChanges(selectedProjectPath.value, filePath)
+      // 重新加载暂存区状态和项目状态
+      await loadStagingStatus(selectedProjectPath.value)
+      await loadProjectStatus(selectedProjectPath.value)
+      // 刷新未跟踪文件列表
+      await loadUntrackedFiles(selectedProjectPath.value)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '还原文件失败'
+      error.value = message
+      throw e
+    }
+  }
+
   async function unstageAllFiles() {
     if (!selectedProjectPath.value) {
       error.value = '请先选择项目'
@@ -535,6 +556,7 @@ export const useCommitStore = defineStore('commit', () => {
     stageAllFiles,
     unstageFile,
     unstageAllFiles,
+    discardFileChanges,
     clearFileDiff,
     selectFile,
     stageSelectedFiles,

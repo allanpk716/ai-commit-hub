@@ -36,6 +36,7 @@
         :key="file.path"
         :class="['file-item', 'unstaged', { 'selected': isSelected(file.path), 'ignored': file.ignored }]"
         @click="handleFileClick(file)"
+        @contextmenu.prevent="handleUnstagedContextMenu($event, file)"
       >
         <label class="file-checkbox">
           <input
@@ -131,16 +132,38 @@
       <span>工作区干净</span>
     </div>
 
-    <!-- 右键菜单 -->
-    <ContextMenu
-      :visible="contextMenuVisible"
-      :x="contextMenuX"
-      :y="contextMenuY"
-      @copy-path="handleCopyPath"
-      @stage-file="handleStageUntrackedFile"
-      @exclude-file="handleExcludeUntrackedFile"
-      @open-explorer="handleOpenExplorer"
-      @close="closeContextMenu"
+    <!-- 未暂存文件右键菜单 -->
+    <FileContextMenu
+      :visible="unstagedContextMenuVisible"
+      :x="unstagedContextMenuX"
+      :y="unstagedContextMenuY"
+      :menuItems="['copy-path', 'stage', 'discard', 'open-explorer'] as const"
+      @copy-path="handleUnstagedCopyPath"
+      @stage="handleUnstagedStage"
+      @discard="handleUnstagedDiscard"
+      @open-explorer="handleUnstagedOpenExplorer"
+      @close="closeUnstagedContextMenu"
+    />
+
+    <!-- 未跟踪文件右键菜单 -->
+    <FileContextMenu
+      :visible="untrackedContextMenuVisible"
+      :x="untrackedContextMenuX"
+      :y="untrackedContextMenuY"
+      :menuItems="['copy-path', 'stage', 'exclude', 'open-explorer'] as const"
+      @copy-path="handleUntrackedCopyPath"
+      @stage="handleUntrackedStage"
+      @exclude="handleUntrackedExclude"
+      @open-explorer="handleUntrackedOpenExplorer"
+      @close="closeUntrackedContextMenu"
+    />
+
+    <!-- 还原确认对话框 -->
+    <DiscardConfirmDialog
+      :visible="discardDialogVisible"
+      :fileName="selectedUnstagedFile?.path || ''"
+      @confirm="handleDiscardConfirm"
+      @cancel="discardDialogVisible = false"
     />
 
     <!-- 排除对话框 -->
@@ -157,7 +180,8 @@
 import { computed, ref } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
 import type { StagedFile, UntrackedFile } from '../types'
-import ContextMenu from './ContextMenu.vue'
+import FileContextMenu from './FileContextMenu.vue'
+import DiscardConfirmDialog from './DiscardConfirmDialog.vue'
 import ExcludeDialog from './ExcludeDialog.vue'
 import { OpenInFileExplorer } from '../../wailsjs/go/main/App'
 
@@ -172,13 +196,20 @@ const selectedUntrackedCount = computed(() => selectedUntrackedFiles.value.size)
 // 选择状态管理
 const selectedUntrackedFiles = ref<Set<string>>(new Set())
 
-// 右键菜单状态
-const contextMenuVisible = ref(false)
-const contextMenuX = ref(0)
-const contextMenuY = ref(0)
+// 未暂存文件右键菜单状态
+const unstagedContextMenuVisible = ref(false)
+const unstagedContextMenuX = ref(0)
+const unstagedContextMenuY = ref(0)
+const selectedUnstagedFile = ref<StagedFile | null>(null)
+
+// 未跟踪文件右键菜单状态
+const untrackedContextMenuVisible = ref(false)
+const untrackedContextMenuX = ref(0)
+const untrackedContextMenuY = ref(0)
 const selectedUntrackedFile = ref<UntrackedFile | null>(null)
 
-// 排除对话框状态
+// 对话框状态
+const discardDialogVisible = ref(false)
 const excludeDialogVisible = ref(false)
 
 // 计算属性
@@ -324,42 +355,98 @@ function getStatusClass(status: string): string {
   return status.toLowerCase()
 }
 
-// 未跟踪文件右键菜单
-function handleUntrackedContextMenu(event: MouseEvent, file: UntrackedFile) {
-  selectedUntrackedFile.value = file
-  contextMenuX.value = event.clientX
-  contextMenuY.value = event.clientY
-  contextMenuVisible.value = true
+// 未暂存文件右键菜单处理
+function handleUnstagedContextMenu(event: MouseEvent, file: StagedFile) {
+  selectedUnstagedFile.value = file
+  unstagedContextMenuX.value = event.clientX
+  unstagedContextMenuY.value = event.clientY
+  unstagedContextMenuVisible.value = true
 }
 
-function closeContextMenu() {
-  contextMenuVisible.value = false
+function closeUnstagedContextMenu() {
+  unstagedContextMenuVisible.value = false
 }
 
-async function handleCopyPath() {
-  if (!selectedUntrackedFile.value) return
+async function handleUnstagedCopyPath() {
+  if (!selectedUnstagedFile.value) return
   try {
-    await navigator.clipboard.writeText(selectedUntrackedFile.value.path)
-    // TODO: 显示 Toast 提示
+    await navigator.clipboard.writeText(selectedUnstagedFile.value.path)
   } catch (e) {
     console.error('复制失败:', e)
   }
-  closeContextMenu()
+  closeUnstagedContextMenu()
 }
 
-async function handleStageUntrackedFile() {
+async function handleUnstagedStage() {
+  if (!selectedUnstagedFile.value) return
+  try {
+    await commitStore.stageFile(selectedUnstagedFile.value.path)
+  } catch (e) {
+    // 错误已在 store 中处理
+  }
+  closeUnstagedContextMenu()
+}
+
+function handleUnstagedDiscard() {
+  closeUnstagedContextMenu()
+  discardDialogVisible.value = true
+}
+
+async function handleDiscardConfirm() {
+  if (!selectedUnstagedFile.value) return
+  try {
+    await commitStore.discardFileChanges(selectedUnstagedFile.value.path)
+  } catch (e) {
+    // 错误已在 store 中处理
+  }
+  discardDialogVisible.value = false
+}
+
+async function handleUnstagedOpenExplorer() {
+  if (!selectedUnstagedFile.value || !commitStore.selectedProjectPath) return
+  try {
+    const fullPath = `${commitStore.selectedProjectPath}/${selectedUnstagedFile.value.path}`
+    await OpenInFileExplorer(fullPath)
+  } catch (e) {
+    console.error('打开失败:', e)
+  }
+  closeUnstagedContextMenu()
+}
+
+// 未跟踪文件右键菜单处理
+function handleUntrackedContextMenu(event: MouseEvent, file: UntrackedFile) {
+  selectedUntrackedFile.value = file
+  untrackedContextMenuX.value = event.clientX
+  untrackedContextMenuY.value = event.clientY
+  untrackedContextMenuVisible.value = true
+}
+
+function closeUntrackedContextMenu() {
+  untrackedContextMenuVisible.value = false
+}
+
+async function handleUntrackedCopyPath() {
   if (!selectedUntrackedFile.value) return
   try {
-    await commitStore.stageFiles([selectedUntrackedFile.value.path])
-    // TODO: 显示 Toast 提示
+    await navigator.clipboard.writeText(selectedUntrackedFile.value.path)
   } catch (e) {
-    console.error('添加到暂存区失败:', e)
+    console.error('复制失败:', e)
   }
-  closeContextMenu()
+  closeUntrackedContextMenu()
 }
 
-function handleExcludeUntrackedFile() {
-  closeContextMenu()
+async function handleUntrackedStage() {
+  if (!selectedUntrackedFile.value) return
+  try {
+    await commitStore.stageFile(selectedUntrackedFile.value.path)
+  } catch (e) {
+    // 错误已在 store 中处理
+  }
+  closeUntrackedContextMenu()
+}
+
+function handleUntrackedExclude() {
+  closeUntrackedContextMenu()
   excludeDialogVisible.value = true
 }
 
@@ -367,23 +454,21 @@ async function handleExcludeConfirm(mode: 'exact' | 'extension' | 'directory', _
   if (!selectedUntrackedFile.value) return
   try {
     await commitStore.addToGitIgnore(selectedUntrackedFile.value.path, mode)
-    // TODO: 显示 Toast 提示
   } catch (e) {
     console.error('添加到排除列表失败:', e)
   }
   excludeDialogVisible.value = false
 }
 
-async function handleOpenExplorer() {
+async function handleUntrackedOpenExplorer() {
   if (!selectedUntrackedFile.value || !commitStore.selectedProjectPath) return
   try {
     const fullPath = `${commitStore.selectedProjectPath}/${selectedUntrackedFile.value.path}`
     await OpenInFileExplorer(fullPath)
-    // TODO: 显示 Toast 提示
   } catch (e) {
     console.error('打开失败:', e)
   }
-  closeContextMenu()
+  closeUntrackedContextMenu()
 }
 </script>
 

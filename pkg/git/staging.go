@@ -149,3 +149,13 @@ func MarkIgnoredFiles(repoPath string, files []StagedFile) []StagedFile {
 	}
 	return files
 }
+
+// DiscardFileChanges 还原工作区文件的更改
+func DiscardFileChanges(repoPath, filePath string) error {
+	cmd := Command("git", "-C", repoPath, "checkout", "--", filePath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("discard file changes: %s", string(output))
+	}
+	return nil
+}

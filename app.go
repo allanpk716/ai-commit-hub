@@ -1220,6 +1220,14 @@ func (a *App) UnstageAllFiles(projectPath string) error {
 	return git.UnstageAllFiles(projectPath)
 }
 
+// DiscardFileChanges 还原工作区文件的更改
+func (a *App) DiscardFileChanges(projectPath, filePath string) error {
+	if a.initError != nil {
+		return a.initError
+	}
+	return git.DiscardFileChanges(projectPath, filePath)
+}
+
 // GetUntrackedFiles 获取未跟踪文件列表
 func (a *App) GetUntrackedFiles(projectPath string) ([]git.UntrackedFile, error) {
 	logger.Infof("[App.GetUntrackedFiles] 开始获取未跟踪文件: %s", projectPath)

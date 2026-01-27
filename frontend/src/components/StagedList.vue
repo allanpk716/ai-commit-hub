@@ -35,6 +35,7 @@
         :key="file.path"
         :class="['file-item', 'staged', { 'selected': isSelected(file.path) }]"
         @click="handleFileClick(file)"
+        @contextmenu.prevent="handleContextMenu($event, file)"
       >
         <label class="file-checkbox">
           <input
@@ -69,13 +70,27 @@
       <span class="empty-icon">📭</span>
       <span>暂存区为空</span>
     </div>
+
+    <!-- 右键菜单 -->
+    <FileContextMenu
+      :visible="contextMenuVisible"
+      :x="contextMenuX"
+      :y="contextMenuY"
+      :menuItems="['copy-path', 'unstage', 'open-explorer'] as const"
+      @copy-path="handleCopyPath"
+      @unstage="handleUnstageFromMenu"
+      @open-explorer="handleOpenExplorer"
+      @close="closeContextMenu"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
 import type { StagedFile } from '../types'
+import FileContextMenu from './FileContextMenu.vue'
+import { OpenInFileExplorer } from '../../wailsjs/go/main/App'
 
 const commitStore = useCommitStore()
 
@@ -149,6 +164,55 @@ function getStatusText(status: string): string {
     'Renamed': '重命名'
   }
   return texts[status] || '未知'
+}
+
+// 右键菜单状态
+const contextMenuVisible = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const selectedFile = ref<StagedFile | null>(null)
+
+// 右键菜单处理
+function handleContextMenu(event: MouseEvent, file: StagedFile) {
+  selectedFile.value = file
+  contextMenuX.value = event.clientX
+  contextMenuY.value = event.clientY
+  contextMenuVisible.value = true
+}
+
+function closeContextMenu() {
+  contextMenuVisible.value = false
+}
+
+async function handleCopyPath() {
+  if (!selectedFile.value) return
+  try {
+    await navigator.clipboard.writeText(selectedFile.value.path)
+  } catch (e) {
+    console.error('复制失败:', e)
+  }
+  closeContextMenu()
+}
+
+async function handleUnstageFromMenu() {
+  if (!selectedFile.value) return
+  try {
+    await commitStore.unstageFile(selectedFile.value.path)
+  } catch (e) {
+    // 错误已在 store 中处理
+  }
+  closeContextMenu()
+}
+
+async function handleOpenExplorer() {
+  if (!selectedFile.value || !commitStore.selectedProjectPath) return
+  try {
+    const fullPath = `${commitStore.selectedProjectPath}/${selectedFile.value.path}`
+    await OpenInFileExplorer(fullPath)
+  } catch (e) {
+    console.error('打开失败:', e)
+  }
+  closeContextMenu()
 }
 
 function getStatusClass(status: string): string {
