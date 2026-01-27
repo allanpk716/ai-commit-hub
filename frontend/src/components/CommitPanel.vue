@@ -584,6 +584,8 @@ async function handleRefresh() {
   try {
     await commitStore.loadProjectStatus(currentProjectPath.value)
     await commitStore.loadStagingStatus(currentProjectPath.value)
+    // 刷新 Pushover Hook 状态和版本检查
+    await pushoverStore.getProjectHookStatus(currentProjectPath.value)
     canPush.value = false  // 重置推送按钮状态
     showToast('success', '已刷新')
   } catch (e) {
@@ -855,7 +857,8 @@ onUnmounted(() => {
 .staging-area {
   margin-top: var(--space-md);
   max-height: 500px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* 内联提示 */

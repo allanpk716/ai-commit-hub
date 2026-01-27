@@ -3,7 +3,7 @@
     <div class="status-left">
       <span class="status-icon">{{ statusIcon }}</span>
       <span class="status-title">Pushover Hook</span>
-      <span v-if="status?.version" class="status-version">v{{ status.version }}</span>
+      <span v-if="status?.version" class="status-version">{{ formatVersion(status.version) }}</span>
       <span v-if="!status?.installed" class="status-text">(未安装)</span>
     </div>
 
@@ -53,6 +53,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { usePushoverStore } from '../stores/pushoverStore'
+import { formatVersion } from '../utils/versionFormat'
 import type { HookStatus } from '../types/pushover'
 
 interface Props {

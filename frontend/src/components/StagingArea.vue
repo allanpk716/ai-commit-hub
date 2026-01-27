@@ -89,14 +89,12 @@ const panelsRef = ref<HTMLElement | null>(null)
 .staging-area {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  /* 移除固定高度和 overflow，让外层控制滚动 */
 }
 
 .staging-panels {
   display: flex;
-  flex: 1;
-  overflow: hidden;
+  /* 移除 flex: 1 和 overflow: hidden，让内容自然撑开 */
   min-height: 0;
   position: relative;
 }
@@ -154,8 +152,9 @@ const panelsRef = ref<HTMLElement | null>(null)
 
 .diff-panel {
   flex: 1;
-  overflow: hidden;
-  min-height: 0;
+  overflow-y: auto;  /* 允许 Diff 内容垂直滚动 */
+  overflow-x: auto;  /* 允许 Diff 内容水平滚动 */
+  min-height: 300px; /* 设置最小高度 */
   min-width: 0;
 }
 

@@ -49,6 +49,10 @@
           {{ getStatusIcon(file.status) }}
         </span>
 
+        <span class="status-badge" :class="getStatusClass(file.status)">
+          {{ getStatusText(file.status) }}
+        </span>
+
         <span class="ignored-badge" v-if="file.ignored">已忽略</span>
 
         <span class="file-path" :title="file.path">{{ file.path }}</span>
@@ -140,6 +144,16 @@ function getStatusIcon(status: string): string {
     'Renamed': '📛'
   }
   return icons[status] || '📄'
+}
+
+function getStatusText(status: string): string {
+  const texts: Record<string, string> = {
+    'Modified': '修改',
+    'New': '新增',
+    'Deleted': '删除',
+    'Renamed': '重命名'
+  }
+  return texts[status] || '未知'
 }
 
 function getStatusClass(status: string): string {
@@ -279,6 +293,36 @@ function getStatusClass(status: string): string {
 .file-status {
   font-size: 14px;
   flex-shrink: 0;
+}
+
+/* 状态徽章样式 */
+.status-badge {
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.status-badge.modified {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge.new {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.deleted {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-badge.renamed {
+  background: #dbeafe;
+  color: #2563eb;
 }
 
 /* 已忽略徽章样式 */
