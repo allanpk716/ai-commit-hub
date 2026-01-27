@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ProjectStatus, ProjectAIConfig, ProviderInfo, StagingStatus } from '../types'
+import type { ProjectStatus, ProjectAIConfig, ProviderInfo, StagingStatus, StagedFile } from '../types'
 import {
   GetProjectStatus,
   GenerateCommit,
@@ -53,7 +53,7 @@ export const useCommitStore = defineStore('commit', () => {
   // 文件选择状态
   const selectedStagedFiles = ref<Set<string>>(new Set())
   const selectedUnstagedFiles = ref<Set<string>>(new Set())
-  const selectedFile = ref<{ path: string; staged: boolean } | null>(null)
+  const selectedFile = ref<StagedFile | null>(null)
   const fileDiff = ref<string | null>(null)
   const isLoadingDiff = ref(false)
 
@@ -321,10 +321,12 @@ export const useCommitStore = defineStore('commit', () => {
   }
 
   // 选择文件
-  function selectFile(file: { path: string; staged: boolean }) {
+  function selectFile(file: StagedFile) {
     selectedFile.value = file
+    // 判断文件是已暂存还是未暂存
+    const isStaged = commitStore.stagingStatus?.staged?.some(f => f.path === file.path) ?? false
     // 加载文件差异
-    loadFileDiff(file.path, file.staged)
+    loadFileDiff(file.path, isStaged)
   }
 
   // 批量暂存选中的文件
