@@ -35,6 +35,9 @@
               <span v-if="pushoverStore.isUpdateAvailable" class="update-badge">
                 有新版本
               </span>
+              <span v-if="pushoverStore.updateCheckError" class="update-error">
+                ⚠️ {{ pushoverStore.updateCheckError }}
+              </span>
             </div>
           </div>
         </div>
@@ -61,10 +64,10 @@
 
             <button
               class="btn btn-secondary"
-              :disabled="pushoverStore.loading"
+              :disabled="pushoverStore.loading || pushoverStore.isCheckingUpdate"
               @click="handleCheckUpdate"
             >
-              🔍 检查更新
+              {{ pushoverStore.isCheckingUpdate ? '检查中...' : '🔍 检查更新' }}
             </button>
           </template>
         </div>
@@ -177,7 +180,7 @@ async function handleUpdateExtension() {
 
 async function handleCheckUpdate() {
   try {
-    await pushoverStore.checkExtensionStatus()
+    await pushoverStore.checkForExtensionUpdates()
   } catch (e) {
     // Error handled in store
   }
@@ -284,6 +287,17 @@ onMounted(() => {
   font-size: 11px;
   border-radius: 10px;
   font-weight: 600;
+}
+
+.update-error {
+  display: inline-block;
+  margin-left: var(--space-sm);
+  padding: 2px var(--space-sm);
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  font-size: 11px;
+  border-radius: 10px;
+  font-weight: 500;
 }
 
 .extension-actions {

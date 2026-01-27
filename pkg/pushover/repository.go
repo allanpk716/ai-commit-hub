@@ -75,6 +75,25 @@ func (rm *RepositoryManager) Update() error {
 	return nil
 }
 
+// fetchRemoteTags 获取远程 tags 和分支更新
+func (rm *RepositoryManager) fetchRemoteTags() error {
+	if !rm.IsCloned() {
+		return fmt.Errorf("扩展不存在")
+	}
+
+	extensionPath := rm.GetExtensionPath()
+
+	// 只获取远程的 tags 和 main 分支，不拉取完整代码
+	cmd := Command("git", "fetch", "origin", "main", "--tags")
+	cmd.Dir = extensionPath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("fetch 远程更新失败: %v\n输出: %s", err, string(output))
+	}
+
+	return nil
+}
+
 // GetVersion 获取当前扩展版本
 func (rm *RepositoryManager) GetVersion() (string, error) {
 	if !rm.IsCloned() {
@@ -104,6 +123,11 @@ func (rm *RepositoryManager) GetVersion() (string, error) {
 func (rm *RepositoryManager) GetLatestVersion() (string, error) {
 	if !rm.IsCloned() {
 		return "", fmt.Errorf("扩展不存在")
+	}
+
+	// 先获取远程更新
+	if err := rm.fetchRemoteTags(); err != nil {
+		return "", err
 	}
 
 	extensionPath := rm.GetExtensionPath()

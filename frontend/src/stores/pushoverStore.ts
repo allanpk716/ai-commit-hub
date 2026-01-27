@@ -36,6 +36,8 @@ export const usePushoverStore = defineStore('pushover', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const configValid = ref(false)
+  const updateCheckError = ref<string | null>(null) // 更新检查错误
+  const isCheckingUpdate = ref(false) // 是否正在检查更新
 
   // Computed
   const isExtensionDownloaded = computed(() => extensionInfo.value.downloaded)
@@ -259,12 +261,15 @@ export const usePushoverStore = defineStore('pushover', () => {
    * 检查扩展自身更新（而非项目 Hook）
    */
   async function checkForExtensionUpdates() {
-    loading.value = true
-    error.value = null
+    updateCheckError.value = null
+    isCheckingUpdate.value = true
 
     try {
       const { CheckPushoverExtensionUpdates } = await import('../../wailsjs/go/main/App')
       const result = await CheckPushoverExtensionUpdates()
+      extensionInfo.value.update_available = result.needs_update as boolean
+      extensionInfo.value.current_version = result.current_version as string
+      extensionInfo.value.latest_version = result.latest_version as string
       return {
         updateAvailable: result.needs_update as boolean,
         currentVersion: result.current_version as string,
@@ -272,10 +277,10 @@ export const usePushoverStore = defineStore('pushover', () => {
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '未知错误'
-      error.value = `检查扩展更新失败: ${message}`
+      updateCheckError.value = `检查更新失败: ${message}`
       throw e
     } finally {
-      loading.value = false
+      isCheckingUpdate.value = false
     }
   }
 
@@ -336,6 +341,8 @@ export const usePushoverStore = defineStore('pushover', () => {
     loading,
     error,
     configValid,
+    updateCheckError,
+    isCheckingUpdate,
 
     // Computed
     isExtensionDownloaded,
