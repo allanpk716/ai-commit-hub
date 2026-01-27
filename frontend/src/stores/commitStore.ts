@@ -323,6 +323,13 @@ export const useCommitStore = defineStore('commit', () => {
   // 选择文件
   function selectFile(file: StagedFile) {
     selectedFile.value = file
+
+    // 如果文件路径为空，清空 diff 而不是尝试加载
+    if (!file.path) {
+      selectedFileDiff.value = null
+      return
+    }
+
     // 判断文件是已暂存还是未暂存
     const isStaged = stagingStatus.value?.staged?.some((f: StagedFile) => f.path === file.path) ?? false
     // 加载文件差异
