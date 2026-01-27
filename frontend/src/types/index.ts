@@ -37,6 +37,7 @@ export interface ProjectInfo {
 export interface StagedFile {
   path: string
   status: string // 'Modified' | 'New' | 'Deleted' | 'Renamed'
+  ignored: boolean
 }
 
 export interface ProjectStatus {
