@@ -11,6 +11,7 @@ import {
   GetConfiguredProviders,
   GetStagingStatus,
   GetFileDiff,
+  GetUntrackedFileContent,
   StageFile,
   StageAllFiles,
   UnstageFile,
@@ -397,6 +398,36 @@ export const useCommitStore = defineStore('commit', () => {
     loadFileDiff(file.path, isStaged)
   }
 
+  // 加载未跟踪文件内容
+  async function loadUntrackedFileContent(filePath: string) {
+    if (!selectedProjectPath.value) {
+      error.value = '请先选择项目'
+      return
+    }
+
+    try {
+      const result = await GetUntrackedFileContent(selectedProjectPath.value, filePath)
+
+      if (result.IsBinary) {
+        // 二进制文件：显示占位提示
+        selectedFileDiff.value = {
+          filePath,
+          diff: '[二进制文件，无法预览内容]'
+        }
+      } else {
+        // 文本文件：设置 diff
+        selectedFileDiff.value = {
+          filePath,
+          diff: result.Content
+        }
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '读取文件内容失败'
+      error.value = message
+      selectedFileDiff.value = null
+    }
+  }
+
   // 批量暂存选中的文件
   async function stageSelectedFiles() {
     if (!selectedProjectPath.value || selectedUnstagedFiles.value.size === 0) {
@@ -559,6 +590,7 @@ export const useCommitStore = defineStore('commit', () => {
     discardFileChanges,
     clearFileDiff,
     selectFile,
+    loadUntrackedFileContent,
     stageSelectedFiles,
     unstageSelectedFiles,
     toggleFileSelection,

@@ -326,9 +326,9 @@ function handleFileClick(file: StagedFile) {
   commitStore.selectFile(file)
 }
 
-function handleUntrackedFileClick(_file: UntrackedFile) {
-  // 未跟踪文件不需要显示 diff
-  // 可以选择弹出提示或者不做任何操作
+function handleUntrackedFileClick(file: UntrackedFile) {
+  commitStore.selectFile(file as StagedFile)
+  commitStore.loadUntrackedFileContent(file.path)
 }
 
 function getStatusIcon(status: string): string {

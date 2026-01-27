@@ -1181,6 +1181,14 @@ func (a *App) GetFileDiff(projectPath, filePath string, staged bool) (string, er
 	return git.GetFileDiff(projectPath, filePath, staged)
 }
 
+// GetUntrackedFileContent 获取未跟踪文件内容
+func (a *App) GetUntrackedFileContent(projectPath, filePath string) (git.FileContentResult, error) {
+	if a.initError != nil {
+		return git.FileContentResult{}, a.initError
+	}
+	return git.ReadFileContent(projectPath, filePath)
+}
+
 // StageFile 暂存文件
 func (a *App) StageFile(projectPath, filePath string) error {
 	logger.Infof("[App.StageFile] 开始暂存文件: %s in %s", filePath, projectPath)
