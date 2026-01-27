@@ -59,6 +59,15 @@ function getStatusClass(status: string): string {
 function getOldCode(): string {
   if (!commitStore.selectedFileDiff?.diff) return ''
 
+  // 检测是否为标准 git diff 格式
+  const isStandardDiff = commitStore.selectedFileDiff.diff.includes('diff --git') ||
+                         commitStore.selectedFileDiff.diff.includes('@@')
+
+  // 如果不是标准 diff 格式（如未跟踪文件的纯内容），返回空
+  if (!isStandardDiff) {
+    return ''
+  }
+
   // Simple diff parsing, extract old code
   const lines = commitStore.selectedFileDiff.diff.split('\n')
   const oldLines: string[] = []
@@ -76,6 +85,15 @@ function getOldCode(): string {
 
 function getNewCode(): string {
   if (!commitStore.selectedFileDiff?.diff) return ''
+
+  // 检测是否为标准 git diff 格式
+  const isStandardDiff = commitStore.selectedFileDiff.diff.includes('diff --git') ||
+                         commitStore.selectedFileDiff.diff.includes('@@')
+
+  // 如果不是标准 diff 格式（如未跟踪文件的纯内容），直接返回完整内容
+  if (!isStandardDiff) {
+    return commitStore.selectedFileDiff.diff
+  }
 
   // Simple diff parsing, extract new code
   const lines = commitStore.selectedFileDiff.diff.split('\n')
