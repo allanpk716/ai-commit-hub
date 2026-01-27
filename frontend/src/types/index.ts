@@ -98,3 +98,12 @@ export interface InstallResult {
 
 // 通知模式
 export type NotificationMode = 'silent' | 'normal' | 'verbose'
+
+// 排除模式
+export type ExcludeMode = 'exact' | 'extension' | 'directory'
+
+// 目录选项
+export interface DirectoryOption {
+  pattern: string
+  label: string
+}
