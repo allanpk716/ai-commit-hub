@@ -109,13 +109,16 @@
           <span class="icon">✓</span>
           提交到本地
         </button>
-        <button @click="handlePush" class="btn-action btn-primary-push" :disabled="!canPush || isPushing">
-          <span class="icon" :class="{ spin: isPushing }">↑</span>
-          {{ isPushing ? '推送中...' : '推送到远程' }}
-        </button>
         <button @click="handleRegenerate" :disabled="commitStore.isGenerating" class="btn-action btn-tertiary">
           <span class="icon">🔄</span>
           重新生成
+        </button>
+      </div>
+      <!-- 推送按钮独立显示，只要 canPush 为 true 就显示 -->
+      <div class="action-buttons" v-if="canPush" style="margin-top: var(--space-sm);">
+        <button @click="handlePush" class="btn-action btn-primary-push" :disabled="isPushing" style="width: 100%;">
+          <span class="icon" :class="{ spin: isPushing }">↑</span>
+          {{ isPushing ? '推送中...' : '推送到远程' }}
         </button>
       </div>
     </section>
