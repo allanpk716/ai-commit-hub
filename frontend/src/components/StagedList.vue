@@ -29,7 +29,7 @@
       </div>
     </div>
 
-    <div class="file-list" v-if="commitStore.stagingStatus?.staged?.length > 0">
+    <div class="file-list" v-if="commitStore.stagingStatus?.staged && commitStore.stagingStatus.staged.length > 0">
       <div
         v-for="file in commitStore.stagingStatus.staged"
         :key="file.path"
@@ -77,7 +77,7 @@ const commitStore = useCommitStore()
 
 const isAllSelected = computed(() => {
   const staged = commitStore.stagingStatus?.staged ?? []
-  return staged.length > 0 && staged.every(f => commitStore.selectedStagedFiles.has(f.path))
+  return staged.length > 0 && staged.every((f: StagedFile) => commitStore.selectedStagedFiles.has(f.path))
 })
 
 const selectedCount = computed(() => commitStore.selectedStagedFiles.size)

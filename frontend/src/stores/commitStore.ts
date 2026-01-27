@@ -324,7 +324,7 @@ export const useCommitStore = defineStore('commit', () => {
   function selectFile(file: StagedFile) {
     selectedFile.value = file
     // 判断文件是已暂存还是未暂存
-    const isStaged = commitStore.stagingStatus?.staged?.some(f => f.path === file.path) ?? false
+    const isStaged = stagingStatus.value?.staged?.some((f: StagedFile) => f.path === file.path) ?? false
     // 加载文件差异
     loadFileDiff(file.path, isStaged)
   }
