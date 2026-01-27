@@ -53,6 +53,7 @@ export interface ProjectStatus {
 export interface StagingStatus {
   staged: StagedFile[]
   unstaged: StagedFile[]
+  untracked: UntrackedFile[]
 }
 
 export interface CommitHistory {

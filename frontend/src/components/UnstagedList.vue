@@ -1,8 +1,8 @@
 <template>
   <div class="file-list-container unstaged-list">
     <div class="list-header">
-      <h4>未暂存 ({{ commitStore.stagingStatus?.unstaged?.length || 0 }})</h4>
-      <div class="bulk-actions" v-if="commitStore.stagingStatus?.unstaged && commitStore.stagingStatus.unstaged.length > 0">
+      <h4>未暂存 ({{ unstagedCount }})</h4>
+      <div class="bulk-actions" v-if="hasUnstagedFiles">
         <label class="select-all">
           <input
             type="checkbox"
@@ -29,9 +29,10 @@
       </div>
     </div>
 
-    <div class="file-list" v-if="commitStore.stagingStatus?.unstaged && commitStore.stagingStatus.unstaged.length > 0">
+    <!-- 未暂存文件列表 -->
+    <div class="file-list" v-if="hasUnstagedFiles">
       <div
-        v-for="file in commitStore.stagingStatus.unstaged"
+        v-for="file in commitStore.stagingStatus?.unstaged || []"
         :key="file.path"
         :class="['file-item', 'unstaged', { 'selected': isSelected(file.path), 'ignored': file.ignored }]"
         @click="handleFileClick(file)"
@@ -68,7 +69,63 @@
       </div>
     </div>
 
-    <div v-else class="empty-state">
+    <!-- 未跟踪文件列表 -->
+    <div v-if="hasUntrackedFiles" class="untracked-section">
+      <div class="list-header">
+        <h4>未跟踪 ({{ commitStore.stagingStatus?.untracked?.length || 0 }})</h4>
+        <div class="bulk-actions" v-if="commitStore.stagingStatus?.untracked && commitStore.stagingStatus.untracked.length > 0">
+          <button
+            @click="stageUntrackedSelected"
+            :disabled="selectedUntrackedCount === 0"
+            class="btn-bulk"
+            title="暂存选中的未跟踪文件"
+          >
+            [+] 暂存所选
+          </button>
+          <button
+            @click="stageAllUntracked"
+            class="btn-bulk btn-bulk-primary"
+            title="暂存所有未跟踪文件"
+          >
+            [║] 全部暂存
+          </button>
+        </div>
+      </div>
+
+      <div class="file-list">
+        <div
+          v-for="file in commitStore.stagingStatus?.untracked || []"
+          :key="file.path"
+          :class="['file-item', 'untracked', { 'selected': isUntrackedSelected(file.path) }]"
+          @click="handleUntrackedFileClick(file)"
+        >
+          <label class="file-checkbox">
+            <input
+              type="checkbox"
+              :checked="isUntrackedSelected(file.path)"
+              @change="toggleUntrackedSelection(file.path)"
+              @click.stop
+            />
+          </label>
+
+          <span class="file-status">📄</span>
+
+          <span class="status-badge untracked">未跟踪</span>
+
+          <span class="file-path" :title="file.path">{{ file.path }}</span>
+
+          <button
+            @click.stop="handleStageUntracked(file)"
+            class="btn-mini btn-stage"
+            title="暂存文件"
+          >
+            +
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="!hasUnstagedFiles && !hasUntrackedFiles" class="empty-state">
       <span class="empty-icon">✨</span>
       <span>工作区干净</span>
     </div>
@@ -78,10 +135,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
-import type { StagedFile } from '../types'
+import type { StagedFile, UntrackedFile } from '../types'
 
 const commitStore = useCommitStore()
 
+// 计算属性
+const unstagedCount = computed(() => commitStore.stagingStatus?.unstaged?.length || 0)
+const hasUnstagedFiles = computed(() => unstagedCount.value > 0)
+const hasUntrackedFiles = computed(() => commitStore.stagingStatus?.untracked?.length || 0 > 0)
+const selectedUntrackedCount = computed(() => selectedUntrackedFiles.value.size)
+
+// 选择状态管理
+const selectedUntrackedFiles = ref<Set<string>>(new Set())
+
+// 计算属性
 const isAllSelected = computed(() => {
   const unstaged = commitStore.stagingStatus?.unstaged ?? []
   return unstaged.length > 0 && unstaged.every((f: StagedFile) => commitStore.selectedUnstagedFiles.has(f.path))
@@ -89,6 +156,7 @@ const isAllSelected = computed(() => {
 
 const selectedCount = computed(() => commitStore.selectedUnstagedFiles.size)
 
+// 未暂存文件选择
 function isSelected(filePath: string): boolean {
   return commitStore.selectedUnstagedFiles.has(filePath)
 }
@@ -106,9 +174,21 @@ function toggleSelectAll() {
   }
 }
 
-async function handleStage(file: StagedFile) {
-  if (file.ignored) return
+// 未跟踪文件选择
+function isUntrackedSelected(filePath: string): boolean {
+  return selectedUntrackedFiles.value.has(filePath)
+}
 
+function toggleUntrackedSelection(filePath: string) {
+  if (selectedUntrackedFiles.value.has(filePath)) {
+    selectedUntrackedFiles.value.delete(filePath)
+  } else {
+    selectedUntrackedFiles.value.add(filePath)
+  }
+}
+
+// 未跟踪文件操作
+async function handleStageUntracked(file: UntrackedFile) {
   try {
     await commitStore.stageFile(file.path)
   } catch (e) {
@@ -116,24 +196,39 @@ async function handleStage(file: StagedFile) {
   }
 }
 
-async function stageSelected() {
+async function stageUntrackedSelected() {
+  if (selectedUntrackedFiles.value.size === 0) return
+
   try {
-    await commitStore.stageSelectedFiles()
+    const files = Array.from(selectedUntrackedFiles.value)
+    await commitStore.stageFiles(files)
+    selectedUntrackedFiles.value.clear()
   } catch (e) {
     // 错误已在 store 中处理
   }
 }
 
-async function stageAll() {
+async function stageAllUntracked() {
+  const untrackedFiles = commitStore.stagingStatus?.untracked || []
+  if (untrackedFiles.length === 0) return
+
   try {
-    await commitStore.stageAllFiles()
+    const files = untrackedFiles.map(f => f.path)
+    await commitStore.stageFiles(files)
+    selectedUntrackedFiles.value.clear()
   } catch (e) {
     // 错误已在 store 中处理
   }
 }
 
+// 文件点击处理
 function handleFileClick(file: StagedFile) {
   commitStore.selectFile(file)
+}
+
+function handleUntrackedFileClick(file: UntrackedFile) {
+  // 未跟踪文件不需要显示 diff
+  // 可以选择弹出提示或者不做任何操作
 }
 
 function getStatusIcon(status: string): string {
@@ -282,6 +377,16 @@ function getStatusClass(status: string): string {
   cursor: not-allowed;
 }
 
+/* 未跟踪文件样式 */
+.file-item.untracked {
+  border-left: 3px solid var(--color-info);
+}
+
+.status-badge.untracked {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
 .file-checkbox {
   display: flex;
   align-items: center;
@@ -386,5 +491,10 @@ function getStatusClass(status: string): string {
 .empty-icon {
   font-size: 32px;
   opacity: 0.5;
+}
+
+/* 未跟踪部分样式 */
+.untracked-section {
+  margin-top: var(--space-md);
 }
 </style>

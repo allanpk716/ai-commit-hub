@@ -7,8 +7,9 @@ import (
 
 // StagingStatus 暂存区状态
 type StagingStatus struct {
-	Staged   []StagedFile `json:"staged"`
-	Unstaged []StagedFile `json:"unstaged"`
+	Staged    []StagedFile    `json:"staged"`
+	Unstaged  []StagedFile    `json:"unstaged"`
+	Untracked []UntrackedFile `json:"untracked"`
 }
 
 // GetStagingStatus 获取暂存区状态（已暂存和未暂存文件）
@@ -25,13 +26,20 @@ func GetStagingStatus(repoPath string) (*StagingStatus, error) {
 		return nil, fmt.Errorf("get unstaged files: %w", err)
 	}
 
+	// 获取未跟踪文件
+	untracked, err := GetUntrackedFiles(repoPath)
+	if err != nil {
+		return nil, fmt.Errorf("get untracked files: %w", err)
+	}
+
 	// 标记被忽略的文件
 	staged = MarkIgnoredFiles(repoPath, staged)
 	unstaged = MarkIgnoredFiles(repoPath, unstaged)
 
 	return &StagingStatus{
-		Staged:   staged,
-		Unstaged: unstaged,
+		Staged:    staged,
+		Unstaged:  unstaged,
+		Untracked: untracked,
 	}, nil
 }
 

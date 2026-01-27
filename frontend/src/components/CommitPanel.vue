@@ -308,6 +308,8 @@ async function handleCommit() {
     showToast('success', '提交成功!')
     await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
     await commitStore.loadStagingStatus(commitStore.selectedProjectPath)
+    // 刷新未跟踪文件列表
+    await commitStore.loadUntrackedFiles(commitStore.selectedProjectPath)
     commitStore.clearMessage()
 
     // 启用推送按钮
@@ -446,6 +448,8 @@ async function handleRefresh() {
   try {
     await commitStore.loadProjectStatus(currentProjectPath.value)
     await commitStore.loadStagingStatus(currentProjectPath.value)
+    // 刷新未跟踪文件列表
+    await commitStore.loadUntrackedFiles(currentProjectPath.value)
     // 刷新 Pushover Hook 状态和版本检查
     await pushoverStore.getProjectHookStatus(currentProjectPath.value)
     canPush.value = false  // 重置推送按钮状态
