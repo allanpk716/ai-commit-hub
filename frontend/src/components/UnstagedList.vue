@@ -98,6 +98,7 @@
           :key="file.path"
           :class="['file-item', 'untracked', { 'selected': isUntrackedSelected(file.path) }]"
           @click="handleUntrackedFileClick(file)"
+          @contextmenu.prevent="handleUntrackedContextMenu($event, file)"
         >
           <label class="file-checkbox">
             <input
@@ -129,13 +130,36 @@
       <span class="empty-icon">✨</span>
       <span>工作区干净</span>
     </div>
+
+    <!-- 右键菜单 -->
+    <ContextMenu
+      :visible="contextMenuVisible"
+      :x="contextMenuX"
+      :y="contextMenuY"
+      @copy-path="handleCopyPath"
+      @stage-file="handleStageUntrackedFile"
+      @exclude-file="handleExcludeUntrackedFile"
+      @open-explorer="handleOpenExplorer"
+      @close="closeContextMenu"
+    />
+
+    <!-- 排除对话框 -->
+    <ExcludeDialog
+      :visible="excludeDialogVisible"
+      :file-path="selectedUntrackedFile?.path || ''"
+      @close="excludeDialogVisible = false"
+      @confirm="handleExcludeConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
 import type { StagedFile, UntrackedFile } from '../types'
+import ContextMenu from './ContextMenu.vue'
+import ExcludeDialog from './ExcludeDialog.vue'
+import { OpenInFileExplorer } from '../../wailsjs/go/main/App'
 
 const commitStore = useCommitStore()
 
@@ -147,6 +171,15 @@ const selectedUntrackedCount = computed(() => selectedUntrackedFiles.value.size)
 
 // 选择状态管理
 const selectedUntrackedFiles = ref<Set<string>>(new Set())
+
+// 右键菜单状态
+const contextMenuVisible = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const selectedUntrackedFile = ref<UntrackedFile | null>(null)
+
+// 排除对话框状态
+const excludeDialogVisible = ref(false)
 
 // 计算属性
 const isAllSelected = computed(() => {
@@ -171,6 +204,42 @@ function toggleSelectAll() {
     unstaged.forEach((f: StagedFile) => commitStore.selectedUnstagedFiles.delete(f.path))
   } else {
     unstaged.forEach((f: StagedFile) => commitStore.selectedUnstagedFiles.add(f.path))
+  }
+}
+
+// 未暂存文件暂存操作
+async function handleStage(file: StagedFile) {
+  try {
+    await commitStore.stageFile(file.path)
+  } catch (e) {
+    // 错误已在 store 中处理
+  }
+}
+
+async function stageSelected() {
+  if (commitStore.selectedUnstagedFiles.size === 0) return
+
+  try {
+    const files: string[] = Array.from(commitStore.selectedUnstagedFiles)
+    await commitStore.stageFiles(files)
+    commitStore.selectedUnstagedFiles.clear()
+  } catch (e) {
+    // 错误已在 store 中处理
+  }
+}
+
+async function stageAll() {
+  const unstagedFiles = commitStore.stagingStatus?.unstaged || []
+  if (unstagedFiles.length === 0) return
+
+  try {
+    const files = unstagedFiles.filter(f => !f.ignored).map(f => f.path)
+    if (files.length > 0) {
+      await commitStore.stageFiles(files)
+    }
+    commitStore.selectedUnstagedFiles.clear()
+  } catch (e) {
+    // 错误已在 store 中处理
   }
 }
 
@@ -200,7 +269,7 @@ async function stageUntrackedSelected() {
   if (selectedUntrackedFiles.value.size === 0) return
 
   try {
-    const files = Array.from(selectedUntrackedFiles.value)
+    const files: string[] = Array.from(selectedUntrackedFiles.value)
     await commitStore.stageFiles(files)
     selectedUntrackedFiles.value.clear()
   } catch (e) {
@@ -226,7 +295,7 @@ function handleFileClick(file: StagedFile) {
   commitStore.selectFile(file)
 }
 
-function handleUntrackedFileClick(file: UntrackedFile) {
+function handleUntrackedFileClick(_file: UntrackedFile) {
   // 未跟踪文件不需要显示 diff
   // 可以选择弹出提示或者不做任何操作
 }
@@ -253,6 +322,68 @@ function getStatusText(status: string): string {
 
 function getStatusClass(status: string): string {
   return status.toLowerCase()
+}
+
+// 未跟踪文件右键菜单
+function handleUntrackedContextMenu(event: MouseEvent, file: UntrackedFile) {
+  selectedUntrackedFile.value = file
+  contextMenuX.value = event.clientX
+  contextMenuY.value = event.clientY
+  contextMenuVisible.value = true
+}
+
+function closeContextMenu() {
+  contextMenuVisible.value = false
+}
+
+async function handleCopyPath() {
+  if (!selectedUntrackedFile.value) return
+  try {
+    await navigator.clipboard.writeText(selectedUntrackedFile.value.path)
+    // TODO: 显示 Toast 提示
+  } catch (e) {
+    console.error('复制失败:', e)
+  }
+  closeContextMenu()
+}
+
+async function handleStageUntrackedFile() {
+  if (!selectedUntrackedFile.value) return
+  try {
+    await commitStore.stageFiles([selectedUntrackedFile.value.path])
+    // TODO: 显示 Toast 提示
+  } catch (e) {
+    console.error('添加到暂存区失败:', e)
+  }
+  closeContextMenu()
+}
+
+function handleExcludeUntrackedFile() {
+  closeContextMenu()
+  excludeDialogVisible.value = true
+}
+
+async function handleExcludeConfirm(mode: 'exact' | 'extension' | 'directory', _pattern: string) {
+  if (!selectedUntrackedFile.value) return
+  try {
+    await commitStore.addToGitIgnore(selectedUntrackedFile.value.path, mode)
+    // TODO: 显示 Toast 提示
+  } catch (e) {
+    console.error('添加到排除列表失败:', e)
+  }
+  excludeDialogVisible.value = false
+}
+
+async function handleOpenExplorer() {
+  if (!selectedUntrackedFile.value || !commitStore.selectedProjectPath) return
+  try {
+    const fullPath = `${commitStore.selectedProjectPath}/${selectedUntrackedFile.value.path}`
+    await OpenInFileExplorer(fullPath)
+    // TODO: 显示 Toast 提示
+  } catch (e) {
+    console.error('打开失败:', e)
+  }
+  closeContextMenu()
 }
 </script>
 

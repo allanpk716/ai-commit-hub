@@ -483,8 +483,11 @@ export const useCommitStore = defineStore('commit', () => {
 
     try {
       await AddToGitIgnore(selectedProjectPath.value, file, mode)
-      // 刷新未跟踪文件列表
-      await loadUntrackedFiles(selectedProjectPath.value)
+      // 刷新暂存区和未跟踪文件
+      await Promise.all([
+        loadStagingStatus(selectedProjectPath.value),
+        loadUntrackedFiles(selectedProjectPath.value)
+      ])
     } catch (e) {
       console.error('添加到排除列表失败:', e)
       throw e
