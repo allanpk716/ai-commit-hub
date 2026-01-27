@@ -58,15 +58,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch } from 'vue'
 import PushoverStatusRow from './PushoverStatusRow.vue'
+import type { HookStatus } from '../types/pushover'
 
 // Props
 interface Props {
   branch: string
   projectPath?: string
-  pushoverStatus: any
-  pushoverLoading: boolean
+  pushoverStatus?: HookStatus | null
+  pushoverLoading?: boolean
   availableTerminals: Array<{
     id: string
     name: string
@@ -75,7 +76,11 @@ interface Props {
   preferredTerminal: string
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  projectPath: undefined,
+  pushoverStatus: null,
+  pushoverLoading: false
+})
 
 // Emits
 const emit = defineEmits<{
@@ -137,13 +142,13 @@ function handleUpdatePushover() {
   emit('updatePushover')
 }
 
-// 生命周期钩子
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+// 只在菜单打开时添加监听器
+watch(showTerminalMenu, (newValue) => {
+  if (newValue) {
+    document.addEventListener('click', handleClickOutside)
+  } else {
+    document.removeEventListener('click', handleClickOutside)
+  }
 })
 
 // 暴露关闭菜单方法供父组件调用
