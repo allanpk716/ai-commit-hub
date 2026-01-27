@@ -2,53 +2,21 @@
   <div class="commit-panel">
     <!-- Project Info Section -->
     <section class="panel-section staging-section" v-if="commitStore.projectStatus">
-      <div class="section-header">
-        <div class="section-title">
-          <span class="icon">📊</span>
-          <h3>当前状态</h3>
-        </div>
-        <div class="header-badges">
-          <div class="branch-badge">
-            <span class="icon">⑂</span>
-            {{ commitStore.projectStatus.branch }}
-          </div>
-          <!-- 操作按钮组 -->
-          <div class="action-buttons-inline">
-            <!-- 文件夹按钮：只打开文件管理器 -->
-            <button @click="openInExplorer" class="icon-btn" title="在文件管理器中打开">
-              <span class="icon">📁</span>
-            </button>
-
-            <!-- 终端按钮：复合设计 -->
-            <div class="terminal-button-wrapper">
-              <button @click="openInTerminalDirectly" class="icon-btn terminal-btn-main" title="在终端中打开">
-                <span class="icon">_>_</span>
-              </button>
-              <button @click.stop="toggleTerminalMenu" class="icon-btn terminal-btn-dropdown" title="选择终端类型">
-                <span class="dropdown-arrow">▼</span>
-              </button>
-              <!-- 下拉菜单 -->
-              <div v-if="showTerminalMenu" class="dropdown-menu terminal-menu">
-                <div class="menu-header">在终端中打开</div>
-                <div v-for="terminal in availableTerminals" :key="terminal.id" @click="openInTerminal(terminal.id)"
-                  class="menu-item">
-                  <span class="menu-icon">{{ terminal.icon }}</span>
-                  <span>{{ terminal.name }}</span>
-                  <span v-if="preferredTerminal === terminal.id" class="check-mark">✓</span>
-                </div>
-              </div>
-            </div>
-
-            <button @click.stop="handleRefresh" class="icon-btn" title="刷新状态">
-              <span class="icon">🔄</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pushover Status Row -->
-      <PushoverStatusRow v-if="currentProject" :project-path="currentProject.path" :status="pushoverStatus"
-        :loading="pushoverStore.loading" @install="handleInstallPushover" @update="handleUpdatePushover" />
+      <!-- Project Status Header -->
+      <ProjectStatusHeader
+        :branch="commitStore.projectStatus.branch"
+        :project-path="currentProject?.path"
+        :pushover-status="pushoverStatus"
+        :pushover-loading="pushoverStore.loading"
+        :available-terminals="availableTerminals"
+        :preferred-terminal="preferredTerminal"
+        @open-in-explorer="openInExplorer"
+        @open-in-terminal="openInTerminal"
+        @open-in-terminal-directly="openInTerminalDirectly"
+        @refresh="handleRefresh"
+        @install-pushover="handleInstallPushover"
+        @update-pushover="handleUpdatePushover"
+      />
 
       <!-- Staging Area -->
       <StagingArea v-if="commitStore.stagingStatus" />
@@ -188,14 +156,13 @@ import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
-import PushoverStatusRow from './PushoverStatusRow.vue'
+import ProjectStatusHeader from './ProjectStatusHeader.vue'
 import StagingArea from './StagingArea.vue'
 
 // 用户偏好存储键
 const PREFERRED_TERMINAL_KEY = 'ai-commit-hub:preferred-terminal'
 
 // 下拉菜单状态
-const showTerminalMenu = ref(false)
 const availableTerminals = ref<Array<{ id: string; name: string; icon: string }>>([])
 const preferredTerminal = ref<string>('')
 
@@ -428,11 +395,6 @@ function savePreferredTerminal(terminalId: string) {
   preferredTerminal.value = terminalId
 }
 
-// 切换终端菜单显示
-function toggleTerminalMenu() {
-  showTerminalMenu.value = !showTerminalMenu.value
-}
-
 // 在文件管理器中打开
 async function openInExplorer() {
   if (!currentProjectPath.value) return
@@ -470,7 +432,6 @@ async function openInTerminal(terminalId: string) {
     // 保存用户偏好
     savePreferredTerminal(terminalId)
     showToast('success', '已在终端中打开')
-    showTerminalMenu.value = false
   } catch (e) {
     const message = e instanceof Error ? e.message : '打开失败'
     showToast('error', message)
@@ -491,14 +452,6 @@ async function handleRefresh() {
   } catch (e) {
     const message = e instanceof Error ? e.message : '刷新失败'
     showToast('error', message)
-  }
-}
-
-// 点击外部关闭菜单
-function handleClickOutside(event: MouseEvent) {
-  const target = event.target as HTMLElement
-  if (showTerminalMenu.value && !target.closest('.dropdown-menu') && !target.closest('.icon-btn')) {
-    showTerminalMenu.value = false
   }
 }
 
@@ -527,9 +480,6 @@ onMounted(async () => {
   EventsOn('commit-error', (err: string) => {
     commitStore.handleError(err)
   })
-
-  // 注册点击外部关闭菜单
-  document.addEventListener('click', handleClickOutside)
 })
 
 // 组件卸载时清理事件监听器
@@ -538,9 +488,6 @@ onUnmounted(() => {
   EventsOff('commit-delta')
   EventsOff('commit-complete')
   EventsOff('commit-error')
-
-  // 清理点击外部关闭菜单
-  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 

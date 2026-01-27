@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import StagedList from './StagedList.vue'
 import UnstagedList from './UnstagedList.vue'
 import DiffViewer from './DiffViewer.vue'
@@ -46,19 +46,6 @@ const isVerticalResizing = ref(false)
 
 const panelsRef = ref<HTMLElement | null>(null)
 const fileListsPanelRef = ref<HTMLElement | null>(null)
-
-const stagedListHeight = computed(() => {
-  const panel = fileListsPanelRef.value
-  if (!panel) return 200
-  return Math.max(MIN_LIST_HEIGHT, panel.clientHeight * stagedListHeightRatio.value)
-})
-
-const unstagedListHeight = computed(() => {
-  const panel = fileListsPanelRef.value
-  if (!panel) return 200
-  const totalHeight = panel.clientHeight
-  return Math.max(MIN_LIST_HEIGHT, totalHeight - stagedListHeight.value)
-})
 
 // 从 localStorage 加载保存的宽度
 onMounted(() => {
