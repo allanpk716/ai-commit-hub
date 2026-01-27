@@ -1,7 +1,7 @@
 <template>
   <div class="commit-panel">
     <!-- Project Info Section -->
-    <section class="panel-section" v-if="commitStore.projectStatus">
+    <section class="panel-section staging-section" v-if="commitStore.projectStatus">
       <div class="section-header">
         <div class="section-title">
           <span class="icon">📊</span>
@@ -63,13 +63,53 @@
 
     <!-- Generated Message -->
     <section class="panel-section result-section" v-if="commitStore.projectStatus">
-      <div class="section-header">
-        <div class="section-title">
+      <div class="result-header">
+        <!-- 左侧：标题 -->
+        <div class="header-left">
           <span class="icon">✅</span>
           <h3>生成结果</h3>
         </div>
-        <button v-if="commitStore.streamingMessage || commitStore.generatedMessage" @click="commitStore.clearMessage"
-          class="icon-btn" title="清除">×</button>
+
+        <!-- 中间：配置控件 -->
+        <div class="header-center">
+          <div class="config-select-wrapper">
+            <span class="config-label">🌐</span>
+            <select v-model="commitStore.provider" class="config-select-inline" @change="handleConfigChange"
+              :disabled="commitStore.isSavingConfig">
+              <option v-for="p in commitStore.availableProviders" :key="p.name" :value="p.name" :disabled="!p.configured">
+                {{ getProviderDisplayName(p.name) }}
+                <template v-if="!p.configured"> (未配置: {{ p.reason }})</template>
+              </option>
+            </select>
+          </div>
+          <div class="config-select-wrapper">
+            <span class="config-label">🌍</span>
+            <select v-model="commitStore.language" class="config-select-inline" @change="handleConfigChange"
+              :disabled="commitStore.isSavingConfig">
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 右侧：操作按钮 -->
+        <div class="header-right">
+          <span v-if="!commitStore.isDefaultConfig" class="config-badge-inline" @click="handleResetToDefault" title="重置为默认配置">自定义</span>
+          <button @click="handleGenerate" :disabled="!commitStore.hasStagedFiles || commitStore.isGenerating"
+            class="btn-generate-inline" :class="{ generating: commitStore.isGenerating }" title="生成 Commit 消息">
+            <span class="btn-text" v-if="!commitStore.isGenerating">生成消息</span>
+            <span class="btn-text" v-else>生成中...</span>
+          </button>
+          <button v-if="commitStore.streamingMessage || commitStore.generatedMessage" @click="commitStore.clearMessage"
+            class="icon-btn-small" title="清除">×</button>
+        </div>
+      </div>
+
+      <!-- 配置不一致警告 -->
+      <div v-if="commitStore.configValidation && !commitStore.configValidation.valid" class="config-warning-inline">
+        <span class="icon">⚠️</span>
+        <span>配置已过时：{{ formatResetFields(commitStore.configValidation.resetFields) }}</span>
+        <button @click="handleConfirmReset" class="btn-confirm-reset">确认重置</button>
       </div>
 
       <div class="message-container">
@@ -97,7 +137,7 @@
           <span class="icon">📋</span>
           复制
         </button>
-        <button @click="handleCommit" class="btn-action btn-primary" :disabled="!commitStore.projectStatus?.has_staged">
+        <button @click="handleCommit" class="btn-action btn-primary" :disabled="!commitStore.hasStagedFiles">
           <span class="icon">✓</span>
           提交到本地
         </button>
@@ -112,103 +152,6 @@
           <span class="icon" :class="{ spin: isPushing }">↑</span>
           {{ isPushing ? '推送中...' : '推送到远程' }}
         </button>
-      </div>
-    </section>
-
-    <!-- AI Settings -->
-    <section class="panel-section" v-if="commitStore.projectStatus">
-      <div class="section-header" @click="toggleAISettings" style="cursor: pointer;">
-        <div class="section-title">
-          <span class="icon">🤖</span>
-          <h3>AI 配置</h3>
-          <span v-if="!commitStore.isDefaultConfig" class="config-badge">自定义</span>
-          <!-- 折叠状态显示 -->
-          <span v-if="!aiSettingsExpanded" class="collapsed-info">
-            {{ getProviderDisplayName(commitStore.provider) }} · {{ commitStore.language === 'zh' ? '中文' : 'English' }}
-          </span>
-        </div>
-        <div class="header-actions">
-          <button v-if="!commitStore.isDefaultConfig && aiSettingsExpanded" @click.stop="handleResetToDefault"
-            class="btn-reset" title="重置为默认配置">
-            <span class="icon">↺</span>
-            恢复默认
-          </button>
-          <span class="collapse-icon" :class="{ expanded: aiSettingsExpanded }">
-            ▼
-          </span>
-        </div>
-      </div>
-
-      <!-- 配置不一致警告 -->
-      <div v-if="aiSettingsExpanded && commitStore.configValidation && !commitStore.configValidation.valid"
-        class="config-warning-banner">
-        <div class="warning-content">
-          <span class="icon">⚠️</span>
-          <div class="warning-text">
-            <strong>配置已过时</strong>
-            <p>该项目配置的 {{ formatResetFields(commitStore.configValidation.resetFields) }} 在配置文件中不存在</p>
-          </div>
-        </div>
-        <button @click="handleConfirmReset" class="btn-confirm-reset">
-          确认重置
-        </button>
-      </div>
-
-      <div class="settings-grid" v-show="aiSettingsExpanded">
-        <div class="setting-group">
-          <label class="setting-label">
-            <span class="icon">🌐</span>
-            Provider
-            <span v-if="commitStore.isSavingConfig" class="saving-indicator">保存中...</span>
-          </label>
-          <select v-model="commitStore.provider" class="setting-select" @change="handleConfigChange"
-            :disabled="commitStore.isSavingConfig">
-            <option v-for="p in commitStore.availableProviders" :key="p.name" :value="p.name" :disabled="!p.configured">
-              {{ getProviderDisplayName(p.name) }}
-              <template v-if="!p.configured"> (未配置: {{ p.reason }})</template>
-            </option>
-          </select>
-        </div>
-
-        <div class="setting-group">
-          <label class="setting-label">
-            <span class="icon">🌍</span>
-            语言
-          </label>
-          <select v-model="commitStore.language" class="setting-select" @change="handleConfigChange"
-            :disabled="commitStore.isSavingConfig">
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-      </div>
-
-      <button @click="handleGenerate" :disabled="!commitStore.projectStatus.has_staged || commitStore.isGenerating"
-        class="btn-generate" :class="{ generating: commitStore.isGenerating }">
-        <span class="icon" v-if="!commitStore.isGenerating">⚡</span>
-        <span class="icon spin" v-else>⏳</span>
-        {{ commitStore.isGenerating ? '生成中...' : '生成 Commit 消息' }}
-      </button>
-    </section>
-
-    <!-- History Section - 只显示最后一条 -->
-    <section class="panel-section history-section" v-if="lastHistoryItem">
-      <div class="section-header">
-        <div class="section-title">
-          <span class="icon">📜</span>
-          <h3>上次生成</h3>
-        </div>
-        <span class="history-time">{{ formatTime(lastHistoryItem.created_at) }}</span>
-      </div>
-
-      <div class="history-content">
-        <div class="history-header-inline">
-          <span class="history-provider" :class="'provider-' + lastHistoryItem.provider">
-            {{ getProviderDisplayName(lastHistoryItem.provider) }}
-          </span>
-          <span class="history-lang">{{ lastHistoryItem.language === 'zh' ? '中文' : 'English' }}</span>
-        </div>
-        <div class="history-message-full">{{ lastHistoryItem.message }}</div>
       </div>
     </section>
 
@@ -237,7 +180,6 @@ import {
   CommitLocally,
   PushToRemote,
   GetAvailableTerminals,
-  GetProjectHistory,
   OpenInFileExplorer,
   OpenInTerminal,
   SaveCommitHistory
@@ -246,7 +188,6 @@ import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
-import type { CommitHistory } from '../types'
 import PushoverStatusRow from './PushoverStatusRow.vue'
 import StagingArea from './StagingArea.vue'
 
@@ -261,8 +202,6 @@ const preferredTerminal = ref<string>('')
 const commitStore = useCommitStore()
 const projectStore = useProjectStore()
 const pushoverStore = usePushoverStore()
-const history = ref<CommitHistory[]>([])
-const aiSettingsExpanded = ref(false) // AI 配置区域默认折叠
 const canPush = ref(false) // 推送按钮是否可用
 const isPushing = ref(false) // 是否正在推送
 
@@ -292,14 +231,6 @@ const pushoverStatus = computed(() => {
   }
   return null
 })
-// 最后一条历史记录
-const lastHistoryItem = computed(() => {
-  return history.value.length > 0 ? history.value[0] : null
-})
-
-const MINUTE = 60 * 1000
-const HOUR = 60 * MINUTE
-const DAY = 24 * HOUR
 
 // Provider 显示名称映射
 const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
@@ -326,7 +257,6 @@ watch(() => projectStore.selectedProject, async (project) => {
     await commitStore.loadProjectAIConfig(project.id)
     await commitStore.loadProjectStatus(project.path)
     await commitStore.loadStagingStatus(project.path)
-    await loadHistoryForProject()
     // 加载 Pushover Hook 状态
     await pushoverStore.getProjectHookStatus(project.path)
   } else {
@@ -334,36 +264,6 @@ watch(() => projectStore.selectedProject, async (project) => {
     commitStore.clearStagingState()
   }
 }, { immediate: true })
-
-async function loadHistoryForProject() {
-  const project = projectStore.projects.find(p => p.path === commitStore.selectedProjectPath)
-  if (!project) return
-
-  try {
-    const result = await GetProjectHistory(project.id)
-    // 按时间倒序排序，最新的在前
-    history.value = (result || []).sort((a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-  } catch (e) {
-    console.error('Failed to load history:', e)
-  }
-}
-
-function formatTime(dateStr: string): string {
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-
-  if (diff < MINUTE) return '刚刚'
-  if (diff < HOUR) return `${Math.floor(diff / MINUTE)} 分钟前`
-  if (diff < DAY) return `${Math.floor(diff / HOUR)} 小时前`
-  return date.toLocaleDateString()
-}
-
-function toggleAISettings() {
-  aiSettingsExpanded.value = !aiSettingsExpanded.value
-}
 
 // 配置变更时立即保存
 async function handleConfigChange() {
@@ -431,6 +331,7 @@ async function handleCommit() {
   try {
     await CommitLocally(commitStore.selectedProjectPath, message)
 
+    // 保存历史记录到数据库（后台功能，不显示在UI中）
     const project = projectStore.projects.find(p => p.path === commitStore.selectedProjectPath)
     if (project) {
       await SaveCommitHistory(project.id, message, commitStore.provider, commitStore.language)
@@ -439,7 +340,6 @@ async function handleCommit() {
     showToast('success', '提交成功!')
     await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
     await commitStore.loadStagingStatus(commitStore.selectedProjectPath)
-    await loadHistoryForProject()
     commitStore.clearMessage()
 
     // 启用推送按钮
@@ -616,21 +516,15 @@ onMounted(async () => {
   }
 
   // 注册 Wails 事件监听器
-  console.log('[CommitPanel] 注册 commit-delta 事件监听器')
   EventsOn('commit-delta', (delta: string) => {
-    console.log('[CommitPanel] commit-delta 事件触发', delta.substring(0, 20))
     commitStore.handleDelta(delta)
   })
 
-  console.log('[CommitPanel] 注册 commit-complete 事件监听器')
   EventsOn('commit-complete', (message: string) => {
-    console.log('[CommitPanel] commit-complete 事件触发')
     commitStore.handleComplete(message)
   })
 
-  console.log('[CommitPanel] 注册 commit-error 事件监听器')
   EventsOn('commit-error', (err: string) => {
-    console.log('[CommitPanel] commit-error 事件触发')
     commitStore.handleError(err)
   })
 
@@ -666,6 +560,22 @@ onUnmounted(() => {
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   animation: fade-in 0.3s ease-out;
+}
+
+/* Staging section: 占据剩余空间 */
+.staging-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: var(--space-md); /* 添加间距 */
+}
+
+/* 确保 StagingArea 占据剩余空间 */
+:deep(.staging-section .staging-area) {
+  flex: 1;
+  min-height: 0;
 }
 
 .section-header {
@@ -851,14 +761,6 @@ onUnmounted(() => {
   color: var(--accent-primary);
   font-size: 12px;
   font-weight: 600;
-}
-
-/* Staging Area */
-.staging-area {
-  margin-top: var(--space-md);
-  max-height: 500px;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 /* 内联提示 */
@@ -1616,5 +1518,235 @@ onUnmounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   color: var(--accent-primary);
+}
+
+/* 整合式标题栏 */
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-default);
+  flex-wrap: wrap;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.header-left h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+/* 配置选择框包装器 */
+.config-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.config-label {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.config-select-inline {
+  padding: 4px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 100px;
+}
+
+.config-select-inline:hover {
+  border-color: var(--border-hover);
+}
+
+.config-select-inline:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.1);
+}
+
+.config-select-inline option {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.config-select-inline option:disabled {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.config-select-inline:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* 内联配置标记 */
+.config-badge-inline {
+  padding: 2px 8px;
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--accent-primary);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.config-badge-inline:hover {
+  background: rgba(6, 182, 212, 0.25);
+  border-color: rgba(6, 182, 212, 0.5);
+}
+
+/* 紧凑型生成按钮 */
+.btn-generate-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: 6px 16px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.btn-generate-inline .btn-text {
+  line-height: 1;
+}
+
+.btn-generate-inline:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+}
+
+.btn-generate-inline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-generate-inline.generating {
+  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+}
+
+/* 紧凑型图标按钮 */
+.icon-btn-small {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.icon-btn-small:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+/* 内联警告提示 */
+.config-warning-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.config-warning-inline .icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.config-warning-inline .btn-confirm-reset {
+  margin-left: auto;
+  padding: 2px 8px;
+  background: var(--accent-warning);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.config-warning-inline .btn-confirm-reset:hover {
+  filter: brightness(1.1);
+}
+
+/* 响应式处理 */
+@media (max-width: 768px) {
+  .result-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+
+  .header-center {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .header-right {
+    justify-content: flex-end;
+  }
 }
 </style>

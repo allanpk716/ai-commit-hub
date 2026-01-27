@@ -184,6 +184,7 @@ function getNewCode(): string {
 .diff-content {
   flex: 1;
   overflow: auto;
+  min-height: 300px;
 }
 
 .diff-loading {

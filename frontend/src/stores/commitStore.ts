@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { ProjectStatus, ProjectAIConfig, ProviderInfo, StagingStatus, StagedFile } from '../types'
 import {
   GetProjectStatus,
@@ -63,12 +63,30 @@ export const useCommitStore = defineStore('commit', () => {
 
     try {
       const result = await GetProjectStatus(path)
+      console.log('[loadProjectStatus] 后端返回:', result)
+      console.log('[loadProjectStatus] has_staged 值:', (result as any).has_staged)
       projectStatus.value = result as ProjectStatus
+      console.log('[loadProjectStatus] projectStatus.value.has_staged:', projectStatus.value?.has_staged)
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '加载项目状态失败'
       error.value = message
     }
   }
+
+  // 添加一个计算属性来判断是否有暂存文件
+  const hasStagedFiles = computed(() => {
+    console.log('[hasStagedFiles] 计算中...', {
+      stagingStatus: stagingStatus.value,
+      stagedLength: stagingStatus.value?.staged?.length ?? 0,
+      projectStatus: projectStatus.value
+    })
+    // 优先使用 stagingStatus.staged 的长度
+    if (stagingStatus.value && stagingStatus.value.staged && stagingStatus.value.staged.length > 0) {
+      return true
+    }
+    // 降级使用 projectStatus.has_staged
+    return projectStatus.value?.has_staged ?? false
+  })
 
   async function loadProjectAIConfig(projectId: number) {
     selectedProjectId.value = projectId
@@ -216,7 +234,11 @@ export const useCommitStore = defineStore('commit', () => {
     error.value = null
 
     try {
+      console.log('[loadStagingStatus] 开始加载暂存状态, path:', path)
       const result = await GetStagingStatus(path)
+      console.log('[loadStagingStatus] 后端返回:', result)
+      console.log('[loadStagingStatus] staged 数量:', (result as any)?.staged?.length)
+      console.log('[loadStagingStatus] unstaged 数量:', (result as any)?.unstaged?.length)
       stagingStatus.value = result as StagingStatus
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '加载暂存区状态失败'
@@ -255,9 +277,14 @@ export const useCommitStore = defineStore('commit', () => {
     }
 
     try {
+      console.log('[stageFile] 开始暂存文件:', filePath)
       await StageFile(selectedProjectPath.value, filePath)
-      // 重新加载暂存区状态
+      console.log('[stageFile] 暂存文件成功，开始重新加载状态')
+      // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
+      console.log('[stageFile] loadStagingStatus 完成')
+      await loadProjectStatus(selectedProjectPath.value)
+      console.log('[stageFile] loadProjectStatus 完成')
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '暂存文件失败'
       error.value = message
@@ -273,8 +300,9 @@ export const useCommitStore = defineStore('commit', () => {
 
     try {
       await StageAllFiles(selectedProjectPath.value)
-      // 重新加载暂存区状态
+      // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
+      await loadProjectStatus(selectedProjectPath.value)
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '暂存所有文件失败'
       error.value = message
@@ -290,8 +318,9 @@ export const useCommitStore = defineStore('commit', () => {
 
     try {
       await UnstageFile(selectedProjectPath.value, filePath)
-      // 重新加载暂存区状态
+      // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
+      await loadProjectStatus(selectedProjectPath.value)
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '取消暂存文件失败'
       error.value = message
@@ -307,8 +336,9 @@ export const useCommitStore = defineStore('commit', () => {
 
     try {
       await UnstageAllFiles(selectedProjectPath.value)
-      // 重新加载暂存区状态
+      // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
+      await loadProjectStatus(selectedProjectPath.value)
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '取消暂存所有文件失败'
       error.value = message
@@ -349,8 +379,9 @@ export const useCommitStore = defineStore('commit', () => {
       }
       // 清空选择
       selectedUnstagedFiles.value.clear()
-      // 重新加载暂存区状态
+      // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
+      await loadProjectStatus(selectedProjectPath.value)
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '批量暂存文件失败'
       error.value = message
@@ -370,8 +401,9 @@ export const useCommitStore = defineStore('commit', () => {
       }
       // 清空选择
       selectedStagedFiles.value.clear()
-      // 重新加载暂存区状态
+      // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
+      await loadProjectStatus(selectedProjectPath.value)
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '批量取消暂存文件失败'
       error.value = message
@@ -427,6 +459,7 @@ export const useCommitStore = defineStore('commit', () => {
     selectedFile,
     fileDiff,
     isLoadingDiff,
+    hasStagedFiles,
     loadProjectStatus,
     loadProjectAIConfig,
     loadAvailableProviders,

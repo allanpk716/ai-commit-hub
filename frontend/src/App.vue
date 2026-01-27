@@ -14,15 +14,6 @@
       </div>
 
       <div class="toolbar-actions">
-        <!-- 临时测试按钮 -->
-        <button @click="testMode = testMode === 'diff' ? false : 'diff'" class="btn btn-test" :class="{ active: testMode === 'diff' }">
-          <span class="icon">🎨</span>
-          <span>Diff 测试</span>
-        </button>
-        <button @click="testMode = testMode === 'backend' ? false : 'backend'" class="btn btn-test" :class="{ active: testMode === 'backend' }">
-          <span class="icon">⚙️</span>
-          <span>API 测试</span>
-        </button>
         <button @click="openAddProject" class="btn btn-primary">
           <span class="icon">＋</span>
           <span>添加项目</span>
@@ -44,27 +35,20 @@
 
     <!-- Main content area -->
     <main class="content">
-      <!-- 测试模式 -->
-      <DiffViewerTest v-if="testMode === 'diff'" />
-      <BackendApiTest v-else-if="testMode === 'backend'" />
-
-      <!-- 正常模式 -->
-      <template v-else>
-        <ProjectList
-          :selected-id="selectedProjectId"
-          @select="handleSelectProject"
-        />
-        <div class="commit-area">
-          <transition name="fade-slide" mode="out-in">
-            <CommitPanel v-if="selectedProjectId" :key="selectedProjectId" />
-            <div v-else class="empty-state">
-              <div class="empty-icon">📝</div>
-              <h2>选择一个项目开始</h2>
-              <p>从左侧列表选择一个 Git 项目来生成 AI 驱动的 commit 消息</p>
-            </div>
-          </transition>
-        </div>
-      </template>
+      <ProjectList
+        :selected-id="selectedProjectId"
+        @select="handleSelectProject"
+      />
+      <div class="commit-area">
+        <transition name="fade-slide" mode="out-in">
+          <CommitPanel v-if="selectedProjectId" :key="selectedProjectId" />
+          <div v-else class="empty-state">
+            <div class="empty-icon">📝</div>
+            <h2>选择一个项目开始</h2>
+            <p>从左侧列表选择一个 Git 项目来生成 AI 驱动的 commit 消息</p>
+          </div>
+        </transition>
+      </div>
     </main>
   </div>
 </template>
@@ -80,8 +64,6 @@ import CommitPanel from './components/CommitPanel.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
 import ExtensionStatusButton from './components/ExtensionStatusButton.vue'
 import ExtensionInfoDialog from './components/ExtensionInfoDialog.vue'
-import DiffViewerTest from './components/DiffViewerTest.vue'
-import BackendApiTest from './components/BackendApiTest.vue'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
@@ -90,7 +72,6 @@ const pushoverStore = usePushoverStore()
 const selectedProjectId = ref<number>()
 const settingsOpen = ref(false)
 const extensionDialogOpen = ref(false)
-const testMode = ref<'diff' | 'backend' | false>(false) // 测试模式
 
 onMounted(async () => {
   await projectStore.loadProjects()
@@ -264,23 +245,6 @@ function openSettings() {
 .btn-secondary:hover {
   background: var(--bg-elevated);
   border-color: var(--border-hover);
-}
-
-.btn-test {
-  background: #2d2d2d;
-  color: #f59e0b;
-  border-color: #f59e0b;
-}
-
-.btn-test:hover {
-  background: #f59e0b;
-  color: #1e1e1e;
-}
-
-.btn-test.active {
-  background: #f59e0b;
-  color: #1e1e1e;
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
 }
 
 /* Content area */

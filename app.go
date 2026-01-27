@@ -1160,10 +1160,17 @@ func (a *App) PushToRemote(projectPath string) error {
 
 // GetStagingStatus 获取项目的暂存区状态
 func (a *App) GetStagingStatus(projectPath string) (*git.StagingStatus, error) {
+	logger.Infof("[App.GetStagingStatus] 开始获取暂存状态: %s", projectPath)
 	if a.initError != nil {
 		return nil, a.initError
 	}
-	return git.GetStagingStatus(projectPath)
+	status, err := git.GetStagingStatus(projectPath)
+	if err != nil {
+		logger.Errorf("[App.GetStagingStatus] 获取失败: %v", err)
+		return nil, err
+	}
+	logger.Infof("[App.GetStagingStatus] 获取成功 - staged: %d, unstaged: %d", len(status.Staged), len(status.Unstaged))
+	return status, nil
 }
 
 // GetFileDiff 获取文件 diff
@@ -1176,10 +1183,17 @@ func (a *App) GetFileDiff(projectPath, filePath string, staged bool) (string, er
 
 // StageFile 暂存文件
 func (a *App) StageFile(projectPath, filePath string) error {
+	logger.Infof("[App.StageFile] 开始暂存文件: %s in %s", filePath, projectPath)
 	if a.initError != nil {
 		return a.initError
 	}
-	return git.StageFile(projectPath, filePath)
+	err := git.StageFile(projectPath, filePath)
+	if err != nil {
+		logger.Errorf("[App.StageFile] 暂存失败: %v", err)
+	} else {
+		logger.Infof("[App.StageFile] 暂存成功: %s", filePath)
+	}
+	return err
 }
 
 // StageAllFiles 暂存所有文件

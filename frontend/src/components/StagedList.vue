@@ -97,9 +97,9 @@ function toggleSelection(filePath: string) {
 function toggleSelectAll() {
   const staged = commitStore.stagingStatus?.staged ?? []
   if (isAllSelected.value) {
-    staged.forEach(f => commitStore.selectedStagedFiles.delete(f.path))
+    staged.forEach((f: StagedFile) => commitStore.selectedStagedFiles.delete(f.path))
   } else {
-    staged.forEach(f => commitStore.selectedStagedFiles.add(f.path))
+    staged.forEach((f: StagedFile) => commitStore.selectedStagedFiles.add(f.path))
   }
 }
 
@@ -160,7 +160,8 @@ function getStatusClass(status: string): string {
 .file-list-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
