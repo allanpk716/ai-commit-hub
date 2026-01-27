@@ -470,7 +470,6 @@ export const useCommitStore = defineStore('commit', () => {
         loadUntrackedFiles(selectedProjectPath.value)
       ])
     } catch (e) {
-      const msg = e instanceof Error ? e.message : '操作失败'
       console.error('添加到暂存区失败:', e)
       throw e
     }

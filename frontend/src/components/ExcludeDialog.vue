@@ -91,7 +91,7 @@ watch(() => props.filePath, async (newPath) => {
     try {
       const opts = await GetDirectoryOptions(newPath)
       directoryOptions.value = opts
-      if (opts.length > 0) {
+      if (opts.length > 0 && opts[0]) {
         selectedDirectory.value = opts[0].pattern
       }
     } catch (e) {

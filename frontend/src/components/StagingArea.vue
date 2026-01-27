@@ -213,7 +213,7 @@ function handleExcludeFile() {
   excludeDialogVisible.value = true
 }
 
-async function handleExcludeConfirm(mode: 'exact' | 'extension' | 'directory', pattern: string) {
+async function handleExcludeConfirm(mode: 'exact' | 'extension' | 'directory', _pattern: string) {
   if (!selectedFile.value) return
   try {
     await commitStore.addToGitIgnore(selectedFile.value.path, mode)
