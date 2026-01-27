@@ -224,6 +224,7 @@ watch(() => projectStore.selectedProject, async (project) => {
     await commitStore.loadProjectAIConfig(project.id)
     await commitStore.loadProjectStatus(project.path)
     await commitStore.loadStagingStatus(project.path)
+    await commitStore.loadUntrackedFiles(project.path)
     // 加载 Pushover Hook 状态
     await pushoverStore.getProjectHookStatus(project.path)
   } else {

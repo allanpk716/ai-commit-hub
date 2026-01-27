@@ -23,6 +23,33 @@
         <DiffViewer />
       </div>
     </div>
+
+    <!-- 未跟踪文件区域 -->
+    <UntrackedFiles
+      v-if="commitStore.untrackedFiles.length > 0"
+      :files="commitStore.untrackedFiles"
+      @context-menu="handleContextMenu"
+    />
+
+    <!-- 右键菜单 -->
+    <ContextMenu
+      :visible="contextMenuVisible"
+      :x="contextMenuX"
+      :y="contextMenuY"
+      @copy-path="handleCopyPath"
+      @stage-file="handleStageFile"
+      @exclude-file="handleExcludeFile"
+      @open-explorer="handleOpenExplorer"
+      @close="closeContextMenu"
+    />
+
+    <!-- 排除对话框 -->
+    <ExcludeDialog
+      :visible="excludeDialogVisible"
+      :file-path="selectedFile?.path || ''"
+      @close="excludeDialogVisible = false"
+      @confirm="handleExcludeConfirm"
+    />
   </div>
 </template>
 
@@ -31,6 +58,12 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import StagedList from './StagedList.vue'
 import UnstagedList from './UnstagedList.vue'
 import DiffViewer from './DiffViewer.vue'
+import UntrackedFiles from './UntrackedFiles.vue'
+import ContextMenu from './ContextMenu.vue'
+import ExcludeDialog from './ExcludeDialog.vue'
+import { useCommitStore } from '../stores/commitStore'
+import type { UntrackedFile } from '../types'
+import { OpenInFileExplorer } from '../../wailsjs/go/main/App'
 
 const STORAGE_KEY = 'ai-commit-hub:staging-area-left-width'
 const VERTICAL_STORAGE_KEY = 'ai-commit-hub:staged-list-height-ratio'
@@ -46,6 +79,17 @@ const isVerticalResizing = ref(false)
 
 const panelsRef = ref<HTMLElement | null>(null)
 const fileListsPanelRef = ref<HTMLElement | null>(null)
+
+const commitStore = useCommitStore()
+
+// 右键菜单状态
+const contextMenuVisible = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const selectedFile = ref<UntrackedFile | null>(null)
+
+// 排除对话框状态
+const excludeDialogVisible = ref(false)
 
 // 从 localStorage 加载保存的宽度
 onMounted(() => {
@@ -129,6 +173,67 @@ function handleMouseUp() {
     isVerticalResizing.value = false
     localStorage.setItem(VERTICAL_STORAGE_KEY, stagedListHeightRatio.value.toString())
   }
+}
+
+function handleContextMenu(event: MouseEvent, file: UntrackedFile) {
+  selectedFile.value = file
+  contextMenuX.value = event.clientX
+  contextMenuY.value = event.clientY
+  contextMenuVisible.value = true
+}
+
+function closeContextMenu() {
+  contextMenuVisible.value = false
+}
+
+async function handleCopyPath() {
+  if (!selectedFile.value) return
+  try {
+    await navigator.clipboard.writeText(selectedFile.value.path)
+    // TODO: 显示 Toast 提示
+  } catch (e) {
+    console.error('复制失败:', e)
+  }
+  closeContextMenu()
+}
+
+async function handleStageFile() {
+  if (!selectedFile.value) return
+  try {
+    await commitStore.stageFiles([selectedFile.value.path])
+    // TODO: 显示 Toast 提示
+  } catch (e) {
+    console.error('添加到暂存区失败:', e)
+  }
+  closeContextMenu()
+}
+
+function handleExcludeFile() {
+  closeContextMenu()
+  excludeDialogVisible.value = true
+}
+
+async function handleExcludeConfirm(mode: 'exact' | 'extension' | 'directory', pattern: string) {
+  if (!selectedFile.value) return
+  try {
+    await commitStore.addToGitIgnore(selectedFile.value.path, mode)
+    // TODO: 显示 Toast 提示
+  } catch (e) {
+    console.error('添加到排除列表失败:', e)
+  }
+  excludeDialogVisible.value = false
+}
+
+async function handleOpenExplorer() {
+  if (!selectedFile.value || !commitStore.selectedProjectPath) return
+  try {
+    const fullPath = `${commitStore.selectedProjectPath}/${selectedFile.value.path}`
+    await OpenInFileExplorer(fullPath)
+    // TODO: 显示 Toast 提示
+  } catch (e) {
+    console.error('打开失败:', e)
+  }
+  closeContextMenu()
 }
 </script>
 
