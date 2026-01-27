@@ -40,6 +40,10 @@ export interface StagedFile {
   ignored: boolean // 是否被 .gitignore 忽略
 }
 
+export interface UntrackedFile {
+  path: string
+}
+
 export interface ProjectStatus {
   branch: string
   staged_files: StagedFile[]

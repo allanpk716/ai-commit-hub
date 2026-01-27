@@ -14,6 +14,10 @@ type StagedFile struct {
 	Ignored bool   `json:"ignored"` // 是否被 .gitignore 忽略
 }
 
+type UntrackedFile struct {
+	Path string `json:"path"` // 相对于项目根目录的路径
+}
+
 type ProjectStatus struct {
 	Branch      string      `json:"branch"`
 	StagedFiles []StagedFile `json:"staged_files"`
@@ -96,6 +100,30 @@ func getStagedFiles(projectPath string) ([]StagedFile, error) {
 			Status:  status,
 			Ignored: false,
 		})
+	}
+
+	return files, nil
+}
+
+func GetUntrackedFiles(projectPath string) ([]UntrackedFile, error) {
+	// 使用 Command() 而不是 exec.Command() 以避免控制台弹窗
+	cmd := Command("git", "ls-files", "--others", "--exclude-standard")
+	cmd.Dir = projectPath
+
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("获取未跟踪文件失败: %w", err)
+	}
+
+	var files []UntrackedFile
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		files = append(files, UntrackedFile{Path: line})
 	}
 
 	return files, nil
