@@ -1222,63 +1222,72 @@ func (a *App) UnstageAllFiles(projectPath string) error {
 
 // GetUntrackedFiles 获取未跟踪文件列表
 func (a *App) GetUntrackedFiles(projectPath string) ([]git.UntrackedFile, error) {
+	logger.Infof("[App.GetUntrackedFiles] 开始获取未跟踪文件: %s", projectPath)
 	if a.initError != nil {
 		return nil, a.initError
 	}
-	return git.GetUntrackedFiles(projectPath)
+	files, err := git.GetUntrackedFiles(projectPath)
+	if err != nil {
+		logger.Errorf("[App.GetUntrackedFiles] 获取失败: %v", err)
+	} else {
+		logger.Infof("[App.GetUntrackedFiles] 获取成功，共 %d 个文件", len(files))
+	}
+	return files, err
 }
 
 // StageFiles 添加文件到暂存区
 func (a *App) StageFiles(projectPath string, files []string) error {
+	logger.Infof("[App.StageFiles] 开始暂存文件: %d 个文件 in %s", len(files), projectPath)
 	if a.initError != nil {
 		return a.initError
 	}
-
 	if len(files) == 0 {
 		return fmt.Errorf("文件列表为空")
 	}
 
-	// 使用 Command() 构建命令
 	args := append([]string{"add"}, files...)
 	cmd := git.Command("git", args...)
 	cmd.Dir = projectPath
 
 	if output, err := cmd.CombinedOutput(); err != nil {
+		logger.Errorf("[App.StageFiles] 暂存失败: %v, 输出: %s", err, string(output))
 		return fmt.Errorf("添加到暂存区失败: %s\n%w", string(output), err)
 	}
 
+	logger.Infof("[App.StageFiles] 暂存成功")
 	return nil
 }
 
 // AddToGitIgnore 添加到 .gitignore
 func (a *App) AddToGitIgnore(projectPath, pattern, mode string) error {
+	logger.Infof("[App.AddToGitIgnore] 添加到排除列表: pattern=%s, mode=%s", pattern, mode)
 	if a.initError != nil {
 		return a.initError
 	}
 
 	gitMode := git.ExcludeMode(mode)
-
-	// 如果是目录模式，pattern 已经是最终规则
-	// 否则需要根据文件路径生成规则
-	var finalPattern string
-	var err error
-
-	if gitMode == git.ExcludeModeDirectory {
-		finalPattern = pattern
-	} else {
-		finalPattern, err = git.GenerateGitIgnorePattern(pattern, gitMode)
-		if err != nil {
-			return fmt.Errorf("生成规则失败: %w", err)
-		}
+	finalPattern, err := git.GenerateGitIgnorePattern(pattern, gitMode)
+	if err != nil {
+		logger.Errorf("[App.AddToGitIgnore] 生成规则失败: %v", err)
+		return fmt.Errorf("生成规则失败: %w", err)
 	}
 
-	return git.AddToGitIgnoreFile(projectPath, finalPattern)
+	err = git.AddToGitIgnoreFile(projectPath, finalPattern)
+	if err != nil {
+		logger.Errorf("[App.AddToGitIgnore] 添加失败: %v", err)
+	} else {
+		logger.Infof("[App.AddToGitIgnore] 添加成功")
+	}
+	return err
 }
 
 // GetDirectoryOptions 获取目录层级选项
 func (a *App) GetDirectoryOptions(filePath string) ([]git.DirectoryOption, error) {
+	logger.Infof("[App.GetDirectoryOptions] 获取目录选项: %s", filePath)
 	if a.initError != nil {
 		return nil, a.initError
 	}
-	return git.GetDirectoryOptions(filePath), nil
+	opts := git.GetDirectoryOptions(filePath)
+	logger.Infof("[App.GetDirectoryOptions] 获取成功，共 %d 个选项", len(opts))
+	return opts, nil
 }
