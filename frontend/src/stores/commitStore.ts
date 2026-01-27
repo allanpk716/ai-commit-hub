@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ProjectStatus, ProjectAIConfig, ProviderInfo } from '../types'
+import type { ProjectStatus, ProjectAIConfig, ProviderInfo, StagingStatus } from '../types'
 import {
   GetProjectStatus,
   GenerateCommit,
@@ -8,7 +8,13 @@ import {
   UpdateProjectAIConfig,
   ValidateProjectConfig,
   ConfirmResetProjectConfig,
-  GetConfiguredProviders
+  GetConfiguredProviders,
+  GetStagingStatus,
+  GetFileDiff,
+  StageFile,
+  StageAllFiles,
+  UnstageFile,
+  UnstageAllFiles
 } from '../../wailsjs/go/main/App'
 
 export const useCommitStore = defineStore('commit', () => {
@@ -34,6 +40,14 @@ export const useCommitStore = defineStore('commit', () => {
     valid: boolean
     resetFields: string[]
     suggestedConfig?: ProjectAIConfig
+  } | null>(null)
+
+  // 暂存区状态
+  const stagingStatus = ref<StagingStatus | null>(null)
+  const isLoadingStaging = ref(false)
+  const selectedFileDiff = ref<{
+    filePath: string
+    diff: string
   } | null>(null)
 
   async function loadProjectStatus(path: string) {
@@ -184,6 +198,121 @@ export const useCommitStore = defineStore('commit', () => {
     isGenerating.value = false
   }
 
+  // 暂存区管理方法
+  async function loadStagingStatus(path: string) {
+    if (!path) {
+      stagingStatus.value = null
+      return
+    }
+
+    isLoadingStaging.value = true
+    error.value = null
+
+    try {
+      const result = await GetStagingStatus(path)
+      stagingStatus.value = result as StagingStatus
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '加载暂存区状态失败'
+      error.value = message
+      stagingStatus.value = null
+    } finally {
+      isLoadingStaging.value = false
+    }
+  }
+
+  async function loadFileDiff(filePath: string, staged: boolean) {
+    if (!selectedProjectPath.value) {
+      error.value = '请先选择项目'
+      return
+    }
+
+    error.value = null
+
+    try {
+      const diff = await GetFileDiff(selectedProjectPath.value, filePath, staged)
+      selectedFileDiff.value = {
+        filePath,
+        diff: diff as string
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '加载文件差异失败'
+      error.value = message
+      selectedFileDiff.value = null
+    }
+  }
+
+  async function stageFile(filePath: string) {
+    if (!selectedProjectPath.value) {
+      error.value = '请先选择项目'
+      return
+    }
+
+    try {
+      await StageFile(selectedProjectPath.value, filePath)
+      // 重新加载暂存区状态
+      await loadStagingStatus(selectedProjectPath.value)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '暂存文件失败'
+      error.value = message
+      throw e
+    }
+  }
+
+  async function stageAllFiles() {
+    if (!selectedProjectPath.value) {
+      error.value = '请先选择项目'
+      return
+    }
+
+    try {
+      await StageAllFiles(selectedProjectPath.value)
+      // 重新加载暂存区状态
+      await loadStagingStatus(selectedProjectPath.value)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '暂存所有文件失败'
+      error.value = message
+      throw e
+    }
+  }
+
+  async function unstageFile(filePath: string) {
+    if (!selectedProjectPath.value) {
+      error.value = '请先选择项目'
+      return
+    }
+
+    try {
+      await UnstageFile(selectedProjectPath.value, filePath)
+      // 重新加载暂存区状态
+      await loadStagingStatus(selectedProjectPath.value)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '取消暂存文件失败'
+      error.value = message
+      throw e
+    }
+  }
+
+  async function unstageAllFiles() {
+    if (!selectedProjectPath.value) {
+      error.value = '请先选择项目'
+      return
+    }
+
+    try {
+      await UnstageAllFiles(selectedProjectPath.value)
+      // 重新加载暂存区状态
+      await loadStagingStatus(selectedProjectPath.value)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '取消暂存所有文件失败'
+      error.value = message
+      throw e
+    }
+  }
+
+  function clearFileDiff() {
+    selectedFileDiff.value = null
+  }
+
   return {
     selectedProjectPath,
     selectedProjectId,
@@ -198,6 +327,9 @@ export const useCommitStore = defineStore('commit', () => {
     isDefaultConfig,
     isSavingConfig,
     configValidation,
+    stagingStatus,
+    isLoadingStaging,
+    selectedFileDiff,
     loadProjectStatus,
     loadProjectAIConfig,
     loadAvailableProviders,
@@ -207,6 +339,13 @@ export const useCommitStore = defineStore('commit', () => {
     clearMessage,
     handleDelta,
     handleComplete,
-    handleError
+    handleError,
+    loadStagingStatus,
+    loadFileDiff,
+    stageFile,
+    stageAllFiles,
+    unstageFile,
+    unstageAllFiles,
+    clearFileDiff
   }
 })

@@ -46,6 +46,11 @@ export interface ProjectStatus {
   has_staged: boolean
 }
 
+export interface StagingStatus {
+  staged: StagedFile[]
+  unstaged: StagedFile[]
+}
+
 export interface CommitHistory {
   id: number
   project_id: number
