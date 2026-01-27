@@ -1,6 +1,6 @@
 <template>
   <div class="project-status-header">
-    <!-- 分支信息和操作按钮组 -->
+    <!-- 分支信息、操作按钮组和 Pushover 状态条 -->
     <div class="status-header-top">
       <div class="branch-badge">
         <span class="icon">⑂</span>
@@ -43,17 +43,17 @@
           <span class="icon">🔄</span>
         </button>
       </div>
-    </div>
 
-    <!-- Pushover 状态条 -->
-    <PushoverStatusRow
-      v-if="projectPath"
-      :project-path="projectPath"
-      :status="pushoverStatus"
-      :loading="pushoverLoading"
-      @install="handleInstallPushover"
-      @update="handleUpdatePushover"
-    />
+      <!-- Pushover 状态条 -->
+      <PushoverStatusRow
+        v-if="projectPath"
+        :project-path="projectPath"
+        :status="pushoverStatus"
+        :loading="pushoverLoading"
+        @install="handleInstallPushover"
+        @update="handleUpdatePushover"
+      />
+    </div>
   </div>
 </template>
 
