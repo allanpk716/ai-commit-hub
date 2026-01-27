@@ -168,8 +168,7 @@ defineExpose({
 .status-header-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
   background: var(--bg-secondary);
   border: 1px solid var(--border-default);
