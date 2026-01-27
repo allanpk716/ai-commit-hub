@@ -160,52 +160,51 @@ watch(() => props.status, (newStatus) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-md) var(--space-lg);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  padding: 2px 8px;
+  background: transparent;
+  border: none;
+  gap: var(--space-sm);
+  margin-bottom: 0;
   transition: all var(--transition-fast);
 }
 
 .pushover-status-row:hover {
-  border-color: var(--border-hover);
+  /* 移除 hover 效果 */
 }
 
 .status-left {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 4px;
   flex: 1;
   min-width: 0;
 }
 
 .status-icon {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .status-title {
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 500;
+  font-size: 12px;
   color: var(--text-primary);
   white-space: nowrap;
 }
 
 .status-version {
-  font-size: 12px;
+  font-size: 11px;
   font-family: var(--font-mono);
   color: var(--text-secondary);
   background: var(--bg-tertiary);
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 1px 4px;
+  border-radius: 3px;
   white-space: nowrap;
 }
 
 .status-text {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -271,9 +270,9 @@ watch(() => props.status, (newStatus) => {
 }
 
 .action-btn {
-  padding: var(--space-sm) var(--space-md);
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   border: none;

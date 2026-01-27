@@ -161,35 +161,37 @@ defineExpose({
 .project-status-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  gap: 0;
+  padding: 0;
 }
 
 .status-header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  min-height: 36px;
 }
 
 .branch-badge {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
+  gap: 4px;
+  padding: 2px 8px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
 .branch-badge .icon {
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .action-buttons-inline {
@@ -202,12 +204,12 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -223,7 +225,7 @@ defineExpose({
 }
 
 .icon-btn .icon {
-  font-size: 16px;
+  font-size: 14px;
 }
 
 /* 终端按钮复合样式 */
@@ -239,7 +241,7 @@ defineExpose({
 }
 
 .terminal-btn-dropdown {
-  width: 20px;
+  width: 18px;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   padding-left: 2px;
@@ -247,7 +249,7 @@ defineExpose({
 }
 
 .dropdown-arrow {
-  font-size: 8px;
+  font-size: 7px;
   color: var(--text-secondary);
 }
 
