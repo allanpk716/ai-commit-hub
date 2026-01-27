@@ -12,7 +12,7 @@
     </div>
 
     <div class="diff-content" v-if="commitStore.selectedFile">
-      <div v-if="!commitStore.selectedFileDiff" class="diff-loading">
+      <div v-if="commitStore.selectedFile.path && !commitStore.selectedFileDiff" class="diff-loading">
         <span class="loading-spinner"></span>
         <span>Loading...</span>
       </div>
