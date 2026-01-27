@@ -47,7 +47,9 @@ import { CodeDiff } from 'v-code-diff'
 const commitStore = useCommitStore()
 
 function closeDiff() {
-  commitStore.selectFile({ path: '', status: '', ignored: false } as any)
+  // 直接清空选中的文件和 diff，不触发加载
+  commitStore.selectedFile = null
+  commitStore.selectedFileDiff = null
 }
 
 function getStatusClass(status: string): string {

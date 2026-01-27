@@ -325,6 +325,7 @@ export const useCommitStore = defineStore('commit', () => {
     selectedFile.value = file
 
     // 如果文件路径为空，清空 diff 而不是尝试加载
+    // 修复：避免在关闭 diff 按钮时加载空路径导致的错误
     if (!file.path) {
       selectedFileDiff.value = null
       return
