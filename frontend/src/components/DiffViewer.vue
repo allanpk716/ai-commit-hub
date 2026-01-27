@@ -12,12 +12,12 @@
     </div>
 
     <div class="diff-content" v-if="commitStore.selectedFile">
-      <div v-if="commitStore.isLoadingDiff" class="diff-loading">
+      <div v-if="!commitStore.selectedFileDiff" class="diff-loading">
         <span class="loading-spinner"></span>
         <span>Loading...</span>
       </div>
 
-      <div v-else-if="commitStore.fileDiff" class="diff-renderer">
+      <div v-else-if="commitStore.selectedFileDiff?.diff" class="diff-renderer">
         <CodeDiff
           :old-string="getOldCode()"
           :new-string="getNewCode()"
@@ -55,10 +55,10 @@ function getStatusClass(status: string): string {
 }
 
 function getOldCode(): string {
-  if (!commitStore.fileDiff) return ''
+  if (!commitStore.selectedFileDiff?.diff) return ''
 
   // Simple diff parsing, extract old code
-  const lines = commitStore.fileDiff.split('\n')
+  const lines = commitStore.selectedFileDiff.diff.split('\n')
   const oldLines: string[] = []
 
   for (const line of lines) {
@@ -73,10 +73,10 @@ function getOldCode(): string {
 }
 
 function getNewCode(): string {
-  if (!commitStore.fileDiff) return ''
+  if (!commitStore.selectedFileDiff?.diff) return ''
 
   // Simple diff parsing, extract new code
-  const lines = commitStore.fileDiff.split('\n')
+  const lines = commitStore.selectedFileDiff.diff.split('\n')
   const newLines: string[] = []
 
   for (const line of lines) {

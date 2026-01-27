@@ -854,6 +854,8 @@ onUnmounted(() => {
 /* Staging Area */
 .staging-area {
   margin-top: var(--space-md);
+  max-height: 500px;
+  overflow: hidden;
 }
 
 /* 内联提示 */
