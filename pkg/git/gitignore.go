@@ -24,6 +24,11 @@ type DirectoryOption struct {
 
 // GetDirectoryOptions 获取目录层级选项
 func GetDirectoryOptions(filePath string) []DirectoryOption {
+	// 输入验证：空路径返回空数组
+	if filePath == "" {
+		return []DirectoryOption{}
+	}
+
 	// 转换为 Git 标准路径格式
 	gitPath := toGitPath(filePath)
 	parts := strings.Split(gitPath, "/")
@@ -89,6 +94,12 @@ func GenerateGitIgnorePattern(filePath string, mode ExcludeMode) (string, error)
 func AddToGitIgnoreFile(projectPath, pattern string) error {
 	gitIgnorePath := filepath.Join(projectPath, ".gitignore")
 
+	// 获取现有文件权限
+	existingPerms := os.FileMode(0644)
+	if info, err := os.Stat(gitIgnorePath); err == nil {
+		existingPerms = info.Mode().Perm()
+	}
+
 	// 读取现有内容
 	var content []string
 	if data, err := os.ReadFile(gitIgnorePath); err == nil {
@@ -105,7 +116,7 @@ func AddToGitIgnoreFile(projectPath, pattern string) error {
 
 	// 追加新规则
 	content = append(content, pattern, "")
-	return os.WriteFile(gitIgnorePath, []byte(strings.Join(content, "\n")), 0644)
+	return os.WriteFile(gitIgnorePath, []byte(strings.Join(content, "\n")), existingPerms)
 }
 
 // toGitPath 转换为 Git 标准路径格式
