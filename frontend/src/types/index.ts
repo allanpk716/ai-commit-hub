@@ -37,7 +37,7 @@ export interface ProjectInfo {
 export interface StagedFile {
   path: string
   status: string // 'Modified' | 'New' | 'Deleted' | 'Renamed'
-  ignored: boolean
+  ignored: boolean // 是否被 .gitignore 忽略
 }
 
 export interface ProjectStatus {

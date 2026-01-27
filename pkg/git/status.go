@@ -9,8 +9,9 @@ import (
 )
 
 type StagedFile struct {
-	Path   string `json:"path"`
-	Status string `json:"status"` // Modified, New, Deleted, Renamed
+	Path    string `json:"path"`
+	Status  string `json:"status"`  // Modified, New, Deleted, Renamed
+	Ignored bool   `json:"ignored"` // 是否被 .gitignore 忽略
 }
 
 type ProjectStatus struct {
@@ -91,8 +92,9 @@ func getStagedFiles(projectPath string) ([]StagedFile, error) {
 		}
 
 		files = append(files, StagedFile{
-			Path:   filePath,
-			Status: status,
+			Path:    filePath,
+			Status:  status,
+			Ignored: false,
 		})
 	}
 
