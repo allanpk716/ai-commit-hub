@@ -2,7 +2,7 @@
   <div class="file-list-container staged-list">
     <div class="list-header">
       <h4>已暂存 ({{ commitStore.stagingStatus?.staged?.length || 0 }})</h4>
-      <div class="bulk-actions" v-if="commitStore.stagingStatus?.staged?.length > 0">
+      <div class="bulk-actions" v-if="commitStore.stagingStatus?.staged && commitStore.stagingStatus.staged.length > 0">
         <label class="select-all">
           <input
             type="checkbox"
