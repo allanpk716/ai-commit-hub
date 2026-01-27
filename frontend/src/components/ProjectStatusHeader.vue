@@ -2,57 +2,62 @@
   <div class="project-status-header">
     <!-- 分支信息、操作按钮组和 Pushover 状态条 -->
     <div class="status-header-top">
-      <div class="branch-badge">
-        <span class="icon">⑂</span>
-        {{ branch }}
-      </div>
-
-      <!-- 操作按钮组 -->
-      <div class="action-buttons-inline">
-        <!-- 文件夹按钮 -->
-        <button @click="handleOpenInExplorer" class="icon-btn" title="在文件管理器中打开">
-          <span class="icon">📁</span>
-        </button>
-
-        <!-- 终端按钮：复合设计 -->
-        <div class="terminal-button-wrapper" ref="terminalButtonWrapper">
-          <button @click="handleOpenInTerminalDirectly" class="icon-btn terminal-btn-main" title="在终端中打开">
-            <span class="icon">_>_</span>
-          </button>
-          <button @click.stop="toggleTerminalMenu" class="icon-btn terminal-btn-dropdown" title="选择终端类型">
-            <span class="dropdown-arrow">▼</span>
-          </button>
-          <!-- 下拉菜单 -->
-          <div v-if="showTerminalMenu" class="dropdown-menu terminal-menu">
-            <div class="menu-header">在终端中打开</div>
-            <div
-              v-for="terminal in availableTerminals"
-              :key="terminal.id"
-              @click="handleOpenInTerminal(terminal.id)"
-              class="menu-item"
-            >
-              <span class="menu-icon">{{ terminal.icon }}</span>
-              <span>{{ terminal.name }}</span>
-              <span v-if="preferredTerminal === terminal.id" class="check-mark">✓</span>
-            </div>
-          </div>
+      <!-- 左侧：分支和操作按钮 -->
+      <div class="header-left">
+        <div class="branch-badge">
+          <span class="icon">⑂</span>
+          {{ branch }}
         </div>
 
-        <!-- 刷新按钮 -->
-        <button @click="handleRefresh" class="icon-btn" title="刷新状态">
-          <span class="icon">🔄</span>
-        </button>
+        <!-- 操作按钮组 -->
+        <div class="action-buttons-inline">
+          <!-- 文件夹按钮 -->
+          <button @click="handleOpenInExplorer" class="icon-btn" title="在文件管理器中打开">
+            <span class="icon">📁</span>
+          </button>
+
+          <!-- 终端按钮：复合设计 -->
+          <div class="terminal-button-wrapper" ref="terminalButtonWrapper">
+            <button @click="handleOpenInTerminalDirectly" class="icon-btn terminal-btn-main" title="在终端中打开">
+              <span class="icon">_>_</span>
+            </button>
+            <button @click.stop="toggleTerminalMenu" class="icon-btn terminal-btn-dropdown" title="选择终端类型">
+              <span class="dropdown-arrow">▼</span>
+            </button>
+            <!-- 下拉菜单 -->
+            <div v-if="showTerminalMenu" class="dropdown-menu terminal-menu">
+              <div class="menu-header">在终端中打开</div>
+              <div
+                v-for="terminal in availableTerminals"
+                :key="terminal.id"
+                @click="handleOpenInTerminal(terminal.id)"
+                class="menu-item"
+              >
+                <span class="menu-icon">{{ terminal.icon }}</span>
+                <span>{{ terminal.name }}</span>
+                <span v-if="preferredTerminal === terminal.id" class="check-mark">✓</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 刷新按钮 -->
+          <button @click="handleRefresh" class="icon-btn" title="刷新状态">
+            <span class="icon">🔄</span>
+          </button>
+        </div>
       </div>
 
       <!-- Pushover 状态条 -->
-      <PushoverStatusRow
-        v-if="projectPath"
-        :project-path="projectPath"
-        :status="pushoverStatus"
-        :loading="pushoverLoading"
-        @install="handleInstallPushover"
-        @update="handleUpdatePushover"
-      />
+      <div class="header-right">
+        <PushoverStatusRow
+          v-if="projectPath"
+          :project-path="projectPath"
+          :status="pushoverStatus"
+          :loading="pushoverLoading"
+          @install="handleInstallPushover"
+          @update="handleUpdatePushover"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -168,12 +173,23 @@ defineExpose({
 .status-header-top {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
   background: var(--bg-secondary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   min-height: 36px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.header-right {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .branch-badge {
