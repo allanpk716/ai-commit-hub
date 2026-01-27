@@ -1,7 +1,7 @@
 <template>
   <div class="file-list-container unstaged-list">
     <div class="list-header">
-      <h4>未暂存 ({{ unstagedCount }})</h4>
+      <h4>未暂存 ({{ commitStore.stagingStatus?.unstaged?.length || 0 }})</h4>
       <div class="bulk-actions" v-if="commitStore.stagingStatus?.unstaged?.length > 0">
         <label class="select-all">
           <input
@@ -77,10 +77,6 @@ import { useCommitStore } from '../stores/commitStore'
 import type { StagedFile } from '../types'
 
 const commitStore = useCommitStore()
-
-const unstagedCount = computed(() => {
-  return commitStore.stagingStatus?.unstaged?.length ?? 0
-})
 
 const isAllSelected = computed(() => {
   const unstaged = commitStore.stagingStatus?.unstaged ?? []
