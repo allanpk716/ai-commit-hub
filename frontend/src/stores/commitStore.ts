@@ -50,6 +50,13 @@ export const useCommitStore = defineStore('commit', () => {
     diff: string
   } | null>(null)
 
+  // 文件选择状态
+  const selectedStagedFiles = ref<Set<string>>(new Set())
+  const selectedUnstagedFiles = ref<Set<string>>(new Set())
+  const selectedFile = ref<{ path: string; staged: boolean } | null>(null)
+  const fileDiff = ref<string | null>(null)
+  const isLoadingDiff = ref(false)
+
   async function loadProjectStatus(path: string) {
     selectedProjectPath.value = path
     error.value = null
@@ -313,6 +320,81 @@ export const useCommitStore = defineStore('commit', () => {
     selectedFileDiff.value = null
   }
 
+  // 选择文件
+  function selectFile(file: { path: string; staged: boolean }) {
+    selectedFile.value = file
+    // 加载文件差异
+    loadFileDiff(file.path, file.staged)
+  }
+
+  // 批量暂存选中的文件
+  async function stageSelectedFiles() {
+    if (!selectedProjectPath.value || selectedUnstagedFiles.value.size === 0) {
+      return
+    }
+
+    try {
+      for (const filePath of selectedUnstagedFiles.value) {
+        await StageFile(selectedProjectPath.value, filePath)
+      }
+      // 清空选择
+      selectedUnstagedFiles.value.clear()
+      // 重新加载暂存区状态
+      await loadStagingStatus(selectedProjectPath.value)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '批量暂存文件失败'
+      error.value = message
+      throw e
+    }
+  }
+
+  // 批量取消暂存选中的文件
+  async function unstageSelectedFiles() {
+    if (!selectedProjectPath.value || selectedStagedFiles.value.size === 0) {
+      return
+    }
+
+    try {
+      for (const filePath of selectedStagedFiles.value) {
+        await UnstageFile(selectedProjectPath.value, filePath)
+      }
+      // 清空选择
+      selectedStagedFiles.value.clear()
+      // 重新加载暂存区状态
+      await loadStagingStatus(selectedProjectPath.value)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '批量取消暂存文件失败'
+      error.value = message
+      throw e
+    }
+  }
+
+  // 切换文件选择状态
+  function toggleFileSelection(filePath: string, type: 'staged' | 'unstaged') {
+    if (type === 'staged') {
+      if (selectedStagedFiles.value.has(filePath)) {
+        selectedStagedFiles.value.delete(filePath)
+      } else {
+        selectedStagedFiles.value.add(filePath)
+      }
+    } else {
+      if (selectedUnstagedFiles.value.has(filePath)) {
+        selectedUnstagedFiles.value.delete(filePath)
+      } else {
+        selectedUnstagedFiles.value.add(filePath)
+      }
+    }
+  }
+
+  // 清空暂存区选择状态
+  function clearStagingState() {
+    selectedStagedFiles.value.clear()
+    selectedUnstagedFiles.value.clear()
+    selectedFile.value = null
+    fileDiff.value = null
+    isLoadingDiff.value = false
+  }
+
   return {
     selectedProjectPath,
     selectedProjectId,
@@ -330,6 +412,11 @@ export const useCommitStore = defineStore('commit', () => {
     stagingStatus,
     isLoadingStaging,
     selectedFileDiff,
+    selectedStagedFiles,
+    selectedUnstagedFiles,
+    selectedFile,
+    fileDiff,
+    isLoadingDiff,
     loadProjectStatus,
     loadProjectAIConfig,
     loadAvailableProviders,
@@ -346,6 +433,11 @@ export const useCommitStore = defineStore('commit', () => {
     stageAllFiles,
     unstageFile,
     unstageAllFiles,
-    clearFileDiff
+    clearFileDiff,
+    selectFile,
+    stageSelectedFiles,
+    unstageSelectedFiles,
+    toggleFileSelection,
+    clearStagingState
   }
 })
