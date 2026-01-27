@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ProjectStatus, ProjectAIConfig, ProviderInfo, StagingStatus, StagedFile } from '../types'
+import type { ProjectStatus, ProjectAIConfig, ProviderInfo, StagingStatus, StagedFile, UntrackedFile } from '../types'
 import {
   GetProjectStatus,
   GenerateCommit,
@@ -14,7 +14,10 @@ import {
   StageFile,
   StageAllFiles,
   UnstageFile,
-  UnstageAllFiles
+  UnstageAllFiles,
+  GetUntrackedFiles,
+  StageFiles,
+  AddToGitIgnore
 } from '../../wailsjs/go/main/App'
 
 export const useCommitStore = defineStore('commit', () => {
@@ -56,6 +59,10 @@ export const useCommitStore = defineStore('commit', () => {
   const selectedFile = ref<StagedFile | null>(null)
   const fileDiff = ref<string | null>(null)
   const isLoadingDiff = ref(false)
+
+  // 未跟踪文件状态
+  const untrackedFiles = ref<UntrackedFile[]>([])
+  const untrackedFilesLoading = ref(false)
 
   async function loadProjectStatus(path: string) {
     selectedProjectPath.value = path
@@ -437,6 +444,52 @@ export const useCommitStore = defineStore('commit', () => {
     isLoadingDiff.value = false
   }
 
+  // 加载未跟踪文件列表
+  async function loadUntrackedFiles(projectPath: string) {
+    untrackedFilesLoading.value = true
+    try {
+      const files = await GetUntrackedFiles(projectPath)
+      untrackedFiles.value = files
+    } catch (e) {
+      console.error('加载未跟踪文件失败:', e)
+      untrackedFiles.value = []
+    } finally {
+      untrackedFilesLoading.value = false
+    }
+  }
+
+  // 批量暂存文件
+  async function stageFiles(files: string[]) {
+    if (!selectedProjectPath.value) return
+
+    try {
+      await StageFiles(selectedProjectPath.value, files)
+      // 刷新暂存区和未跟踪文件
+      await Promise.all([
+        loadStagingStatus(selectedProjectPath.value),
+        loadUntrackedFiles(selectedProjectPath.value)
+      ])
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '操作失败'
+      console.error('添加到暂存区失败:', e)
+      throw e
+    }
+  }
+
+  // 添加到 .gitignore
+  async function addToGitIgnore(file: string, mode: 'exact' | 'extension' | 'directory') {
+    if (!selectedProjectPath.value) return
+
+    try {
+      await AddToGitIgnore(selectedProjectPath.value, file, mode)
+      // 刷新未跟踪文件列表
+      await loadUntrackedFiles(selectedProjectPath.value)
+    } catch (e) {
+      console.error('添加到排除列表失败:', e)
+      throw e
+    }
+  }
+
   return {
     selectedProjectPath,
     selectedProjectId,
@@ -460,6 +513,8 @@ export const useCommitStore = defineStore('commit', () => {
     fileDiff,
     isLoadingDiff,
     hasStagedFiles,
+    untrackedFiles,
+    untrackedFilesLoading,
     loadProjectStatus,
     loadProjectAIConfig,
     loadAvailableProviders,
@@ -481,6 +536,9 @@ export const useCommitStore = defineStore('commit', () => {
     stageSelectedFiles,
     unstageSelectedFiles,
     toggleFileSelection,
-    clearStagingState
+    clearStagingState,
+    loadUntrackedFiles,
+    stageFiles,
+    addToGitIgnore
   }
 })
