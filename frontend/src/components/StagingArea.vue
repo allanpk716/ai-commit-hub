@@ -31,7 +31,6 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import StagedList from './StagedList.vue'
 import UnstagedList from './UnstagedList.vue'
 import DiffViewer from './DiffViewer.vue'
-import { useCommitStore } from '../stores/commitStore'
 
 const STORAGE_KEY = 'ai-commit-hub:staging-area-left-width'
 const VERTICAL_STORAGE_KEY = 'ai-commit-hub:staged-list-height-ratio'
@@ -47,8 +46,6 @@ const isVerticalResizing = ref(false)
 
 const panelsRef = ref<HTMLElement | null>(null)
 const fileListsPanelRef = ref<HTMLElement | null>(null)
-
-const commitStore = useCommitStore()
 
 // 从 localStorage 加载保存的宽度
 onMounted(() => {

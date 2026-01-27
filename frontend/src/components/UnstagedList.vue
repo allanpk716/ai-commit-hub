@@ -626,6 +626,11 @@ async function handleOpenExplorer() {
 
 /* 未跟踪部分样式 */
 .untracked-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   margin-top: var(--space-md);
 }
 </style>
