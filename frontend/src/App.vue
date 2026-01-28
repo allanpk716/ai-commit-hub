@@ -1,4 +1,8 @@
 <template>
+  <!-- SplashScreen -->
+  <SplashScreen />
+
+  <!-- Main App -->
   <div class="app grid-pattern">
     <!-- Animated background gradient -->
     <div class="bg-gradient"></div>
@@ -64,6 +68,7 @@ import CommitPanel from './components/CommitPanel.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
 import ExtensionStatusButton from './components/ExtensionStatusButton.vue'
 import ExtensionInfoDialog from './components/ExtensionInfoDialog.vue'
+import SplashScreen from './components/SplashScreen.vue'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
