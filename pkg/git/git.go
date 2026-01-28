@@ -14,7 +14,6 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/committypes"
-	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/config"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -299,7 +298,8 @@ func FilterLockFiles(diff string, lockFiles []string) string {
 	return strings.Join(filtered, "\n")
 }
 
-// CommitChanges creates a commit with a supplied message and the configured author identity.
+// CommitChanges creates a commit with a supplied message using the repository's Git configuration.
+// If no author is configured in Git, it falls back to go-git's default behavior.
 func CommitChanges(ctx context.Context, commitMessage string) error {
 	repo, err := gogit.PlainOpen(".")
 	if err != nil {
@@ -309,10 +309,35 @@ func CommitChanges(ctx context.Context, commitMessage string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
+
+	// Get author info from Git config
+	cfg, err := repo.Config()
+	if err != nil {
+		return fmt.Errorf("failed to get git config: %w", err)
+	}
+
+	authorName := cfg.User.Name
+	authorEmail := cfg.User.Email
+
+	// If not set in repo config, try to get from global config via git command
+	if authorName == "" || authorEmail == "" {
+		if authorName == "" {
+			if name, err := getGitConfig("user.name"); err == nil && name != "" {
+				authorName = name
+			}
+		}
+		if authorEmail == "" {
+			if email, err := getGitConfig("user.email"); err == nil && email != "" {
+				authorEmail = email
+			}
+		}
+	}
+
+	// Commit with author info from Git config
 	_, err = worktree.Commit(commitMessage, &gogit.CommitOptions{
 		Author: &object.Signature{
-			Name:  config.DefaultAuthorName,
-			Email: config.DefaultAuthorEmail,
+			Name:  authorName,
+			Email: authorEmail,
 			When:  time.Now(),
 		},
 	})
@@ -320,6 +345,18 @@ func CommitChanges(ctx context.Context, commitMessage string) error {
 		return fmt.Errorf("commit failed: %w", err)
 	}
 	return nil
+}
+
+// getGitConfig reads a Git configuration value using git command.
+// This fallback ensures we get global/system config when go-git doesn't have it.
+func getGitConfig(key string) (string, error) {
+	cmd := Command("git", "config", "--get", key)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 // GetHeadCommitMessage returns the HEAD commit message.
