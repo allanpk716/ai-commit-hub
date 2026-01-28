@@ -363,6 +363,20 @@ func (a *App) GetAllProjects() ([]models.GitProject, error) {
 	return projects, nil
 }
 
+// GetProjectsWithStatus 获取带状态的项目列表
+func (a *App) GetProjectsWithStatus() ([]models.GitProject, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+
+	projects, err := a.gitProjectRepo.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("获取项目列表失败: %w", err)
+	}
+
+	return projects, nil
+}
+
 // AddProject adds a new project
 func (a *App) AddProject(path string) (models.GitProject, error) {
 	if a.initError != nil {
