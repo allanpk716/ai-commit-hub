@@ -32,10 +32,19 @@
     <!-- Generated Message -->
     <section class="panel-section result-section" v-if="commitStore.projectStatus">
       <div class="result-header">
-        <!-- 左侧：标题 -->
+        <!-- 左侧：生成按钮（原"生成结果"标题位置） -->
         <div class="header-left">
-          <span class="icon">✅</span>
-          <h3>生成结果</h3>
+          <button
+            @click="handleGenerate"
+            :disabled="!commitStore.hasStagedFiles || commitStore.isGenerating"
+            class="btn-generate-main"
+            :class="{ generating: commitStore.isGenerating }"
+            title="生成 Commit 消息"
+          >
+            <span class="btn-icon">✨</span>
+            <span class="btn-text" v-if="!commitStore.isGenerating">生成消息</span>
+            <span class="btn-text" v-else>生成中...</span>
+          </button>
         </div>
 
         <!-- 中间：配置控件 -->
@@ -43,7 +52,7 @@
           <div class="config-select-wrapper">
             <span class="config-label">🌐</span>
             <select v-model="commitStore.provider" class="config-select-inline" @change="handleConfigChange"
-              :disabled="commitStore.isSavingConfig">
+              :disabled="commitStore.isSavingConfig || commitStore.isGenerating">
               <option v-for="p in commitStore.availableProviders" :key="p.name" :value="p.name" :disabled="!p.configured">
                 {{ getProviderDisplayName(p.name) }}
                 <template v-if="!p.configured"> (未配置: {{ p.reason }})</template>
@@ -53,23 +62,18 @@
           <div class="config-select-wrapper">
             <span class="config-label">🌍</span>
             <select v-model="commitStore.language" class="config-select-inline" @change="handleConfigChange"
-              :disabled="commitStore.isSavingConfig">
+              :disabled="commitStore.isSavingConfig || commitStore.isGenerating">
               <option value="zh">中文</option>
               <option value="en">English</option>
             </select>
           </div>
         </div>
 
-        <!-- 右侧：操作按钮 -->
+        <!-- 右侧：工具按钮（仅保留自定义标记和清除按钮） -->
         <div class="header-right">
           <span v-if="!commitStore.isDefaultConfig" class="config-badge-inline" @click="handleResetToDefault" title="重置为默认配置">自定义</span>
-          <button @click="handleGenerate" :disabled="!commitStore.hasStagedFiles || commitStore.isGenerating"
-            class="btn-generate-inline" :class="{ generating: commitStore.isGenerating }" title="生成 Commit 消息">
-            <span class="btn-text" v-if="!commitStore.isGenerating">生成消息</span>
-            <span class="btn-text" v-else>生成中...</span>
-          </button>
           <button v-if="commitStore.streamingMessage || commitStore.generatedMessage" @click="commitStore.clearMessage"
-            class="icon-btn-small" title="清除">×</button>
+            class="icon-btn-small" title="清除" :disabled="commitStore.isGenerating">×</button>
         </div>
       </div>
 
@@ -1476,7 +1480,8 @@ onUnmounted(() => {
 .result-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* 移除 space-between，改用 flex-start 让元素自然排列 */
+  justify-content: flex-start;
   gap: var(--space-md);
   padding-bottom: var(--space-md);
   margin-bottom: var(--space-md);
@@ -1491,19 +1496,67 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.header-left h3 {
-  margin: 0;
+/* 新的左侧主按钮样式 */
+.btn-generate-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.btn-generate-main .btn-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.btn-generate-main .btn-text {
+  line-height: 1;
+}
+
+.btn-generate-main:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.5);
+}
+
+.btn-generate-main:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-generate-main.generating {
+  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5);
+  }
 }
 
 .header-center {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  flex: 1;
-  justify-content: center;
+  flex: 0 1 auto; /* 不强制占据所有空间 */
+  justify-content: flex-start;
   flex-wrap: wrap;
 }
 
@@ -1512,6 +1565,7 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--space-sm);
   flex-shrink: 0;
+  margin-left: auto; /* 将工具按钮推到右侧 */
 }
 
 /* 配置选择框包装器 */
@@ -1584,46 +1638,6 @@ onUnmounted(() => {
   border-color: rgba(6, 182, 212, 0.5);
 }
 
-/* 紧凑型生成按钮 */
-.btn-generate-inline {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  padding: 6px 16px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: white;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
-  flex-shrink: 0;
-  min-width: 80px;
-}
-
-.btn-generate-inline .btn-text {
-  line-height: 1;
-}
-
-.btn-generate-inline:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
-}
-
-.btn-generate-inline:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.btn-generate-inline.generating {
-  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
-}
-
 /* 紧凑型图标按钮 */
 .icon-btn-small {
   background: none;
@@ -1692,13 +1706,15 @@ onUnmounted(() => {
     gap: var(--space-sm);
   }
 
-  .header-center {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+  .header-left,
+  .header-center,
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
   }
 
-  .header-right {
-    justify-content: flex-end;
+  .btn-generate-main {
+    width: 100%;
   }
 }
 </style>
