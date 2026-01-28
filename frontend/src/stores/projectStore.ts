@@ -4,6 +4,17 @@ import type { GitProject } from '../types'
 import { GetAllProjects, AddProject, DeleteProject, MoveProject, ReorderProjects, DebugHookStatus } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 
+// Try to import GetProjectsWithStatus, will be undefined if not yet implemented
+let GetProjectsWithStatus: (() => Promise<models.GitProject[]>) | undefined
+try {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - This will be implemented in Task 5
+  const appModule = require('../../wailsjs/go/main/App')
+  GetProjectsWithStatus = appModule.GetProjectsWithStatus
+} catch {
+  // GetProjectsWithStatus not available yet, will use GetAllProjects
+}
+
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<GitProject[]>([])
   const loading = ref(false)
@@ -38,6 +49,42 @@ export const useProjectStore = defineStore('project', () => {
       const message = e instanceof Error ? e.message : '加载项目失败'
       error.value = message
       console.error('Failed to load projects:', e)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function loadProjectsWithStatus() {
+    loading.value = true
+    error.value = null
+    try {
+      // Try to use GetProjectsWithStatus if available (Task 5+)
+      const result = GetProjectsWithStatus
+        ? await GetProjectsWithStatus() as models.GitProject[]
+        : await GetAllProjects() as models.GitProject[]
+
+      projects.value = result.map(p => ({
+        id: p.id,
+        path: p.path,
+        name: p.name,
+        sort_order: p.sort_order,
+        provider: p.provider ?? null,
+        language: p.language ?? null,
+        model: p.model ?? null,
+        use_default: p.use_default,
+        hook_installed: p.hook_installed,
+        notification_mode: p.notification_mode,
+        hook_version: p.hook_version,
+        hook_installed_at: p.hook_installed_at,
+        // Runtime status fields (will be populated by GetProjectsWithStatus)
+        has_uncommitted_changes: (p as any).has_uncommitted_changes ?? false,
+        untracked_count: (p as any).untracked_count ?? 0,
+        pushover_needs_update: (p as any).pushover_needs_update ?? false
+      }))
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '加载失败'
+      error.value = message
+      console.error('Failed to load projects with status:', e)
     } finally {
       loading.value = false
     }
@@ -154,6 +201,7 @@ export const useProjectStore = defineStore('project', () => {
     selectedPath,
     selectedProject,
     loadProjects,
+    loadProjectsWithStatus,
     addProject,
     deleteProject,
     moveProject,

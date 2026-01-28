@@ -17,6 +17,11 @@ export interface GitProject {
   notification_mode?: string
   hook_version?: string
   hook_installed_at?: string
+
+  // 运行时状态字段（由 GetProjectsWithStatus 填充）
+  has_uncommitted_changes?: boolean   // 是否有未提交更改
+  untracked_count?: number            // 未跟踪文件数量
+  pushover_needs_update?: boolean     // Pushover 插件是否需要更新
 }
 
 export interface ProjectAIConfig {

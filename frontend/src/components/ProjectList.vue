@@ -62,6 +62,31 @@
         <div class="project-info">
           <span class="project-name">{{ project.name }}</span>
           <span class="project-path">{{ project.path }}</span>
+
+          <!-- 状态指示器行 -->
+          <div class="project-status-row">
+            <span
+              v-if="project.has_uncommitted_changes"
+              class="status-indicator uncommitted"
+              title="有未提交更改"
+            >
+              🔄
+            </span>
+            <span
+              v-if="project.untracked_count && project.untracked_count > 0"
+              class="status-indicator untracked"
+              :title="`${project.untracked_count} 个未跟踪文件`"
+            >
+              ➕ {{ project.untracked_count }}
+            </span>
+            <span
+              v-if="project.pushover_needs_update"
+              class="status-indicator update"
+              title="Pushover 插件可更新"
+            >
+              ⬆️
+            </span>
+          </div>
         </div>
 
         <div class="project-actions">
@@ -79,9 +104,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import type { GitProject } from '../types'
 import { useProjectStore } from '../stores/projectStore'
+import { EventsOn } from '../../wailsjs/runtime'
 
 const props = defineProps<{
   selectedId?: number
@@ -167,6 +193,13 @@ async function handleDrop(targetProject: GitProject, targetIndex: number) {
 
   draggedItem.value = null
 }
+
+// 监听启动完成事件，刷新带状态的项目列表
+onMounted(() => {
+  EventsOn('startup-complete', async () => {
+    await projectStore.loadProjectsWithStatus()
+  })
+})
 </script>
 
 <style scoped>
@@ -422,6 +455,38 @@ async function handleDrop(targetProject: GitProject, targetIndex: number) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.project-status-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.status-indicator.uncommitted {
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.15);
+}
+
+.status-indicator.untracked {
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.15);
+}
+
+.status-indicator.update {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
 }
 
 .project-actions {
