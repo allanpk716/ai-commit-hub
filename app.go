@@ -135,6 +135,23 @@ func (a *App) startup(ctx context.Context) {
 	}
 
 	fmt.Println("AI Commit Hub initialized successfully")
+
+	// 启动预加载（异步）
+	if a.pushoverService != nil && a.gitProjectRepo != nil {
+		go func() {
+			startupService := service.NewStartupService(ctx, a.gitProjectRepo, a.pushoverService)
+			if err := startupService.Preload(); err != nil {
+				logger.Errorf("启动预加载失败: %v", err)
+				// 发送完成事件，即使失败也进入主界面
+				runtime.EventsEmit(ctx, "startup-complete", nil)
+			} else {
+				runtime.EventsEmit(ctx, "startup-complete", nil)
+			}
+		}()
+	} else {
+		// 无需预加载，直接完成
+		runtime.EventsEmit(ctx, "startup-complete", nil)
+	}
 }
 
 // shutdown is called when the app is closing

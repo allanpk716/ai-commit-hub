@@ -1,0 +1,169 @@
+package service
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"time"
+
+	"github.com/WQGroup/logger"
+	"github.com/allanpk716/ai-commit-hub/pkg/git"
+	"github.com/allanpk716/ai-commit-hub/pkg/models"
+	"github.com/allanpk716/ai-commit-hub/pkg/pushover"
+	"github.com/allanpk716/ai-commit-hub/pkg/repository"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"gorm.io/gorm"
+)
+
+// StartupProgress 启动进度
+type StartupProgress struct {
+	Stage   string `json:"stage"`
+	Percent int    `json:"percent"`
+	Message string `json:"message"`
+}
+
+// StartupService 启动服务
+type StartupService struct {
+	ctx             context.Context
+	gitProjectRepo  *repository.GitProjectRepository
+	pushoverService *pushover.Service
+	db              *gorm.DB
+}
+
+// NewStartupService 创建启动服务
+func NewStartupService(
+	ctx context.Context,
+	gitProjectRepo *repository.GitProjectRepository,
+	pushoverService *pushover.Service,
+) *StartupService {
+	return &StartupService{
+		ctx:             ctx,
+		gitProjectRepo:  gitProjectRepo,
+		pushoverService: pushoverService,
+		db:              repository.GetDB(),
+	}
+}
+
+// Preload 预加载所有项目状态
+func (s *StartupService) Preload() error {
+	logger.Info("开始启动预加载...")
+
+	// 阶段 1: 初始化
+	s.emitProgress(StartupProgress{
+		Stage:   "initializing",
+		Percent: 10,
+		Message: "正在初始化...",
+	})
+	time.Sleep(500 * time.Millisecond)
+
+	// 阶段 2: 检查扩展
+	s.emitProgress(StartupProgress{
+		Stage:   "extension",
+		Percent: 20,
+		Message: "检查扩展...",
+	})
+	time.Sleep(300 * time.Millisecond)
+
+	// 阶段 3: 扫描项目
+	projects, err := s.gitProjectRepo.GetAll()
+	if err != nil {
+		return fmt.Errorf("获取项目列表失败: %w", err)
+	}
+
+	totalProjects := len(projects)
+	if totalProjects == 0 {
+		s.emitProgress(StartupProgress{
+			Stage:   "complete",
+			Percent: 100,
+			Message: "完成",
+		})
+		return nil
+	}
+
+	// 并发检查所有项目
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, 5) // 限制并发数为 5
+	completed := 0
+	var mu sync.Mutex
+
+	for i, project := range projects {
+		wg.Add(1)
+		go func(idx int, proj models.GitProject) {
+			defer wg.Done()
+			semaphore <- struct{}{}        // 获取信号量
+			defer func() { <-semaphore }() // 释放信号量
+
+			// 检查项目状态
+			s.checkProjectStatus(&proj)
+
+			// 更新进度
+			mu.Lock()
+			completed++
+			percent := 20 + int(float64(completed)/float64(totalProjects)*70)
+			s.emitProgress(StartupProgress{
+				Stage:   "scanning",
+				Percent: percent,
+				Message: fmt.Sprintf("扫描项目 %d/%d...", completed, totalProjects),
+			})
+			mu.Unlock()
+		}(i, project)
+	}
+
+	wg.Wait()
+
+	// 阶段 4: 完成
+	s.emitProgress(StartupProgress{
+		Stage:   "complete",
+		Percent: 100,
+		Message: "完成",
+	})
+
+	logger.Info("启动预加载完成")
+	return nil
+}
+
+// checkProjectStatus 检查单个项目状态
+func (s *StartupService) checkProjectStatus(project *models.GitProject) {
+	// 检查 Pushover 更新状态
+	if s.pushoverService != nil {
+		status, err := s.pushoverService.GetHookStatus(project.Path)
+		if err == nil && status.Installed {
+			latestVersion, err := s.pushoverService.GetExtensionVersion()
+			if err == nil {
+				project.PushoverNeedsUpdate = pushover.CompareVersions(status.Version, latestVersion) < 0
+			}
+		}
+	}
+
+	// 检查 Git 状态（使用 goroutine 和 channel 实现超时）
+	type stagingResult struct {
+		status *git.StagingStatus
+		err    error
+	}
+
+	resultChan := make(chan stagingResult, 1)
+
+	go func() {
+		status, err := git.GetStagingStatus(project.Path)
+		resultChan <- stagingResult{status, err}
+	}()
+
+	select {
+	case result := <-resultChan:
+		if result.err == nil {
+			project.HasUncommittedChanges = len(result.status.Staged) > 0 || len(result.status.Unstaged) > 0
+			project.UntrackedCount = len(result.status.Untracked)
+		}
+	case <-time.After(3 * time.Second):
+		// 超时，跳过 Git 状态检查
+		logger.Debugf("Git 状态检查超时: %s", project.Path)
+	}
+
+	// 更新数据库
+	s.db.Save(project)
+}
+
+// emitProgress 发送进度事件
+func (s *StartupService) emitProgress(progress StartupProgress) {
+	runtime.EventsEmit(s.ctx, "startup-progress", progress)
+}
