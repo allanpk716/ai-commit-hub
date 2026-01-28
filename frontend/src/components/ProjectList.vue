@@ -73,7 +73,7 @@
               🔄
             </span>
             <span
-              v-if="project.untracked_count && project.untracked_count > 0"
+              v-if="(project.untracked_count ?? 0) > 0"
               class="status-indicator untracked"
               :title="`${project.untracked_count} 个未跟踪文件`"
             >
@@ -104,10 +104,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { GitProject } from '../types'
 import { useProjectStore } from '../stores/projectStore'
-import { EventsOn } from '../../wailsjs/runtime'
+import { EventsOn, EventsOff } from '../../wailsjs/runtime'
 
 const props = defineProps<{
   selectedId?: number
@@ -199,6 +199,11 @@ onMounted(() => {
   EventsOn('startup-complete', async () => {
     await projectStore.loadProjectsWithStatus()
   })
+})
+
+// 清理事件监听器，防止内存泄漏
+onUnmounted(() => {
+  EventsOff('startup-complete')
 })
 </script>
 

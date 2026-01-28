@@ -4,6 +4,13 @@ import type { GitProject } from '../types'
 import { GetAllProjects, AddProject, DeleteProject, MoveProject, ReorderProjects, DebugHookStatus } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 
+// 扩展接口，包含运行时状态字段
+interface GitProjectWithStatus extends models.GitProject {
+  has_uncommitted_changes?: boolean
+  untracked_count?: number
+  pushover_needs_update?: boolean
+}
+
 // Try to import GetProjectsWithStatus, will be undefined if not yet implemented
 let GetProjectsWithStatus: (() => Promise<models.GitProject[]>) | undefined
 try {
@@ -60,8 +67,8 @@ export const useProjectStore = defineStore('project', () => {
     try {
       // Try to use GetProjectsWithStatus if available (Task 5+)
       const result = GetProjectsWithStatus
-        ? await GetProjectsWithStatus() as models.GitProject[]
-        : await GetAllProjects() as models.GitProject[]
+        ? await GetProjectsWithStatus() as GitProjectWithStatus[]
+        : await GetAllProjects() as GitProjectWithStatus[]
 
       projects.value = result.map(p => ({
         id: p.id,
@@ -77,9 +84,9 @@ export const useProjectStore = defineStore('project', () => {
         hook_version: p.hook_version,
         hook_installed_at: p.hook_installed_at,
         // Runtime status fields (will be populated by GetProjectsWithStatus)
-        has_uncommitted_changes: (p as any).has_uncommitted_changes ?? false,
-        untracked_count: (p as any).untracked_count ?? 0,
-        pushover_needs_update: (p as any).pushover_needs_update ?? false
+        has_uncommitted_changes: p.has_uncommitted_changes ?? false,
+        untracked_count: p.untracked_count ?? 0,
+        pushover_needs_update: p.pushover_needs_update ?? false
       }))
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '加载失败'
