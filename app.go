@@ -374,6 +374,29 @@ func (a *App) GetProjectsWithStatus() ([]models.GitProject, error) {
 		return nil, fmt.Errorf("获取项目列表失败: %w", err)
 	}
 
+	// 填充运行时状态字段
+	for i := range projects {
+		project := &projects[i]
+
+		// 检查 Pushover 更新状态
+		if a.pushoverService != nil {
+			status, err := a.pushoverService.GetHookStatus(project.Path)
+			if err == nil && status.Installed {
+				latestVersion, err := a.pushoverService.GetExtensionVersion()
+				if err == nil {
+					project.PushoverNeedsUpdate = pushover.CompareVersions(status.Version, latestVersion) < 0
+				}
+			}
+		}
+
+		// 检查 Git 状态
+		stagingStatus, err := git.GetStagingStatus(project.Path)
+		if err == nil {
+			project.HasUncommittedChanges = len(stagingStatus.Staged) > 0 || len(stagingStatus.Unstaged) > 0
+			project.UntrackedCount = len(stagingStatus.Untracked)
+		}
+	}
+
 	return projects, nil
 }
 
