@@ -398,6 +398,26 @@ export const useCommitStore = defineStore('commit', () => {
     loadFileDiff(file.path, isStaged)
   }
 
+  // 选择未跟踪文件（专门用于未跟踪文件，避免调用 loadFileDiff）
+  async function selectUntrackedFile(file: StagedFile) {
+    console.log('[selectUntrackedFile] 选择未跟踪文件:', file.path)
+
+    if (!file.path) {
+      selectedFile.value = null
+      selectedFileDiff.value = null
+      return
+    }
+
+    // 先设置文件和清空旧的 diff，显示加载状态
+    selectedFile.value = file
+    selectedFileDiff.value = null
+    console.log('[selectUntrackedFile] 已清空旧的 diff，准备加载新内容')
+
+    // 加载文件内容（不是 diff）
+    await loadUntrackedFileContent(file.path)
+    console.log('[selectUntrackedFile] 文件内容加载完成')
+  }
+
   // 加载未跟踪文件内容
   async function loadUntrackedFileContent(filePath: string) {
     if (!selectedProjectPath.value) {
@@ -406,23 +426,32 @@ export const useCommitStore = defineStore('commit', () => {
     }
 
     try {
+      console.log('[loadUntrackedFileContent] 开始加载未跟踪文件:', filePath)
+      console.log('[loadUntrackedFileContent] 项目路径:', selectedProjectPath.value)
       const result = await GetUntrackedFileContent(selectedProjectPath.value, filePath)
+      console.log('[loadUntrackedFileContent] API 返回结果:', result)
+      console.log('[loadUntrackedFileContent] IsBinary:', result.IsBinary)
+      console.log('[loadUntrackedFileContent] Content 长度:', result.Content?.length)
 
       if (result.IsBinary) {
         // 二进制文件：显示占位提示
+        console.log('[loadUntrackedFileContent] 检测到二进制文件')
         selectedFileDiff.value = {
           filePath,
           diff: '[二进制文件，无法预览内容]'
         }
       } else {
         // 文本文件：设置 diff
+        console.log('[loadUntrackedFileContent] 设置文件内容到 selectedFileDiff')
         selectedFileDiff.value = {
           filePath,
           diff: result.Content
         }
+        console.log('[loadUntrackedFileContent] selectedFileDiff 已设置:', selectedFileDiff.value)
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '读取文件内容失败'
+      console.error('[loadUntrackedFileContent] 加载失败:', e)
       error.value = message
       selectedFileDiff.value = null
     }
@@ -590,6 +619,7 @@ export const useCommitStore = defineStore('commit', () => {
     discardFileChanges,
     clearFileDiff,
     selectFile,
+    selectUntrackedFile,
     loadUntrackedFileContent,
     stageSelectedFiles,
     unstageSelectedFiles,

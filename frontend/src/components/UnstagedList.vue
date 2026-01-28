@@ -326,9 +326,15 @@ function handleFileClick(file: StagedFile) {
   commitStore.selectFile(file)
 }
 
-function handleUntrackedFileClick(file: UntrackedFile) {
-  commitStore.selectFile(file as StagedFile)
-  commitStore.loadUntrackedFileContent(file.path)
+async function handleUntrackedFileClick(file: UntrackedFile) {
+  console.log('[handleUntrackedFileClick] 点击未跟踪文件:', file.path)
+  // 转换成 StagedFile，并添加 status 字段
+  const stagedFile: StagedFile = {
+    ...file as any,
+    status: 'Untracked'
+  }
+  // 使用专门的方法来选择未跟踪文件
+  await commitStore.selectUntrackedFile(stagedFile)
 }
 
 function getStatusIcon(status: string): string {

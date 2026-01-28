@@ -43,8 +43,24 @@
 <script setup lang="ts">
 import { useCommitStore } from '../stores/commitStore'
 import { CodeDiff } from 'v-code-diff'
+import { watch } from 'vue'
 
 const commitStore = useCommitStore()
+
+// 监控 selectedFileDiff 的变化
+watch(() => commitStore.selectedFileDiff, (newVal, oldVal) => {
+  console.log('[DiffViewer watch] selectedFileDiff 变化:')
+  console.log('  旧值:', oldVal ? `filePath=${oldVal.filePath}, diff长度=${oldVal.diff?.length}` : 'null')
+  console.log('  新值:', newVal ? `filePath=${newVal.filePath}, diff长度=${newVal.diff?.length}` : 'null')
+  console.log('  diff 内容预览:', newVal?.diff ? newVal.diff.substring(0, 100) : '空')
+}, { deep: true })
+
+// 监控 selectedFile 的变化
+watch(() => commitStore.selectedFile, (newVal, oldVal) => {
+  console.log('[DiffViewer watch] selectedFile 变化:')
+  console.log('  旧值:', oldVal ? `path=${oldVal.path}` : 'null')
+  console.log('  新值:', newVal ? `path=${newVal.path}, status=${newVal.status}` : 'null')
+}, { deep: true })
 
 function closeDiff() {
   // 直接清空选中的文件和 diff，不触发加载
@@ -62,6 +78,8 @@ function getOldCode(): string {
   // 检测是否为标准 git diff 格式
   const isStandardDiff = commitStore.selectedFileDiff.diff.includes('diff --git') ||
                          commitStore.selectedFileDiff.diff.includes('@@')
+
+  console.log('[DiffViewer getOldCode] isStandardDiff:', isStandardDiff)
 
   // 如果不是标准 diff 格式（如未跟踪文件的纯内容），返回空
   if (!isStandardDiff) {
@@ -84,14 +102,22 @@ function getOldCode(): string {
 }
 
 function getNewCode(): string {
-  if (!commitStore.selectedFileDiff?.diff) return ''
+  if (!commitStore.selectedFileDiff?.diff) {
+    console.log('[DiffViewer getNewCode] selectedFileDiff.diff 为空')
+    return ''
+  }
 
   // 检测是否为标准 git diff 格式
   const isStandardDiff = commitStore.selectedFileDiff.diff.includes('diff --git') ||
                          commitStore.selectedFileDiff.diff.includes('@@')
 
+  console.log('[DiffViewer getNewCode] isStandardDiff:', isStandardDiff)
+  console.log('[DiffViewer getNewCode] diff 长度:', commitStore.selectedFileDiff.diff.length)
+  console.log('[DiffViewer getNewCode] diff 内容预览:', commitStore.selectedFileDiff.diff.substring(0, 100))
+
   // 如果不是标准 diff 格式（如未跟踪文件的纯内容），直接返回完整内容
   if (!isStandardDiff) {
+    console.log('[DiffViewer getNewCode] 返回完整内容，长度:', commitStore.selectedFileDiff.diff.length)
     return commitStore.selectedFileDiff.diff
   }
 

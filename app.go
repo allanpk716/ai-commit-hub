@@ -1183,10 +1183,18 @@ func (a *App) GetFileDiff(projectPath, filePath string, staged bool) (string, er
 
 // GetUntrackedFileContent 获取未跟踪文件内容
 func (a *App) GetUntrackedFileContent(projectPath, filePath string) (git.FileContentResult, error) {
+	logger.Infof("[App.GetUntrackedFileContent] 开始读取未跟踪文件: %s in %s", filePath, projectPath)
 	if a.initError != nil {
+		logger.Errorf("[App.GetUntrackedFileContent] 初始化错误: %v", a.initError)
 		return git.FileContentResult{}, a.initError
 	}
-	return git.ReadFileContent(projectPath, filePath)
+	result, err := git.ReadFileContent(projectPath, filePath)
+	if err != nil {
+		logger.Errorf("[App.GetUntrackedFileContent] 读取失败: %v", err)
+	} else {
+		logger.Infof("[App.GetUntrackedFileContent] 读取成功, IsBinary: %v, Content长度: %d", result.IsBinary, len(result.Content))
+	}
+	return result, err
 }
 
 // StageFile 暂存文件
