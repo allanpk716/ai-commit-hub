@@ -142,11 +142,9 @@ func (a *App) startup(ctx context.Context) {
 			startupService := service.NewStartupService(ctx, a.gitProjectRepo, a.pushoverService)
 			if err := startupService.Preload(); err != nil {
 				logger.Errorf("启动预加载失败: %v", err)
-				// 发送完成事件，即使失败也进入主界面
-				runtime.EventsEmit(ctx, "startup-complete", nil)
-			} else {
-				runtime.EventsEmit(ctx, "startup-complete", nil)
 			}
+			// 无论成功或失败，都发送完成事件以进入主界面
+			runtime.EventsEmit(ctx, "startup-complete", nil)
 		}()
 	} else {
 		// 无需预加载，直接完成

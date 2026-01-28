@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -86,18 +87,22 @@ func (s *StartupService) Preload() error {
 	completed := 0
 	var mu sync.Mutex
 
-	for i, project := range projects {
+	// 使用指针切片来收集需要更新的项目
+	projectsToUpdate := make([]*models.GitProject, 0, totalProjects)
+
+	for _, project := range projects {
 		wg.Add(1)
-		go func(idx int, proj models.GitProject) {
+		go func(proj *models.GitProject) {
 			defer wg.Done()
 			semaphore <- struct{}{}        // 获取信号量
 			defer func() { <-semaphore }() // 释放信号量
 
 			// 检查项目状态
-			s.checkProjectStatus(&proj)
+			s.checkProjectStatus(proj)
 
-			// 更新进度
+			// 收集需要更新的项目
 			mu.Lock()
+			projectsToUpdate = append(projectsToUpdate, proj)
 			completed++
 			percent := 20 + int(float64(completed)/float64(totalProjects)*70)
 			s.emitProgress(StartupProgress{
@@ -106,10 +111,20 @@ func (s *StartupService) Preload() error {
 				Message: fmt.Sprintf("扫描项目 %d/%d...", completed, totalProjects),
 			})
 			mu.Unlock()
-		}(i, project)
+		}(&project)
 	}
 
 	wg.Wait()
+
+	// 批量保存项目状态到数据库（避免并发写入）
+	if len(projectsToUpdate) > 0 {
+		logger.Infof("开始批量保存 %d 个项目状态到数据库...", len(projectsToUpdate))
+		if err := s.db.Save(projectsToUpdate).Error; err != nil {
+			logger.Errorf("批量保存项目状态失败: %v", err)
+			return fmt.Errorf("批量保存项目状态失败: %w", err)
+		}
+		logger.Infof("批量保存项目状态成功")
+	}
 
 	// 阶段 4: 完成
 	s.emitProgress(StartupProgress{
@@ -124,6 +139,12 @@ func (s *StartupService) Preload() error {
 
 // checkProjectStatus 检查单个项目状态
 func (s *StartupService) checkProjectStatus(project *models.GitProject) {
+	// 验证项目路径是否存在
+	if _, err := os.Stat(project.Path); os.IsNotExist(err) {
+		logger.Warnf("项目路径不存在，跳过状态检查: %s", project.Path)
+		return
+	}
+
 	// 检查 Pushover 更新状态
 	if s.pushoverService != nil {
 		status, err := s.pushoverService.GetHookStatus(project.Path)
@@ -135,7 +156,7 @@ func (s *StartupService) checkProjectStatus(project *models.GitProject) {
 		}
 	}
 
-	// 检查 Git 状态（使用 goroutine 和 channel 实现超时）
+	// 检查 Git 状态（使用 context 实现可取消的超时）
 	type stagingResult struct {
 		status *git.StagingStatus
 		err    error
@@ -143,9 +164,18 @@ func (s *StartupService) checkProjectStatus(project *models.GitProject) {
 
 	resultChan := make(chan stagingResult, 1)
 
+	// 创建带超时的 context
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	go func() {
 		status, err := git.GetStagingStatus(project.Path)
-		resultChan <- stagingResult{status, err}
+		select {
+		case resultChan <- stagingResult{status, err}:
+		case <-ctx.Done():
+			// Context 已取消，不发送结果
+			return
+		}
 	}()
 
 	select {
@@ -154,13 +184,12 @@ func (s *StartupService) checkProjectStatus(project *models.GitProject) {
 			project.HasUncommittedChanges = len(result.status.Staged) > 0 || len(result.status.Unstaged) > 0
 			project.UntrackedCount = len(result.status.Untracked)
 		}
-	case <-time.After(3 * time.Second):
+	case <-ctx.Done():
 		// 超时，跳过 Git 状态检查
 		logger.Debugf("Git 状态检查超时: %s", project.Path)
 	}
 
-	// 更新数据库
-	s.db.Save(project)
+	// 注意：不在这里更新数据库，而是在 Preload 中批量保存
 }
 
 // emitProgress 发送进度事件
