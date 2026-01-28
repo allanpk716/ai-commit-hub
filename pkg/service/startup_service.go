@@ -49,6 +49,32 @@ func NewStartupService(
 func (s *StartupService) Preload() error {
 	logger.Info("开始启动预加载...")
 
+	// 添加总体超时控制
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 在新 goroutine 中执行预加载
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- s.doPreload()
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-ctx.Done():
+		logger.Warn("启动预加载超时，将进入主界面")
+		s.emitProgress(StartupProgress{
+			Stage:   "complete",
+			Percent: 100,
+			Message: "完成",
+		})
+		return nil
+	}
+}
+
+// doPreload 实际执行预加载逻辑
+func (s *StartupService) doPreload() error {
 	// 阶段 1: 初始化
 	s.emitProgress(StartupProgress{
 		Stage:   "initializing",
@@ -139,18 +165,24 @@ func (s *StartupService) Preload() error {
 
 // checkProjectStatus 检查单个项目状态
 func (s *StartupService) checkProjectStatus(project *models.GitProject) {
+	projectName := project.Name
+
 	// 验证项目路径是否存在
 	if _, err := os.Stat(project.Path); os.IsNotExist(err) {
-		logger.Warnf("项目路径不存在，跳过状态检查: %s", project.Path)
+		logger.Debugf("[%s] 项目路径不存在，跳过状态检查: %s", projectName, project.Path)
 		return
 	}
 
 	// 检查 Pushover 更新状态
 	if s.pushoverService != nil {
 		status, err := s.pushoverService.GetHookStatus(project.Path)
-		if err == nil && status.Installed {
+		if err != nil {
+			logger.Debugf("[%s] 获取 Pushover 状态失败: %v", projectName, err)
+		} else if status.Installed {
 			latestVersion, err := s.pushoverService.GetExtensionVersion()
-			if err == nil {
+			if err != nil {
+				logger.Debugf("[%s] 获取扩展版本失败: %v", projectName, err)
+			} else {
 				project.PushoverNeedsUpdate = pushover.CompareVersions(status.Version, latestVersion) < 0
 			}
 		}
@@ -180,16 +212,18 @@ func (s *StartupService) checkProjectStatus(project *models.GitProject) {
 
 	select {
 	case result := <-resultChan:
-		if result.err == nil {
+		if result.err != nil {
+			logger.Debugf("[%s] 获取 Git 状态失败: %v", projectName, result.err)
+		} else {
 			project.HasUncommittedChanges = len(result.status.Staged) > 0 || len(result.status.Unstaged) > 0
 			project.UntrackedCount = len(result.status.Untracked)
 		}
 	case <-ctx.Done():
 		// 超时，跳过 Git 状态检查
-		logger.Debugf("Git 状态检查超时: %s", project.Path)
+		logger.Debugf("[%s] Git 状态检查超时", projectName)
 	}
 
-	// 注意：不在这里更新数据库，而是在 Preload 中批量保存
+	// 注意：不在这里更新数据库，而是在 doPreload 中批量保存
 }
 
 // emitProgress 发送进度事件
