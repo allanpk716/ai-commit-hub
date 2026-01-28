@@ -27,6 +27,11 @@ type GitProject struct {
 	NotificationMode string     `gorm:"default:'enabled'" json:"notification_mode"` // enabled/pushover_only/windows_only/disabled
 	HookVersion     string      `gorm:"size:50" json:"hook_version"`
 	HookInstalledAt *time.Time  `json:"hook_installed_at,omitempty"`
+
+	// 运行时状态字段（不持久化到数据库）
+	HasUncommittedChanges bool `json:"has_uncommitted_changes" gorm:"-"`
+	UntrackedCount       int  `json:"untracked_count" gorm:"-"`
+	PushoverNeedsUpdate  bool `json:"pushover_needs_update" gorm:"-"`
 }
 
 // TableName specifies the table name for GitProject
