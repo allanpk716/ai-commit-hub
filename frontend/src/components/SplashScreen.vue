@@ -28,9 +28,32 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
+import { EventsOn, EventsOff } from '../../wailsjs/runtime'
 import { useStartupStore } from '../stores/startupStore'
+import type { StartupProgress } from '../stores/startupStore'
 
 const startupStore = useStartupStore()
+
+// 组件挂载时设置事件监听器
+onMounted(() => {
+  // 监听启动进度事件
+  EventsOn('startup-progress', (data: StartupProgress) => {
+    startupStore.updateProgress(data)
+  })
+
+  // 监听启动完成事件
+  EventsOn('startup-complete', () => {
+    startupStore.complete()
+  })
+})
+
+// 组件卸载时清理事件监听器
+onUnmounted(() => {
+  // 清理 Wails 事件监听器
+  EventsOff('startup-progress')
+  EventsOff('startup-complete')
+})
 </script>
 
 <style scoped>

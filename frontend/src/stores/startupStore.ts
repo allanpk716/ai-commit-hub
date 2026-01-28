@@ -9,6 +9,7 @@ export interface StartupProgress {
 
 export const useStartupStore = defineStore('startup', () => {
   const isVisible = ref(true)
+  const isCompleted = ref(false)
   const progress = ref<StartupProgress>({
     stage: 'initializing',
     percent: 0,
@@ -20,6 +21,13 @@ export const useStartupStore = defineStore('startup', () => {
   }
 
   function complete() {
+    // 防止重复调用
+    if (isCompleted.value) {
+      console.warn('启动已完成，忽略重复的 complete() 调用')
+      return
+    }
+
+    isCompleted.value = true
     progress.value.percent = 100
     progress.value.message = '完成'
     setTimeout(() => {
