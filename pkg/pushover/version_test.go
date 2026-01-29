@@ -77,6 +77,12 @@ func TestCompareVersions(t *testing.T) {
 			v2:       "1.0.0",
 			expected: 0,
 		},
+		{
+			name:     "Both are unknown",
+			v1:       "unknown",
+			v2:       "unknown",
+			expected: 0,
+		},
 	}
 
 	for _, tt := range tests {

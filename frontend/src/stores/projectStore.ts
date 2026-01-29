@@ -4,8 +4,8 @@ import type { GitProject } from '../types'
 import { GetAllProjects, AddProject, DeleteProject, MoveProject, ReorderProjects, DebugHookStatus } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 
-// 扩展接口，包含运行时状态字段
-interface GitProjectWithStatus extends models.GitProject {
+// 扩展接口，将运行时状态字段设为可选
+type GitProjectWithStatus = Omit<models.GitProject, 'has_uncommitted_changes' | 'untracked_count' | 'pushover_needs_update'> & {
   has_uncommitted_changes?: boolean
   untracked_count?: number
   pushover_needs_update?: boolean

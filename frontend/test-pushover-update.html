@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Pushover Hook 更新测试</title>
+</head>
+<body>
+    <h1>Pushover Hook 更新测试</h1>
+    <div id="output"></div>
+
+    <script src="../wailsjs/go/main/App.js"></script>
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message) {
+            const div = document.createElement('div');
+            div.textContent = message;
+            div.style.padding = '8px';
+            div.style.borderBottom = '1px solid #ccc';
+            output.appendChild(div);
+        }
+
+        async function testUpdate() {
+            try {
+                // 测试项目路径（当前项目）
+                const projectPath = "C:\\WorkSpace\\Go2Hell\\src\\github.com\\allanpk716\\ai-commit-hub";
+
+                log('开始测试更新 Hook...');
+                log('项目路径: ' + projectPath);
+
+                // 调用更新 API
+                log('调用 UpdatePushoverHook...');
+                const result = await window.go.main.App.UpdatePushoverHook(projectPath);
+
+                log('返回结果:');
+                log(JSON.stringify(result, null, 2));
+
+                if (result.success) {
+                    log('✅ 更新成功！');
+                    log('版本: ' + (result.version || 'N/A'));
+                } else {
+                    log('❌ 更新失败！');
+                    log('错误信息: ' + (result.message || '未知错误'));
+                }
+            } catch (error) {
+                log('❌ 异常: ' + error.message);
+                log('异常堆栈: ' + error.stack);
+            }
+        }
+
+        // 页面加载后自动执行测试
+        window.onload = function() {
+            log('页面已加载，准备测试...');
+            setTimeout(testUpdate, 1000);
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+        }
+        #output {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #f5f5f5;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+    </style>
+</body>
+</html>

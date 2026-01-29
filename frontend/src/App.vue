@@ -79,7 +79,7 @@ const settingsOpen = ref(false)
 const extensionDialogOpen = ref(false)
 
 onMounted(async () => {
-  await projectStore.loadProjects()
+  await projectStore.loadProjectsWithStatus()
   // 检查 Pushover 配置
   await pushoverStore.checkPushoverConfig()
   if (!pushoverStore.configValid) {

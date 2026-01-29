@@ -50,9 +50,10 @@ onMounted(() => {
 
 // 组件卸载时清理事件监听器
 onUnmounted(() => {
-  // 清理 Wails 事件监听器
+  // 只清理 startup-progress 事件
+  // startup-complete 事件由 ProjectList 处理，不在这里清理
+  // 因为 Wails 的 EventsOff 是全局的，会清理所有监听该事件的回调
   EventsOff('startup-progress')
-  EventsOff('startup-complete')
 })
 </script>
 

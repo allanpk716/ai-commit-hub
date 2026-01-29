@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>未跟踪文件预览测试</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4ec9b0;
+        }
+        .test-section {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #569cd6;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        #output {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #2d2d2d;
+        }
+        .log-info { color: #4ec9b0; }
+        .log-error { color: #f48771; }
+        .log-warn { color: #dcdcaa; }
+        .log-success { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>未跟踪文件预览调试工具</h1>
+
+        <div class="test-section">
+            <h2>1. 测试 API 可用性</h2>
+            <button onclick="testAPIAvailability()">检查 API 是否可用</button>
+            <button onclick="clearOutput()">清空输出</button>
+        </div>
+
+        <div class="test-section">
+            <h2>2. 测试文件读取</h2>
+            <p>输入项目路径和文件路径进行测试：</p>
+            <input type="text" id="projectPath" placeholder="项目路径" style="width: 500px; padding: 8px; margin-right: 8px;" value="C:\WorkSpace\agent\hapi">
+            <input type="text" id="filePath" placeholder="文件路径" style="width: 300px; padding: 8px; margin-right: 8px;" value=".claude/hooks/pushover-hook/README.md">
+            <button onclick="testReadFile()">读取文件</button>
+        </div>
+
+        <div class="test-section">
+            <h2>3. 测试结果</h2>
+            <div id="output">等待测试...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. 调试指南</h2>
+            <ol>
+                <li>打开应用后按 <strong>F12</strong> 打开开发者工具</li>
+                <li>切换到 <strong>Console</strong> 标签</li>
+                <li>点击一个未跟踪文件</li>
+                <li>查找以 <code>[loadUntrackedFileContent]</code> 或 <code>[DiffViewer]</code> 开头的日志</li>
+                <li>复制所有相关日志并反馈</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const className = `log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `<div class="log-entry ${className}">[${timestamp}] ${message}</div>`;
+            output.scrollTop = output.scrollHeight;
+            console.log(`[${className}] ${message}`);
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+            log('输出已清空', 'info');
+        }
+
+        function testAPIAvailability() {
+            log('开始检查 API 可用性...', 'info');
+
+            // 检查 Wails 运行时
+            if (typeof window !== 'undefined' && window.go) {
+                log('✓ Wails runtime 检测到', 'success');
+
+                // 检查 App 对象
+                if (window.go.main && window.go.main.App) {
+                    log('✓ App 对象可用', 'success');
+
+                    // 检查 GetUntrackedFileContent 方法
+                    if (typeof window.go.main.App.GetUntrackedFileContent === 'function') {
+                        log('✓ GetUntrackedFileContent 方法可用', 'success');
+                        log('API 检查完成！所有依赖都正常。', 'success');
+                    } else {
+                        log('✗ GetUntrackedFileContent 方法不可用', 'error');
+                    }
+                } else {
+                    log('✗ App 对象不可用', 'error');
+                }
+            } else {
+                log('✗ Wails runtime 未检测到（这不是 Wails 应用环境）', 'error');
+                log('提示：此测试页面需要在 Wails 应用中运行', 'warn');
+            }
+        }
+
+        async function testReadFile() {
+            const projectPath = document.getElementById('projectPath').value;
+            const filePath = document.getElementById('filePath').value;
+
+            if (!projectPath || !filePath) {
+                log('请输入项目路径和文件路径', 'error');
+                return;
+            }
+
+            log(`开始读取文件: ${filePath}`, 'info');
+            log(`项目路径: ${projectPath}`, 'info');
+
+            try {
+                if (typeof window !== 'undefined' && window.go && window.go.main && window.go.main.App) {
+                    const result = await window.go.main.App.GetUntrackedFileContent(projectPath, filePath);
+
+                    log('✓ API 调用成功！', 'success');
+                    log(`返回结果: ${JSON.stringify(result, null, 2)}`, 'info');
+
+                    if (result.IsBinary) {
+                        log('文件类型: 二进制文件', 'warn');
+                    } else {
+                        log(`文件类型: 文本文件`, 'success');
+                        log(`内容长度: ${result.Content.length} 字符`, 'info');
+
+                        if (result.Content.length > 0) {
+                            const preview = result.Content.length > 200
+                                ? result.Content.substring(0, 200) + '...'
+                                : result.Content;
+                            log(`内容预览:\n${preview}`, 'info');
+                        } else {
+                            log('⚠ 内容为空！', 'warn');
+                        }
+                    }
+                } else {
+                    log('✗ Wails API 不可用（这不是 Wails 应用环境）', 'error');
+                    log('请在实际的 Wails 应用中进行测试', 'warn');
+                }
+            } catch (error) {
+                log(`✗ 读取失败: ${error.message || error}`, 'error');
+                console.error('详细错误:', error);
+            }
+        }
+
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            log('调试工具已加载', 'info');
+            log('提示：按 F12 打开浏览器开发者工具查看详细日志', 'warn');
+            setTimeout(testAPIAvailability, 500);
+        });
+    </script>
+</body>
+</html>

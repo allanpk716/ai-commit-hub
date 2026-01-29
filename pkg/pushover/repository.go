@@ -94,7 +94,7 @@ func (rm *RepositoryManager) fetchRemoteTags() error {
 	return nil
 }
 
-// GetVersion 获取当前扩展版本
+// GetVersion 获取当前扩展版本（仅返回 tag，不包含 commit hash）
 func (rm *RepositoryManager) GetVersion() (string, error) {
 	if !rm.IsCloned() {
 		return "", fmt.Errorf("扩展不存在")
@@ -102,24 +102,19 @@ func (rm *RepositoryManager) GetVersion() (string, error) {
 
 	extensionPath := rm.GetExtensionPath()
 
-	// 获取 git describe 输出作为版本
-	cmd := Command("git", "describe", "--tags", "--always")
+	// 获取最新的 tag
+	cmd := Command("git", "describe", "--tags", "--abbrev=0")
 	cmd.Dir = extensionPath
 	output, err := cmd.Output()
 	if err != nil {
-		// 如果没有 tag，使用 commit hash
-		cmd = Command("git", "rev-parse", "--short", "HEAD")
-		cmd.Dir = extensionPath
-		output, err = cmd.Output()
-		if err != nil {
-			return "", fmt.Errorf("获取版本失败: %w", err)
-		}
+		// 如果没有 tag，返回 unknown
+		return "unknown", nil
 	}
 
 	return strings.TrimSpace(string(output)), nil
 }
 
-// GetLatestVersion 获取远程最新版本
+// GetLatestVersion 获取远程最新版本（仅返回 tag，不包含 commit hash）
 func (rm *RepositoryManager) GetLatestVersion() (string, error) {
 	if !rm.IsCloned() {
 		return "", fmt.Errorf("扩展不存在")
@@ -137,13 +132,8 @@ func (rm *RepositoryManager) GetLatestVersion() (string, error) {
 	cmd.Dir = extensionPath
 	output, err := cmd.Output()
 	if err != nil {
-		// 如果没有 tag，返回 commit hash
-		cmd = Command("git", "rev-parse", "--short", "origin/main")
-		cmd.Dir = extensionPath
-		output, err = cmd.Output()
-		if err != nil {
-			return "", fmt.Errorf("获取最新版本失败: %w", err)
-		}
+		// 如果没有 tag，返回 unknown
+		return "unknown", nil
 	}
 
 	return strings.TrimSpace(string(output)), nil
