@@ -20,6 +20,7 @@ import type {
   PushoverConfigStatus
 } from '../types/pushover'
 import { useStatusCache } from './statusCache'
+import { useProjectStore } from './projectStore'
 import type { ProjectStatusCache } from '../types/status'
 
 export const usePushoverStore = defineStore('pushover', () => {
@@ -47,7 +48,6 @@ export const usePushoverStore = defineStore('pushover', () => {
    * 当前选中项目的 Pushover 状态（从 StatusCache 获取）
    */
   const currentProjectHookStatus = computed(() => {
-    const { useProjectStore } = require('./projectStore')
     const projectStore = useProjectStore()
     const selectedPath = projectStore.selectedProject
     if (!selectedPath) return null

@@ -94,6 +94,7 @@ export interface HookStatus {
   mode: string          // 'silent' | 'normal' | 'verbose'
   version: string       // Hook 版本
   installed_at: string  // 安装时间（ISO 8601）
+  update_available?: boolean  // 是否有可用更新
 }
 
 // Hook 安装结果
