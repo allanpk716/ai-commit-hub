@@ -19,6 +19,8 @@ import type {
   NotificationMode,
   PushoverConfigStatus
 } from '../types/pushover'
+import { useStatusCache } from './statusCache'
+import type { ProjectStatusCache } from '../types/status'
 
 export const usePushoverStore = defineStore('pushover', () => {
   // State
@@ -42,6 +44,35 @@ export const usePushoverStore = defineStore('pushover', () => {
   // Computed
   const isExtensionDownloaded = computed(() => extensionInfo.value.downloaded)
   const isUpdateAvailable = computed(() => extensionInfo.value.update_available)
+
+  /**
+   * 当前选中项目的 Pushover 状态（从 StatusCache 获取）
+   */
+  const currentProjectHookStatus = computed(() => {
+    const { useProjectStore } = require('./projectStore')
+    const projectStore = useProjectStore()
+    const selectedPath = projectStore.selectedProject
+    if (!selectedPath) return null
+
+    const statusCache = useStatusCache()
+    const cached = statusCache.getStatus(selectedPath)
+    return cached?.pushoverStatus || null
+  })
+
+  /**
+   * 批量获取所有项目的 Pushover 状态（从 StatusCache 获取）
+   * 供 ProjectList 使用
+   */
+  const allProjectHookStatuses = computed(() => {
+    const statusCache = useStatusCache()
+    const statuses: Record<string, HookStatus> = {}
+    for (const [path, cache] of Object.entries(statusCache.cache)) {
+      if (cache.pushoverStatus) {
+        statuses[path] = cache.pushoverStatus
+      }
+    }
+    return statuses
+  })
 
   // Actions
 
@@ -347,6 +378,8 @@ export const usePushoverStore = defineStore('pushover', () => {
     // Computed
     isExtensionDownloaded,
     isUpdateAvailable,
+    currentProjectHookStatus,    // 新增
+    allProjectHookStatuses,      // 新增
 
     // Actions
     checkExtensionStatus,
