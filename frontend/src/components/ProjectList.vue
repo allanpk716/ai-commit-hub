@@ -81,13 +81,7 @@
                 ⬆️
               </span>
             </template>
-            <span
-              v-else
-              class="status-indicator loading"
-              title="加载中..."
-            >
-              ⏳
-            </span>
+            <StatusSkeleton v-else />
           </div>
         </div>
 
@@ -110,6 +104,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { GitProject } from '../types'
 import { useProjectStore } from '../stores/projectStore'
 import { useStatusCache } from '../stores/statusCache'
+import StatusSkeleton from './StatusSkeleton.vue'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime'
 
 const props = defineProps<{
