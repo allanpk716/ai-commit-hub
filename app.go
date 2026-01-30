@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	stdruntime "runtime"
+	"time"
 
 	"github.com/WQGroup/logger"
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
@@ -1405,4 +1406,74 @@ func (a *App) GetDirectoryOptions(filePath string) ([]git.DirectoryOption, error
 	opts := git.GetDirectoryOptions(filePath)
 	logger.Infof("[App.GetDirectoryOptions] 获取成功，共 %d 个选项", len(opts))
 	return opts, nil
+}
+
+// ProjectFullStatus 项目完整状态
+type ProjectFullStatus struct {
+	GitStatus      *git.ProjectStatus  `json:"gitStatus"`
+	StagingStatus  *git.StagingStatus  `json:"stagingStatus"`
+	UntrackedCount int                 `json:"untrackedCount"`
+	PushoverStatus *pushover.HookStatus `json:"pushoverStatus"`
+	LastUpdated    time.Time           `json:"lastUpdated"`
+}
+
+// GetAllProjectStatuses 批量获取多个项目的完整状态
+// 使用并发控制，最多同时查询 10 个项目
+func (a *App) GetAllProjectStatuses(projectPaths []string) (map[string]*ProjectFullStatus, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+
+	const maxConcurrent = 10
+
+	type result struct {
+		path   string
+		status *ProjectFullStatus
+	}
+
+	sem := make(chan struct{}, maxConcurrent)
+	results := make(chan result, len(projectPaths))
+
+	for _, path := range projectPaths {
+		sem <- struct{}{}
+		go func(p string) {
+			defer func() { <-sem }()
+
+			status := &ProjectFullStatus{
+				LastUpdated: time.Now(),
+			}
+
+			// 获取 Git 状态
+			gitStatus, _ := git.GetProjectStatus(context.Background(), p)
+			status.GitStatus = gitStatus
+
+			// 获取暂存区状态
+			staging, _ := git.GetStagingStatus(p)
+			status.StagingStatus = staging
+
+			// 获取未跟踪文件数量
+			untracked, _ := git.GetUntrackedFiles(p)
+			status.UntrackedCount = len(untracked)
+
+			// 获取 Pushover Hook 状态
+			if a.pushoverService != nil {
+				pushover, _ := a.pushoverService.GetHookStatus(p)
+				status.PushoverStatus = pushover
+			}
+
+			results <- result{
+				path:   p,
+				status: status,
+			}
+		}(path)
+	}
+
+	// 收集所有结果
+	statuses := make(map[string]*ProjectFullStatus)
+	for i := 0; i < len(projectPaths); i++ {
+		r := <-results
+		statuses[r.path] = r.status
+	}
+
+	return statuses, nil
 }
