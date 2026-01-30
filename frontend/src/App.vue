@@ -87,39 +87,46 @@ const extensionDialogOpen = ref(false)
 const initialLoading = ref(true)
 const showSplash = ref(true)
 
+async function initializeApp() {
+  console.log('[App] 开始初始化应用')
+
+  const tasks = [
+    projectStore.loadProjects()
+      .catch(err => ({ error: 'loadProjects', message: err?.message || '未知错误' })),
+    (async () => {
+      const { useStatusCache } = await import('./stores/statusCache')
+      const statusCache = useStatusCache()
+      return statusCache.init()
+        .catch(err => ({ error: 'statusCache', message: err?.message || '未知错误' }))
+    })(),
+    pushoverStore.checkExtensionStatus()
+      .catch(err => ({ error: 'extensionStatus', message: err?.message || '未知错误' })),
+    pushoverStore.checkPushoverConfig()
+      .catch(err => ({ error: 'pushoverConfig', message: err?.message || '未知错误' }))
+  ]
+
+  const results = await Promise.all(tasks)
+  const errors = results.filter(r => r && r.error)
+  if (errors.length > 0) {
+    console.warn('[App] 部分初始化任务失败:', errors)
+  }
+
+  console.log('[App] 应用初始化完成')
+  return errors
+}
+
 onMounted(async () => {
   console.log('[App] onMounted 开始')
-  try {
-    // 初始化 StatusCache 并预加载
-    console.log('[App] 开始初始化 StatusCache')
-    const { useStatusCache } = await import('./stores/statusCache')
-    const statusCache = useStatusCache()
-    await statusCache.init()
-    console.log('[App] StatusCache 初始化完成')
-  } catch (error) {
-    console.error('[App] StatusCache 初始化失败:', error)
-  } finally {
-    console.log('[App] 设置 initialLoading = false')
-    initialLoading.value = false
-  }
+  await initializeApp()
+  initialLoading.value = false
 
-  // 延迟一点隐藏 SplashScreen，给用户更好的体验
   setTimeout(() => {
-    console.log('[App] 隐藏 SplashScreen')
     showSplash.value = false
-  }, 1000)
+  }, 500)
 
-  // 监听启动完成事件（备用，防止其他模块依赖）
   EventsOn("startup-complete", () => {
-    console.log('[App] startup-complete 事件触发')
     showSplash.value = false
   })
-
-  // 检查 Pushover 配置
-  await pushoverStore.checkPushoverConfig()
-  if (!pushoverStore.configValid) {
-    console.warn('Pushover 环境变量未配置，通知功能可能不可用')
-  }
 
   console.log('[App] onMounted 完成')
 })

@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { usePushoverStore } from '../stores/pushoverStore'
 
 const emit = defineEmits<{
@@ -43,10 +43,6 @@ const statusTitle = computed(() => {
 function openDialog() {
   emit('open')
 }
-
-onMounted(async () => {
-  await pushoverStore.checkExtensionStatus()
-})
 </script>
 
 <style scoped>
