@@ -3,13 +3,10 @@ import { ref, computed, onMounted } from 'vue'
 import type {
   ProjectStatusCache,
   ProjectStatusCacheMap,
-  CacheOptions,
-  GitStatus
+  CacheOptions
 } from '../types/status'
-import type { StagingStatus, HookStatus } from '../types'
-import { GetStagingStatus } from '../../wailsjs/go/main/App'
+import { GetStagingStatus, GetProjectStatus, GetUntrackedFiles, GetPushoverHookStatus } from '../../wailsjs/go/main/App'
 import { EventsOn } from '../../wailsjs/runtime/runtime'
-import { models } from '../../wailsjs/go/models'
 
 /**
  * 默认缓存 TTL（30 秒）
@@ -206,60 +203,60 @@ export const useStatusCache = defineStore('statusCache', () => {
   /**
    * 刷新项目状态（从后端获取最新状态）
    * @param path 项目路径
+   * @param options 刷新选项
    */
-  async function refreshStatus(path: string): Promise<void> {
-    // 防止重复请求
-    if (isLoading(path)) {
+  async function refresh(path: string, options?: { force?: boolean }): Promise<void> {
+    // 防止并发重复请求
+    if (pendingRequests.value.has(path)) {
       return
     }
 
-    setLoading(path, true)
-    setError(path, null)
+    // 如果未强制刷新且未过期，跳过
+    if (!options?.force && !isExpired(path)) {
+      return
+    }
+
+    pendingRequests.value.add(path)
+
+    // 初始化或标记加载中
+    if (!cache.value[path]) {
+      cache.value[path] = {
+        gitStatus: null,
+        stagingStatus: null,
+        untrackedCount: 0,
+        pushoverStatus: null,
+        lastUpdated: 0,
+        loading: true,
+        error: null,
+        stale: false
+      }
+    } else {
+      cache.value[path].loading = true
+    }
 
     try {
-      // 获取暂存区状态
-      const stagingStatus = await GetStagingStatus(path) as models.StagingStatus
+      const [gitStatus, stagingStatus, untrackedFiles, pushoverStatus] = await Promise.all([
+        GetProjectStatus(path).catch(() => null),
+        GetStagingStatus(path).catch(() => null),
+        GetUntrackedFiles(path).catch(() => []),
+        GetPushoverHookStatus(path).catch(() => null)
+      ])
 
-      // 转换为前端类型
-      const frontendStagingStatus: StagingStatus = {
-        staged: stagingStatus.staged.map(f => ({
-          path: f.path,
-          status: f.status,
-          ignored: f.ignored
-        })),
-        unstaged: stagingStatus.unstaged.map(f => ({
-          path: f.path,
-          status: f.status,
-          ignored: f.ignored
-        })),
-        untracked: stagingStatus.untracked.map(f => ({
-          path: f.path
-        }))
-      }
-
-      // 构造 GitStatus（从暂存区状态获取分支信息）
-      const gitStatus: GitStatus = {
-        branch: '' // TODO: 从后端 API 获取分支信息
-      }
-
-      // 计算未跟踪文件数量
-      const untrackedCount = frontendStagingStatus.untracked.length
-
-      // 更新缓存
-      updateCache(path, {
+      cache.value[path] = {
         gitStatus,
-        stagingStatus: frontendStagingStatus,
-        untrackedCount,
-        pushoverStatus: null, // TODO: 从后端 API 获取 Pushover 状态
+        stagingStatus,
+        untrackedCount: untrackedFiles?.length || 0,
+        pushoverStatus: pushoverStatus,
+        lastUpdated: Date.now(),
         loading: false,
         error: null,
         stale: false
-      })
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : '刷新状态失败'
-      setError(path, message)
+      cache.value[path].loading = false
+      cache.value[path].error = String(error)
     } finally {
-      setLoading(path, false)
+      pendingRequests.value.delete(path)
     }
   }
 
@@ -275,7 +272,7 @@ export const useStatusCache = defineStore('statusCache', () => {
 
     // 如果缓存过期或强制刷新，则从后端获取最新状态
     if (forceRefresh || isExpired(path)) {
-      await refreshStatus(path)
+      await refresh(path, { force: forceRefresh })
     }
 
     return getStatus(path)
@@ -291,7 +288,7 @@ export const useStatusCache = defineStore('statusCache', () => {
 
     // 并发加载所有需要刷新的项目
     await Promise.all(
-      pathsToRefresh.map(path => refreshStatus(path))
+      pathsToRefresh.map(path => refresh(path))
     )
   }
 
@@ -351,7 +348,7 @@ export const useStatusCache = defineStore('statusCache', () => {
     invalidateAll,
     clearCache,
     clearAllCache,
-    refreshStatus,
+    refresh,
     getStatusOrRefresh,
     preloadStatuses,
     updateOptions
