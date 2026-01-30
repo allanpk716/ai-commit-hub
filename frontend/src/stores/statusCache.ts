@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import type {
   ProjectStatusCache,
   ProjectStatusCacheMap,
@@ -8,6 +8,7 @@ import type {
 } from '../types/status'
 import type { StagingStatus, HookStatus } from '../types'
 import { GetStagingStatus } from '../../wailsjs/go/main/App'
+import { EventsOn } from '../../wailsjs/runtime/runtime'
 import { models } from '../../wailsjs/go/models'
 
 /**
@@ -139,9 +140,6 @@ export const useStatusCache = defineStore('statusCache', () => {
       ...updates,
       lastUpdated: Date.now()
     }
-
-    // 更新后重新计算过期状态
-    cache.value[path].stale = isExpired(path)
   }
 
   /**
@@ -307,6 +305,27 @@ export const useStatusCache = defineStore('statusCache', () => {
       ...newOptions
     }
   }
+
+  /**
+   * 初始化事件监听器
+   */
+  function initEventListeners(): void {
+    // 监听项目状态变化事件，自动使缓存失效
+    EventsOn('project-status-changed', (data: { path?: string }) => {
+      if (data.path) {
+        invalidate(data.path)
+      } else {
+        invalidateAll()
+      }
+    })
+  }
+
+  // ========== 初始化 ==========
+
+  // 在 store 创建时初始化事件监听器
+  onMounted(() => {
+    initEventListeners()
+  })
 
   // ========== 返回 ==========
 
