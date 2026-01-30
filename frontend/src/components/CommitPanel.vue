@@ -156,7 +156,7 @@ import {
   OpenInTerminal,
   SaveCommitHistory
 } from '../../wailsjs/go/main/App'
-import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime'
+import { EventsEmit, EventsOff, EventsOn } from '../../wailsjs/runtime/runtime'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
@@ -316,6 +316,11 @@ async function handleCommit() {
     await commitStore.loadUntrackedFiles(commitStore.selectedProjectPath)
     commitStore.clearMessage()
 
+    // 通知项目列表状态已更新
+    EventsEmit('project-status-changed', {
+      path: commitStore.selectedProjectPath
+    })
+
     // 启用推送按钮
     canPush.value = true
   } catch (e: unknown) {
@@ -373,6 +378,10 @@ async function handleInstallPushover() {
   if (result.success) {
     // 刷新状态
     await pushoverStore.getProjectHookStatus(currentProject.value.path)
+    // 通知项目列表状态已更新（Hook 状态变化会影响 pushover_needs_update）
+    EventsEmit('project-status-changed', {
+      path: currentProject.value.path
+    })
   } else {
     alert('安装失败: ' + (result.message || '未知错误'))
   }
@@ -385,6 +394,10 @@ async function handleUpdatePushover() {
   if (result.success) {
     // 刷新状态
     await pushoverStore.getProjectHookStatus(currentProject.value.path)
+    // 通知项目列表状态已更新（Hook 状态变化会影响 pushover_needs_update）
+    EventsEmit('project-status-changed', {
+      path: currentProject.value.path
+    })
   } else {
     alert('更新失败: ' + (result.message || '未知错误'))
   }

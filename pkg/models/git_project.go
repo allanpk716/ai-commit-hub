@@ -88,3 +88,12 @@ func (gp *GitProject) DetectName() (string, error) {
 
 	return folderName, nil
 }
+
+// SingleProjectStatus 表示单个项目的运行时状态
+// 用于增量更新项目状态，避免检查所有项目
+type SingleProjectStatus struct {
+	Path                 string `json:"path"`
+	HasUncommittedChanges bool   `json:"has_uncommitted_changes"`
+	UntrackedCount       int    `json:"untracked_count"`
+	PushoverNeedsUpdate  bool   `json:"pushover_needs_update"`
+}

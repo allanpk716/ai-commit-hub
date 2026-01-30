@@ -21,6 +21,7 @@ import {
   AddToGitIgnore,
   DiscardFileChanges
 } from '../../wailsjs/go/main/App'
+import { EventsEmit } from '../../wailsjs/runtime'
 
 export const useCommitStore = defineStore('commit', () => {
   const selectedProjectPath = ref<string>('')
@@ -232,6 +233,18 @@ export const useCommitStore = defineStore('commit', () => {
     isGenerating.value = false
   }
 
+  // 通知项目列表状态已更新
+  function notifyProjectStatusChanged() {
+    if (!selectedProjectPath.value) {
+      console.warn('[commitStore] 没有选中项目，跳过状态通知')
+      return
+    }
+    console.log('[commitStore] 发送 project-status-changed 事件:', selectedProjectPath.value)
+    EventsEmit('project-status-changed', {
+      path: selectedProjectPath.value
+    })
+  }
+
   // 暂存区管理方法
   async function loadStagingStatus(path: string) {
     if (!path) {
@@ -294,6 +307,8 @@ export const useCommitStore = defineStore('commit', () => {
       console.log('[stageFile] loadStagingStatus 完成')
       await loadProjectStatus(selectedProjectPath.value)
       console.log('[stageFile] loadProjectStatus 完成')
+      // 通知项目列表状态已更新
+      notifyProjectStatusChanged()
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '暂存文件失败'
       error.value = message
@@ -312,6 +327,8 @@ export const useCommitStore = defineStore('commit', () => {
       // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
       await loadProjectStatus(selectedProjectPath.value)
+      // 通知项目列表状态已更新
+      notifyProjectStatusChanged()
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '暂存所有文件失败'
       error.value = message
@@ -332,6 +349,8 @@ export const useCommitStore = defineStore('commit', () => {
       await loadProjectStatus(selectedProjectPath.value)
       // 刷新未跟踪文件列表
       await loadUntrackedFiles(selectedProjectPath.value)
+      // 通知项目列表状态已更新
+      notifyProjectStatusChanged()
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '取消暂存文件失败'
       error.value = message
@@ -352,6 +371,8 @@ export const useCommitStore = defineStore('commit', () => {
       await loadProjectStatus(selectedProjectPath.value)
       // 刷新未跟踪文件列表
       await loadUntrackedFiles(selectedProjectPath.value)
+      // 通知项目列表状态已更新
+      notifyProjectStatusChanged()
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '还原文件失败'
       error.value = message
@@ -370,6 +391,8 @@ export const useCommitStore = defineStore('commit', () => {
       // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
       await loadProjectStatus(selectedProjectPath.value)
+      // 通知项目列表状态已更新
+      notifyProjectStatusChanged()
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '取消暂存所有文件失败'
       error.value = message
@@ -472,6 +495,8 @@ export const useCommitStore = defineStore('commit', () => {
       // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
       await loadProjectStatus(selectedProjectPath.value)
+      // 通知项目列表状态已更新
+      notifyProjectStatusChanged()
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '批量暂存文件失败'
       error.value = message
@@ -494,6 +519,8 @@ export const useCommitStore = defineStore('commit', () => {
       // 重新加载暂存区状态和项目状态
       await loadStagingStatus(selectedProjectPath.value)
       await loadProjectStatus(selectedProjectPath.value)
+      // 通知项目列表状态已更新
+      notifyProjectStatusChanged()
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '批量取消暂存文件失败'
       error.value = message
@@ -552,6 +579,8 @@ export const useCommitStore = defineStore('commit', () => {
         loadStagingStatus(selectedProjectPath.value),
         loadUntrackedFiles(selectedProjectPath.value)
       ])
+      // 通知项目列表状态已更新
+      notifyProjectStatusChanged()
     } catch (e) {
       console.error('添加到暂存区失败:', e)
       throw e
@@ -569,6 +598,8 @@ export const useCommitStore = defineStore('commit', () => {
         loadStagingStatus(selectedProjectPath.value),
         loadUntrackedFiles(selectedProjectPath.value)
       ])
+      // 通知项目列表状态已更新
+      notifyProjectStatusChanged()
     } catch (e) {
       console.error('添加到排除列表失败:', e)
       throw e

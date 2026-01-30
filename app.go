@@ -400,6 +400,45 @@ func (a *App) GetProjectsWithStatus() ([]models.GitProject, error) {
 	return projects, nil
 }
 
+// GetSingleProjectStatus 获取单个项目的运行时状态
+// 用于增量更新，避免检查所有项目
+func (a *App) GetSingleProjectStatus(projectPath string) (*models.SingleProjectStatus, error) {
+	if a.initError != nil {
+		return nil, a.initError
+	}
+
+	if projectPath == "" {
+		return nil, fmt.Errorf("项目路径不能为空")
+	}
+
+	status := &models.SingleProjectStatus{
+		Path: projectPath,
+	}
+
+	// 检查 Pushover 更新状态
+	if a.pushoverService != nil {
+		hookStatus, err := a.pushoverService.GetHookStatus(projectPath)
+		if err == nil && hookStatus.Installed {
+			latestVersion, err := a.pushoverService.GetExtensionVersion()
+			if err == nil {
+				status.PushoverNeedsUpdate = pushover.CompareVersions(hookStatus.Version, latestVersion) < 0
+			}
+		}
+	}
+
+	// 检查 Git 状态
+	stagingStatus, err := git.GetStagingStatus(projectPath)
+	if err == nil {
+		status.HasUncommittedChanges = len(stagingStatus.Staged) > 0 || len(stagingStatus.Unstaged) > 0
+		status.UntrackedCount = len(stagingStatus.Untracked)
+	}
+
+	logger.Infof("[GetSingleProjectStatus] 项目 %s 状态: hasUncommitted=%v, untracked=%d, pushoverUpdate=%v",
+		projectPath, status.HasUncommittedChanges, status.UntrackedCount, status.PushoverNeedsUpdate)
+
+	return status, nil
+}
+
 // AddProject adds a new project
 func (a *App) AddProject(path string) (models.GitProject, error) {
 	if a.initError != nil {

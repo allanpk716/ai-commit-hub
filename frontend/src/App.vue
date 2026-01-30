@@ -79,7 +79,10 @@ const settingsOpen = ref(false)
 const extensionDialogOpen = ref(false)
 
 onMounted(async () => {
-  await projectStore.loadProjectsWithStatus()
+  // 不再直接调用 loadProjectsWithStatus()
+  // ProjectList 组件会在 startup-complete 事件触发后自动加载项目列表
+  // 这样确保后端启动流程完全完成后才获取状态数据
+
   // 检查 Pushover 配置
   await pushoverStore.checkPushoverConfig()
   if (!pushoverStore.configValid) {

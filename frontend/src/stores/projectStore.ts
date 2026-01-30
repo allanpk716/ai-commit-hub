@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { GitProject } from '../types'
-import { GetAllProjects, AddProject, DeleteProject, MoveProject, ReorderProjects, DebugHookStatus } from '../../wailsjs/go/main/App'
+import { GetAllProjects, GetProjectsWithStatus, AddProject, DeleteProject, MoveProject, ReorderProjects, DebugHookStatus } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 
 // 扩展接口，将运行时状态字段设为可选
@@ -9,17 +9,6 @@ type GitProjectWithStatus = Omit<models.GitProject, 'has_uncommitted_changes' | 
   has_uncommitted_changes?: boolean
   untracked_count?: number
   pushover_needs_update?: boolean
-}
-
-// Try to import GetProjectsWithStatus, will be undefined if not yet implemented
-let GetProjectsWithStatus: (() => Promise<models.GitProject[]>) | undefined
-try {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - This will be implemented in Task 5
-  const appModule = require('../../wailsjs/go/main/App')
-  GetProjectsWithStatus = appModule.GetProjectsWithStatus
-} catch {
-  // GetProjectsWithStatus not available yet, will use GetAllProjects
 }
 
 export const useProjectStore = defineStore('project', () => {
@@ -65,10 +54,8 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true
     error.value = null
     try {
-      // Try to use GetProjectsWithStatus if available (Task 5+)
-      const result = GetProjectsWithStatus
-        ? await GetProjectsWithStatus() as GitProjectWithStatus[]
-        : await GetAllProjects() as GitProjectWithStatus[]
+      // 直接使用 GetProjectsWithStatus，获取带运行时状态的项目列表
+      const result = await GetProjectsWithStatus() as GitProjectWithStatus[]
 
       projects.value = result.map(p => ({
         id: p.id,
@@ -83,7 +70,7 @@ export const useProjectStore = defineStore('project', () => {
         notification_mode: p.notification_mode,
         hook_version: p.hook_version,
         hook_installed_at: p.hook_installed_at,
-        // Runtime status fields (will be populated by GetProjectsWithStatus)
+        // 运行时状态字段（由 GetProjectsWithStatus 填充）
         has_uncommitted_changes: p.has_uncommitted_changes ?? false,
         untracked_count: p.untracked_count ?? 0,
         pushover_needs_update: p.pushover_needs_update ?? false
