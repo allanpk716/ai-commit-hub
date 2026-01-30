@@ -303,14 +303,16 @@ export const useCommitStore = defineStore('commit', () => {
     const statusCache = useStatusCache()
 
     // 乐观更新：预估暂存后的状态
+    const currentCache = statusCache.getStatus(selectedProjectPath.value)
     const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
       stagingStatus: {
         staged: [
-          ...(statusCache.getStatus(selectedProjectPath.value)?.stagingStatus?.staged || []),
-          { path: filePath, status: 'M' }
+          ...(currentCache?.stagingStatus?.staged || []),
+          { path: filePath, status: 'M', ignored: false }
         ],
-        unstaged: (statusCache.getStatus(selectedProjectPath.value)?.stagingStatus?.unstaged || [])
-          .filter(f => f.path !== filePath)
+        unstaged: (currentCache?.stagingStatus?.unstaged || [])
+          .filter(f => f.path !== filePath),
+        untracked: currentCache?.stagingStatus?.untracked || []
       }
     })
 
@@ -354,7 +356,8 @@ export const useCommitStore = defineStore('commit', () => {
           ...(currentStatus?.stagingStatus?.staged || []),
           ...unstagedFiles
         ],
-        unstaged: []
+        unstaged: [],
+        untracked: currentStatus?.stagingStatus?.untracked || []
       }
     })
 
@@ -385,14 +388,16 @@ export const useCommitStore = defineStore('commit', () => {
     const statusCache = useStatusCache()
 
     // 乐观更新：预估取消暂存后的状态
+    const currentCache = statusCache.getStatus(selectedProjectPath.value)
     const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
       stagingStatus: {
-        staged: (statusCache.getStatus(selectedProjectPath.value)?.stagingStatus?.staged || [])
+        staged: (currentCache?.stagingStatus?.staged || [])
           .filter(f => f.path !== filePath),
         unstaged: [
-          ...(statusCache.getStatus(selectedProjectPath.value)?.stagingStatus?.unstaged || []),
-          { path: filePath, status: 'M' }
-        ]
+          ...(currentCache?.stagingStatus?.unstaged || []),
+          { path: filePath, status: 'M', ignored: false }
+        ],
+        untracked: currentCache?.stagingStatus?.untracked || []
       }
     })
 
@@ -430,7 +435,8 @@ export const useCommitStore = defineStore('commit', () => {
     const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
       stagingStatus: {
         staged: (currentStatus?.stagingStatus?.staged || []).filter(f => f.path !== filePath),
-        unstaged: (currentStatus?.stagingStatus?.unstaged || []).filter(f => f.path !== filePath)
+        unstaged: (currentStatus?.stagingStatus?.unstaged || []).filter(f => f.path !== filePath),
+        untracked: currentStatus?.stagingStatus?.untracked || []
       }
     })
 
@@ -473,7 +479,8 @@ export const useCommitStore = defineStore('commit', () => {
         unstaged: [
           ...unstagedFiles,
           ...stagedFiles
-        ]
+        ],
+        untracked: currentStatus?.stagingStatus?.untracked || []
       }
     })
 
@@ -591,10 +598,11 @@ export const useCommitStore = defineStore('commit', () => {
       stagingStatus: {
         staged: [
           ...(currentStatus?.stagingStatus?.staged || []),
-          ...filesToStage.map(f => ({ path: f, status: 'M' }))
+          ...filesToStage.map(f => ({ path: f, status: 'M', ignored: false }))
         ],
         unstaged: (currentStatus?.stagingStatus?.unstaged || [])
-          .filter(f => !selectedUnstagedFiles.value.has(f.path))
+          .filter(f => !selectedUnstagedFiles.value.has(f.path)),
+        untracked: currentStatus?.stagingStatus?.untracked || []
       }
     })
 
@@ -638,8 +646,9 @@ export const useCommitStore = defineStore('commit', () => {
           .filter(f => !selectedStagedFiles.value.has(f.path)),
         unstaged: [
           ...(currentStatus?.stagingStatus?.unstaged || []),
-          ...filesToUnstage.map(f => ({ path: f, status: 'M' }))
-        ]
+          ...filesToUnstage.map(f => ({ path: f, status: 'M', ignored: false }))
+        ],
+        untracked: currentStatus?.stagingStatus?.untracked || []
       }
     })
 
@@ -718,10 +727,11 @@ export const useCommitStore = defineStore('commit', () => {
       stagingStatus: {
         staged: [
           ...(currentStatus?.stagingStatus?.staged || []),
-          ...files.map(f => ({ path: f, status: 'M' }))
+          ...files.map(f => ({ path: f, status: 'M', ignored: false }))
         ],
         unstaged: (currentStatus?.stagingStatus?.unstaged || [])
-          .filter(f => !files.includes(f.path))
+          .filter(f => !files.includes(f.path)),
+        untracked: currentStatus?.stagingStatus?.untracked || []
       }
     })
 

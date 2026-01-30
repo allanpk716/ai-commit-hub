@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import type {
   ProjectStatusCache,
   ProjectStatusCacheMap,
@@ -349,11 +349,23 @@ export const useStatusCache = defineStore('statusCache', () => {
    * 初始化状态缓存，预加载所有项目状态
    */
   async function init(): Promise<void> {
-    // 从 projectStore 获取所有项目路径
-    const { useProjectStore } = await import('./projectStore')
-    const projectStore = useProjectStore()
-    const paths = projectStore.projects.map(p => p.path)
-    await preload(paths)
+    try {
+      // 添加超时保护，防止预加载卡住
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('StatusCache init timeout')), 10000)
+      )
+
+      // 从 projectStore 获取所有项目路径
+      const { useProjectStore } = await import('./projectStore')
+      const projectStore = useProjectStore()
+      const paths = projectStore.projects.map(p => p.path)
+
+      // 竞速：预加载 vs 超时
+      await Promise.race([preload(paths), timeoutPromise])
+    } catch (error) {
+      console.warn('StatusCache 初始化失败或超时，将在使用时懒加载:', error)
+      // 不抛出错误，允许应用继续运行
+    }
   }
 
   /**
@@ -431,10 +443,8 @@ export const useStatusCache = defineStore('statusCache', () => {
 
   // ========== 初始化 ==========
 
-  // 在 store 创建时初始化事件监听器
-  onMounted(() => {
-    initEventListeners()
-  })
+  // 直接初始化事件监听器（Pinia store 是单例，不需要 onMounted）
+  initEventListeners()
 
   // ========== 返回 ==========
 

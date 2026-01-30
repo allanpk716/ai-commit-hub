@@ -198,22 +198,29 @@ async function handleDrop(targetProject: GitProject, targetIndex: number) {
  * @param project Git 项目
  * @returns 项目状态对象
  */
-const getProjectStatus = (project: GitProject) => {
+const getProjectStatus = (project: GitProject): {
+  loading: boolean
+  error: boolean
+  message?: string
+  untrackedCount: number
+  pushoverUpdateAvailable: boolean
+  stale: boolean
+} => {
   const cached = statusCache.getStatus(project.path)
 
   if (cached?.loading) {
-    return { loading: true }
+    return { loading: true, error: false, untrackedCount: 0, pushoverUpdateAvailable: false, stale: false }
   }
 
   if (cached?.error) {
-    return { error: true, message: cached.error }
+    return { error: true, message: cached.error, loading: false, untrackedCount: 0, pushoverUpdateAvailable: false, stale: false }
   }
 
   return {
     loading: false,
     error: false,
     untrackedCount: cached?.untrackedCount ?? 0,
-    pushoverUpdateAvailable: cached?.pushoverStatus?.updateAvailable ?? false,
+    pushoverUpdateAvailable: project.pushover_needs_update ?? false,
     stale: cached?.stale ?? false
   }
 }
