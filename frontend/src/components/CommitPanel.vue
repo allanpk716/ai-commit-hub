@@ -195,12 +195,11 @@ const currentProjectPath = computed(() => commitStore.selectedProjectPath)
 const currentProject = computed(() =>
   projectStore.projects.find(p => p.path === currentProjectPath.value)
 )
-// Pushover Hook 状态 - 直接访问响应式 Map 并依赖版本号以触发更新
+// Pushover Hook 状态 - 从 StatusCache 获取
 const pushoverStatus = computed(() => {
-  // 依赖 statusVersion 以确保在状态更新时重新计算
-  void pushoverStore.statusVersion
   if (currentProjectPath.value) {
-    return pushoverStore.projectHookStatus.get(currentProjectPath.value)
+    const cached = statusCache.getStatus(currentProjectPath.value)
+    return cached?.pushoverStatus || null
   }
   return null
 })
@@ -229,39 +228,29 @@ function updateUIFromCache(cached: any) {
   if (cached.stagingStatus) {
     commitStore.stagingStatus = cached.stagingStatus
   }
-  if (cached.pushoverStatus) {
-    // Pushover 状态由 pushoverStore 管理，直接设置到 Map 中
-    pushoverStore.projectHookStatus.set(commitStore.selectedProjectPath, cached.pushoverStatus)
-    pushoverStore.statusVersion++ // 触发响应式更新
-  }
+  // - 移除 Pushover 状态同步
 }
 
 // 监听选中的项目变化
 watch(() => projectStore.selectedProject, async (project) => {
   if (project) {
-    // 立即清除上一次的生成结果，避免项目切换时显示错误的内容
     commitStore.clearMessage()
-    canPush.value = false  // 重置推送按钮状态
-
-    // 加载 AI 配置（不使用缓存）
+    canPush.value = false
     await commitStore.loadProjectAIConfig(project.id)
 
-    // 立即显示缓存状态
+    // 策略C：优先显示缓存，过期时等待刷新
     const cached = statusCache.getStatus(project.path)
-    if (cached && !cached.loading) {
+
+    if (cached && !cached.loading && !statusCache.isExpired(project.path)) {
       updateUIFromCache(cached)
-    }
-
-    // 后台刷新
-    await statusCache.refresh(project.path)
-
-    // 刷新完成后更新 UI
-    const fresh = statusCache.getStatus(project.path)
-    if (fresh) {
-      updateUIFromCache(fresh)
+    } else {
+      await statusCache.refresh(project.path, { force: true })
+      const fresh = statusCache.getStatus(project.path)
+      if (fresh) {
+        updateUIFromCache(fresh)
+      }
     }
   } else {
-    // 清空暂存区状态
     commitStore.clearStagingState()
   }
 }, { immediate: true })
