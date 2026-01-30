@@ -137,13 +137,17 @@ Frontend (Vue3)  ←→  Wails Bindings  ←→  Backend (Go)
 - `projectStore.ts`: 项目列表状态、CRUD 操作、排序
 - `commitStore.ts`: Commit 生成状态、流式消息监听（Wails Events）
 - `statusCache.ts`: 项目状态缓存管理，提供预加载、后台刷新、乐观更新等功能
+- `pushoverStore.ts`: Pushover 扩展和配置管理
+  - 扩展信息（下载状态、版本信息、更新检查）
+  - Pushover 环境变量配置验证
+  - 项目 Hook 状态从 StatusCache 读取（不重复存储）
 
 **类型定义 (`types/index.ts`)**: TypeScript 类型与 Go 结构体同步
 **类型定义 (`types/status.ts`)**: StatusCache 相关类型定义
 
 ### StatusCache 层
 
-`frontend/src/stores/statusCache.ts` 是状态缓存层，位于 UI 组件和后端 API 之间，用于优化项目状态的加载和更新性能。
+`frontend/src/stores/statusCache.ts` 是状态缓存层，用于优化项目状态的加载和更新性能。
 
 **核心功能：**
 
@@ -152,6 +156,14 @@ Frontend (Vue3)  ←→  Wails Bindings  ←→  Backend (Go)
 3. **后台刷新（Background Refresh）**: 静默更新过期缓存以保持数据新鲜度
 4. **乐观更新（Optimistic Updates）**: 用户操作后立即更新 UI，异步验证结果
 5. **错误恢复（Error Recovery）**: 失败时使用过期缓存或显示友好错误提示
+
+**统一状态管理：**
+
+StatusCache 是项目状态的唯一数据源，管理以下内容：
+- Git 状态（分支、提交信息等）
+- 暂存区状态（已暂存文件）
+- 未跟踪文件数量
+- **Pushover Hook 状态**（是否安装、版本信息等）
 
 **使用方法：**
 
@@ -163,26 +175,17 @@ const statusCache = useStatusCache()
 // 获取缓存状态（立即返回，无等待）
 const status = statusCache.getStatus(projectPath)
 
+// 获取 Pushover 状态
+const pushoverStatus = statusCache.getPushoverStatus(projectPath)
+
 // 刷新状态（如果缓存未过期可能跳过）
 await statusCache.refresh(projectPath)
 
 // 强制刷新（忽略 TTL）
 await statusCache.refresh(projectPath, { force: true })
 
-// 获取状态或自动刷新
-const status = await statusCache.getStatusOrRefresh(projectPath)
-
 // 批量预加载
 await statusCache.preload(projectPaths)
-
-// 乐观更新（支持回滚）
-const rollback = statusCache.updateOptimistic(projectPath, {
-  stagingStatus: { hasChanges: false, stagedCount: 0 }
-})
-// 如果操作失败，调用 rollback()
-
-// 使缓存失效
-statusCache.invalidate(projectPath)
 ```
 
 **缓存配置：**
