@@ -63,28 +63,30 @@
           <span class="project-name">{{ project.name }}</span>
           <span class="project-path">{{ project.path }}</span>
 
-          <!-- 状态指示器行 -->
+          <!-- 状态指示器行（从 StatusCache 获取） -->
           <div class="project-status-row">
+            <template v-if="!getProjectStatus(project).loading">
+              <span
+                v-if="getProjectStatus(project).untrackedCount > 0"
+                class="status-indicator untracked"
+                :title="`${getProjectStatus(project).untrackedCount} 个未跟踪文件`"
+              >
+                ➕ {{ getProjectStatus(project).untrackedCount }}
+              </span>
+              <span
+                v-if="getProjectStatus(project).pushoverUpdateAvailable"
+                class="status-indicator update"
+                title="Pushover 插件可更新"
+              >
+                ⬆️
+              </span>
+            </template>
             <span
-              v-if="project.has_uncommitted_changes"
-              class="status-indicator uncommitted"
-              title="有未提交更改"
+              v-else
+              class="status-indicator loading"
+              title="加载中..."
             >
-              🔄
-            </span>
-            <span
-              v-if="(project.untracked_count ?? 0) > 0"
-              class="status-indicator untracked"
-              :title="`${project.untracked_count} 个未跟踪文件`"
-            >
-              ➕ {{ project.untracked_count }}
-            </span>
-            <span
-              v-if="project.pushover_needs_update"
-              class="status-indicator update"
-              title="Pushover 插件可更新"
-            >
-              ⬆️
+              ⏳
             </span>
           </div>
         </div>
@@ -107,17 +109,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { GitProject } from '../types'
 import { useProjectStore } from '../stores/projectStore'
-import { GetSingleProjectStatus } from '../../wailsjs/go/main/App'
+import { useStatusCache } from '../stores/statusCache'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime'
-
-// 防抖函数实现
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
-  let timeout: ReturnType<typeof setTimeout> | null = null
-  return function (this: any, ...args: Parameters<T>) {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => func.apply(this, args), wait)
-  }
-}
 
 const props = defineProps<{
   selectedId?: number
@@ -128,6 +121,7 @@ const emit = defineEmits<{
 }>()
 
 const projectStore = useProjectStore()
+const statusCache = useStatusCache()
 const searchQuery = ref('')
 const draggedItem = ref<{ project: GitProject; index: number } | null>(null)
 
@@ -204,66 +198,47 @@ async function handleDrop(targetProject: GitProject, targetIndex: number) {
   draggedItem.value = null
 }
 
-// 增量更新单个项目的状态
-async function updateSingleProjectStatus(projectPath: string) {
-  console.log('[ProjectList] 更新单个项目状态:', projectPath)
-  try {
-    const status = await GetSingleProjectStatus(projectPath)
-    console.log('[ProjectList] 获取到状态:', status)
+/**
+ * 获取项目状态（优先从缓存获取）
+ * @param project Git 项目
+ * @returns 项目状态对象
+ */
+const getProjectStatus = (project: GitProject) => {
+  const cached = statusCache.getStatus(project.path)
 
-    // 找到对应项目并更新其状态
-    const project = projectStore.projects.find(p => p.path === projectPath)
-    if (project) {
-      project.has_uncommitted_changes = status.has_uncommitted_changes
-      project.untracked_count = status.untracked_count
-      project.pushover_needs_update = status.pushover_needs_update
-      console.log('[ProjectList] 项目状态已更新:', {
-        name: project.name,
-        has_uncommitted_changes: project.has_uncommitted_changes,
-        untracked_count: project.untracked_count,
-        pushover_needs_update: project.pushover_needs_update
-      })
-    } else {
-      console.warn('[ProjectList] 未找到项目:', projectPath)
-    }
-  } catch (error) {
-    console.error('[ProjectList] 更新单个项目状态失败:', error)
+  if (cached?.loading) {
+    return { loading: true }
+  }
+
+  if (cached?.error) {
+    return { error: true, message: cached.error }
+  }
+
+  return {
+    loading: false,
+    error: false,
+    untrackedCount: cached?.untrackedCount ?? 0,
+    pushoverUpdateAvailable: cached?.pushoverStatus?.updateAvailable ?? false,
+    stale: cached?.stale ?? false
   }
 }
 
-// 防抖更新函数（300ms）
-const debouncedUpdate = debounce((projectPath: string) => {
-  updateSingleProjectStatus(projectPath)
-}, 300)
-
-// 监听启动完成事件，刷新带状态的项目列表
+// 监听启动完成事件，刷新项目列表
 onMounted(() => {
   console.log('[ProjectList] 组件已挂载，注册事件监听器')
 
   // 监听启动完成事件
   EventsOn('startup-complete', async () => {
-    console.log('[ProjectList] startup-complete 事件触发，开始加载带状态的项目列表')
+    console.log('[ProjectList] startup-complete 事件触发，加载项目列表')
     try {
-      await projectStore.loadProjectsWithStatus()
+      // 仅加载项目基本信息，状态由 StatusCache 管理
+      await projectStore.loadProjects()
       console.log('[ProjectList] 项目列表加载完成', {
-        projectCount: projectStore.projects.length,
-        projects: projectStore.projects.map(p => ({
-          name: p.name,
-          has_uncommitted_changes: p.has_uncommitted_changes,
-          untracked_count: p.untracked_count,
-          pushover_needs_update: p.pushover_needs_update
-        }))
+        projectCount: projectStore.projects.length
       })
     } catch (error) {
       console.error('[ProjectList] 加载项目列表失败:', error)
     }
-  })
-
-  // 监听项目状态变化事件（当用户进行 Git 操作后触发）
-  EventsOn('project-status-changed', (data: { path: string }) => {
-    console.log('[ProjectList] project-status-changed 事件触发:', data.path)
-    // 使用防抖更新，避免频繁调用 API
-    debouncedUpdate(data.path)
   })
 })
 
@@ -271,7 +246,6 @@ onMounted(() => {
 onUnmounted(() => {
   console.log('[ProjectList] 组件卸载，移除事件监听器')
   EventsOff('startup-complete')
-  EventsOff('project-status-changed')
 })
 </script>
 
@@ -560,6 +534,17 @@ onUnmounted(() => {
 .status-indicator.update {
   color: #3b82f6;
   background: rgba(59, 130, 246, 0.15);
+}
+
+.status-indicator.loading {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.15);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .project-actions {

@@ -160,6 +160,7 @@ import { EventsEmit, EventsOff, EventsOn } from '../../wailsjs/runtime/runtime'
 import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
+import { useStatusCache } from '../stores/statusCache'
 import ProjectStatusHeader from './ProjectStatusHeader.vue'
 import StagingArea from './StagingArea.vue'
 
@@ -173,6 +174,7 @@ const preferredTerminal = ref<string>('')
 const commitStore = useCommitStore()
 const projectStore = useProjectStore()
 const pushoverStore = usePushoverStore()
+const statusCache = useStatusCache()
 const canPush = ref(false) // 推送按钮是否可用
 const isPushing = ref(false) // 是否正在推送
 
@@ -219,18 +221,45 @@ function getProviderDisplayName(name: string): string {
   return PROVIDER_DISPLAY_NAMES[name] || name
 }
 
+// 从缓存更新 UI 状态
+function updateUIFromCache(cached: any) {
+  if (cached.gitStatus) {
+    commitStore.projectStatus = cached.gitStatus
+  }
+  if (cached.stagingStatus) {
+    commitStore.stagingStatus = cached.stagingStatus
+  }
+  if (cached.pushoverStatus) {
+    // Pushover 状态由 pushoverStore 管理，直接设置到 Map 中
+    pushoverStore.projectHookStatus.set(commitStore.selectedProjectPath, cached.pushoverStatus)
+    pushoverStore.statusVersion++ // 触发响应式更新
+  }
+}
+
 // 监听选中的项目变化
 watch(() => projectStore.selectedProject, async (project) => {
   if (project) {
     // 立即清除上一次的生成结果，避免项目切换时显示错误的内容
     commitStore.clearMessage()
     canPush.value = false  // 重置推送按钮状态
+
+    // 加载 AI 配置（不使用缓存）
     await commitStore.loadProjectAIConfig(project.id)
-    await commitStore.loadProjectStatus(project.path)
-    await commitStore.loadStagingStatus(project.path)
-    await commitStore.loadUntrackedFiles(project.path)
-    // 加载 Pushover Hook 状态
-    await pushoverStore.getProjectHookStatus(project.path)
+
+    // 立即显示缓存状态
+    const cached = statusCache.getStatus(project.path)
+    if (cached && !cached.loading) {
+      updateUIFromCache(cached)
+    }
+
+    // 后台刷新
+    await statusCache.refresh(project.path)
+
+    // 刷新完成后更新 UI
+    const fresh = statusCache.getStatus(project.path)
+    if (fresh) {
+      updateUIFromCache(fresh)
+    }
   } else {
     // 清空暂存区状态
     commitStore.clearStagingState()
@@ -310,10 +339,14 @@ async function handleCommit() {
     }
 
     showToast('success', '提交成功!')
-    await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
-    await commitStore.loadStagingStatus(commitStore.selectedProjectPath)
-    // 刷新未跟踪文件列表
-    await commitStore.loadUntrackedFiles(commitStore.selectedProjectPath)
+
+    // 使用 StatusCache 刷新状态
+    await statusCache.refresh(commitStore.selectedProjectPath, { force: true })
+    const fresh = statusCache.getStatus(commitStore.selectedProjectPath)
+    if (fresh) {
+      updateUIFromCache(fresh)
+    }
+
     commitStore.clearMessage()
 
     // 通知项目列表状态已更新
@@ -349,7 +382,13 @@ async function handlePush() {
     await PushToRemote(commitStore.selectedProjectPath)
     showToast('success', '推送成功!')
     canPush.value = false  // 推送成功后禁用按钮
-    await commitStore.loadProjectStatus(commitStore.selectedProjectPath)
+
+    // 使用 StatusCache 刷新状态
+    await statusCache.refresh(commitStore.selectedProjectPath, { force: true })
+    const fresh = statusCache.getStatus(commitStore.selectedProjectPath)
+    if (fresh) {
+      updateUIFromCache(fresh)
+    }
   } catch (e) {
     let errMessage = '推送失败'
     if (e instanceof Error) {
@@ -376,8 +415,12 @@ async function handleInstallPushover() {
   if (!currentProject.value) return
   const result = await pushoverStore.installHook(currentProject.value.path, false)
   if (result.success) {
-    // 刷新状态
-    await pushoverStore.getProjectHookStatus(currentProject.value.path)
+    // 使用 StatusCache 刷新状态
+    await statusCache.refresh(currentProject.value.path, { force: true })
+    const fresh = statusCache.getStatus(currentProject.value.path)
+    if (fresh) {
+      updateUIFromCache(fresh)
+    }
     // 通知项目列表状态已更新（Hook 状态变化会影响 pushover_needs_update）
     EventsEmit('project-status-changed', {
       path: currentProject.value.path
@@ -392,8 +435,12 @@ async function handleUpdatePushover() {
   if (!currentProject.value) return
   const result = await pushoverStore.updateHook(currentProject.value.path)
   if (result.success) {
-    // 刷新状态
-    await pushoverStore.getProjectHookStatus(currentProject.value.path)
+    // 使用 StatusCache 刷新状态
+    await statusCache.refresh(currentProject.value.path, { force: true })
+    const fresh = statusCache.getStatus(currentProject.value.path)
+    if (fresh) {
+      updateUIFromCache(fresh)
+    }
     // 通知项目列表状态已更新（Hook 状态变化会影响 pushover_needs_update）
     EventsEmit('project-status-changed', {
       path: currentProject.value.path
@@ -463,12 +510,15 @@ async function handleRefresh() {
   if (!currentProjectPath.value) return
 
   try {
-    await commitStore.loadProjectStatus(currentProjectPath.value)
-    await commitStore.loadStagingStatus(currentProjectPath.value)
-    // 刷新未跟踪文件列表
-    await commitStore.loadUntrackedFiles(currentProjectPath.value)
-    // 刷新 Pushover Hook 状态和版本检查
-    await pushoverStore.getProjectHookStatus(currentProjectPath.value)
+    // 使用 StatusCache 强制刷新
+    await statusCache.refresh(currentProjectPath.value, { force: true })
+
+    // 从缓存更新 UI
+    const fresh = statusCache.getStatus(currentProjectPath.value)
+    if (fresh) {
+      updateUIFromCache(fresh)
+    }
+
     canPush.value = false  // 重置推送按钮状态
     showToast('success', '已刷新')
   } catch (e) {
