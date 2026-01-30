@@ -280,16 +280,31 @@ export const useStatusCache = defineStore('statusCache', () => {
 
   /**
    * 批量预加载多个项目的状态
-   * @param paths 项目路径数组
+   * @param projectPaths 项目路径数组
    */
-  async function preloadStatuses(paths: string[]): Promise<void> {
-    // 过滤出需要刷新的项目（不存在或已过期）
-    const pathsToRefresh = paths.filter(path => isExpired(path))
+  async function preload(projectPaths: string[]): Promise<void> {
+    const MAX_CONCURRENT = 10
+    const chunks: string[][] = []
 
-    // 并发加载所有需要刷新的项目
-    await Promise.all(
-      pathsToRefresh.map(path => refresh(path))
-    )
+    // 分块处理，避免同时发起太多请求
+    for (let i = 0; i < projectPaths.length; i += MAX_CONCURRENT) {
+      chunks.push(projectPaths.slice(i, i + MAX_CONCURRENT))
+    }
+
+    for (const chunk of chunks) {
+      await Promise.all(chunk.map(path => refresh(path, { force: true })))
+    }
+  }
+
+  /**
+   * 初始化状态缓存，预加载所有项目状态
+   */
+  async function init(): Promise<void> {
+    // 从 projectStore 获取所有项目路径
+    const { useProjectStore } = await import('./project')
+    const projectStore = useProjectStore()
+    const paths = projectStore.projects.map(p => p.path)
+    await preload(paths)
   }
 
   /**
@@ -350,7 +365,8 @@ export const useStatusCache = defineStore('statusCache', () => {
     clearAllCache,
     refresh,
     getStatusOrRefresh,
-    preloadStatuses,
+    preload,
+    init,
     updateOptions
   }
 })
