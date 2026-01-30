@@ -155,6 +155,34 @@ export const useStatusCache = defineStore('statusCache', () => {
   }
 
   /**
+   * 乐观更新缓存（立即应用更新，支持回滚）
+   * @param path 项目路径
+   * @param updates 要更新的字段
+   * @returns 回滚函数，如果缓存不存在返回 undefined
+   */
+  function updateOptimistic(path: string, updates: Partial<ProjectStatusCache>): (() => void) | undefined {
+    const current = cache.value[path]
+    if (!current) {
+      return undefined
+    }
+
+    // 保存当前状态用于可能的回滚
+    const previous = { ...current }
+
+    // 应用更新
+    cache.value[path] = {
+      ...current,
+      ...updates,
+      lastUpdated: Date.now()
+    }
+
+    // 返回回滚函数
+    return () => {
+      cache.value[path] = previous
+    }
+  }
+
+  /**
    * 设置错误状态
    * @param path 项目路径
    * @param error 错误信息
@@ -332,6 +360,54 @@ export const useStatusCache = defineStore('statusCache', () => {
   }
 
   /**
+   * 判断错误是否可重试
+   * @param error 错误对象
+   * @returns 如果错误可重试返回 true
+   */
+  function isRetryable(error: unknown): boolean {
+    if (error instanceof Error) {
+      return error.message.includes('network') ||
+             error.message.includes('timeout') ||
+             error.message.includes('ECONN')
+    }
+    return false
+  }
+
+  /**
+   * 带重试的刷新方法
+   * @param path 项目路径
+   * @param maxRetries 最大重试次数（默认 2 次）
+   */
+  async function refreshWithRetry(path: string, maxRetries = 2): Promise<void> {
+    for (let i = 0; i <= maxRetries; i++) {
+      try {
+        await refresh(path, { force: true })
+        return
+      } catch (error) {
+        // 如果是最后一次尝试或错误不可重试，则抛出错误
+        if (i === maxRetries || !isRetryable(error)) {
+          throw error
+        }
+        // 等待一段时间后重试（指数退避）
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)))
+      }
+    }
+  }
+
+  /**
+   * 手动刷新方法（带错误处理）
+   * @param path 项目路径
+   */
+  async function manualRefresh(path: string): Promise<void> {
+    try {
+      await refreshWithRetry(path)
+    } catch (error) {
+      console.error('Manual refresh failed:', error)
+      throw error
+    }
+  }
+
+  /**
    * 初始化事件监听器
    */
   function initEventListeners(): void {
@@ -372,6 +448,7 @@ export const useStatusCache = defineStore('statusCache', () => {
     updateCache,
     setLoading,
     setError,
+    updateOptimistic,
     invalidate,
     invalidateAll,
     clearCache,
@@ -380,6 +457,9 @@ export const useStatusCache = defineStore('statusCache', () => {
     getStatusOrRefresh,
     preload,
     init,
-    updateOptions
+    updateOptions,
+    isRetryable,
+    refreshWithRetry,
+    manualRefresh
   }
 })
