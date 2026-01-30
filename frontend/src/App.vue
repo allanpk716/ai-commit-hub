@@ -1,9 +1,15 @@
 <template>
+  <!-- Loading screen -->
+  <div v-if="initialLoading" class="startup-loading">
+    <div class="spinner"></div>
+    <p>加载项目状态...</p>
+  </div>
+
   <!-- SplashScreen -->
-  <SplashScreen />
+  <SplashScreen v-else-if="showSplash" />
 
   <!-- Main App -->
-  <div class="app grid-pattern">
+  <div v-else class="app grid-pattern">
     <!-- Animated background gradient -->
     <div class="bg-gradient"></div>
 
@@ -62,7 +68,7 @@ import { ref, onMounted } from 'vue'
 import { useProjectStore } from './stores/projectStore'
 import { useCommitStore } from './stores/commitStore'
 import { usePushoverStore } from './stores/pushoverStore'
-import { SelectProjectFolder } from '../wailsjs/go/main/App'
+import { SelectProjectFolder, EventsOn } from '../wailsjs/go/main/App'
 import ProjectList from './components/ProjectList.vue'
 import CommitPanel from './components/CommitPanel.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
@@ -77,11 +83,21 @@ const pushoverStore = usePushoverStore()
 const selectedProjectId = ref<number>()
 const settingsOpen = ref(false)
 const extensionDialogOpen = ref(false)
+const initialLoading = ref(true)
+const showSplash = ref(true)
 
 onMounted(async () => {
-  // 不再直接调用 loadProjectsWithStatus()
-  // ProjectList 组件会在 startup-complete 事件触发后自动加载项目列表
-  // 这样确保后端启动流程完全完成后才获取状态数据
+  // 初始化 StatusCache 并预加载
+  const { useStatusCache } = await import('./stores/statusCache')
+  const statusCache = useStatusCache()
+  await statusCache.init()
+
+  initialLoading.value = false
+
+  // 监听启动完成事件，隐藏 SplashScreen
+  EventsOn("startup-complete", () => {
+    showSplash.value = false
+  })
 
   // 检查 Pushover 配置
   await pushoverStore.checkPushoverConfig()
@@ -115,6 +131,50 @@ function openSettings() {
 </script>
 
 <style scoped>
+/* Loading screen */
+.startup-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--bg-primary);
+  position: relative;
+  z-index: var(--z-elevated);
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-default);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--space-lg);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.startup-loading p {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-secondary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .app {
   display: flex;
   flex-direction: column;
