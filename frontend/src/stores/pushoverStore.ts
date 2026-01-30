@@ -33,8 +33,6 @@ export const usePushoverStore = defineStore('pushover', () => {
     update_available: false
   })
 
-  const projectHookStatus = ref<Map<string, HookStatus>>(new Map())
-  const statusVersion = ref(0) // 版本号，用于触发响应式更新
   const loading = ref(false)
   const error = ref<string | null>(null)
   const configValid = ref(false)
@@ -123,23 +121,14 @@ export const usePushoverStore = defineStore('pushover', () => {
     error.value = null
 
     try {
-      const status = await GetPushoverHookStatus(projectPath)
-      console.log('[DEBUG pushoverStore] GetPushoverHookStatus returned:', status)
-      if (status) {
-        // 确保返回类型正确
-        const hookStatus: HookStatus = {
-          installed: status.installed,
-          mode: status.mode as NotificationMode,
-          version: status.version,
-          installed_at: status.installed_at
-        }
-        projectHookStatus.value.set(projectPath, hookStatus)
-        statusVersion.value++ // 触发响应式更新
-        console.log('[DEBUG pushoverStore] Cached hookStatus for', projectPath, ':', hookStatus)
-        return hookStatus
-      }
-      console.log('[DEBUG pushoverStore] status is null')
-      return null
+      // 不再存储到 Map，直接刷新 StatusCache
+      const { useStatusCache } = await import('./statusCache')
+      const statusCache = useStatusCache()
+      await statusCache.refresh(projectPath, { force: true })
+
+      const status = statusCache.getPushoverStatus(projectPath)
+      console.log('[DEBUG pushoverStore] Status from cache:', status)
+      return status
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '未知错误'
       console.error('[DEBUG pushoverStore] Error:', e)
@@ -239,13 +228,6 @@ export const usePushoverStore = defineStore('pushover', () => {
   }
 
   /**
-   * 获取缓存的项目状态
-   */
-  function getCachedProjectStatus(projectPath: string): HookStatus | undefined {
-    return projectHookStatus.value.get(projectPath)
-  }
-
-  /**
    * 检查扩展更新
    */
   async function checkExtensionStatus() {
@@ -339,7 +321,7 @@ export const usePushoverStore = defineStore('pushover', () => {
    * 清除缓存
    */
   function clearCache() {
-    projectHookStatus.value.clear()
+    // StatusCache 会自动管理缓存
   }
 
   /**
@@ -367,8 +349,6 @@ export const usePushoverStore = defineStore('pushover', () => {
   return {
     // State
     extensionInfo,
-    projectHookStatus,
-    statusVersion,
     loading,
     error,
     configValid,
@@ -378,8 +358,8 @@ export const usePushoverStore = defineStore('pushover', () => {
     // Computed
     isExtensionDownloaded,
     isUpdateAvailable,
-    currentProjectHookStatus,    // 新增
-    allProjectHookStatuses,      // 新增
+    currentProjectHookStatus,
+    allProjectHookStatuses,
 
     // Actions
     checkExtensionStatus,
@@ -389,7 +369,6 @@ export const usePushoverStore = defineStore('pushover', () => {
     installHook,
     setNotificationMode,
     toggleNotification,
-    getCachedProjectStatus,
     clearCache,
     checkForUpdates,
     updateHook,
