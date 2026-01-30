@@ -10,6 +10,15 @@
 
   <!-- Main App -->
   <div v-else class="app grid-pattern">
+    <!-- 错误横幅 -->
+    <transition name="slide-down">
+      <div v-if="initErrors.length > 0" class="init-error-banner">
+        <span class="icon">⚠️</span>
+        <span class="message">部分功能加载失败，请稍后手动刷新</span>
+        <button @click="initErrors = []" class="dismiss">×</button>
+      </div>
+    </transition>
+
     <!-- Animated background gradient -->
     <div class="bg-gradient"></div>
 
@@ -86,6 +95,7 @@ const settingsOpen = ref(false)
 const extensionDialogOpen = ref(false)
 const initialLoading = ref(true)
 const showSplash = ref(true)
+const initErrors = ref<Array<{ error: string; message: string }>>([])
 
 async function initializeApp() {
   console.log('[App] 开始初始化应用')
@@ -109,6 +119,7 @@ async function initializeApp() {
   const errors = results.filter(r => r && r.error)
   if (errors.length > 0) {
     console.warn('[App] 部分初始化任务失败:', errors)
+    initErrors.value = errors
   }
 
   console.log('[App] 应用初始化完成')
@@ -413,5 +424,55 @@ function openSettings() {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateX(-20px);
+}
+
+/* Error banner */
+.init-error-banner {
+  position: fixed;
+  top: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  z-index: var(--z-modal);
+  animation: slide-down 0.3s ease-out;
+}
+
+.init-error-banner .icon {
+  font-size: 18px;
+}
+
+.init-error-banner .message {
+  font-size: 13px;
+  color: var(--accent-warning);
+}
+
+.init-error-banner .dismiss {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+}
+
+.init-error-banner .dismiss:hover {
+  color: var(--text-primary);
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 </style>
