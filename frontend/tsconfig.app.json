@@ -13,5 +13,5 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "exclude": ["wailsjs"]
+  "exclude": ["wailsjs", "src/**/*.spec.ts", "src/**/*.test.ts", "**/__tests__/**"]
 }

@@ -63,7 +63,9 @@ go test ./... -v
 go test ./pkg/repository -v
 
 # 前端测试
-cd frontend && npm test
+cd frontend && npm run test        # 交互式测试
+cd frontend && npm run test:run    # 单次运行
+cd frontend && npm run test:ui     # UI 模式
 ```
 
 ### 依赖管理
@@ -134,8 +136,79 @@ Frontend (Vue3)  ←→  Wails Bindings  ←→  Backend (Go)
 **状态管理 (`stores/`)**:
 - `projectStore.ts`: 项目列表状态、CRUD 操作、排序
 - `commitStore.ts`: Commit 生成状态、流式消息监听（Wails Events）
+- `statusCache.ts`: 项目状态缓存管理，提供预加载、后台刷新、乐观更新等功能
 
 **类型定义 (`types/index.ts`)**: TypeScript 类型与 Go 结构体同步
+**类型定义 (`types/status.ts`)**: StatusCache 相关类型定义
+
+### StatusCache 层
+
+`frontend/src/stores/statusCache.ts` 是状态缓存层，位于 UI 组件和后端 API 之间，用于优化项目状态的加载和更新性能。
+
+**核心功能：**
+
+1. **预加载（Preload）**: 应用启动时批量加载所有项目状态，避免 UI 闪烁
+2. **缓存优先（Cache-First）**: 切换项目时立即返回缓存数据，提供快速响应
+3. **后台刷新（Background Refresh）**: 静默更新过期缓存以保持数据新鲜度
+4. **乐观更新（Optimistic Updates）**: 用户操作后立即更新 UI，异步验证结果
+5. **错误恢复（Error Recovery）**: 失败时使用过期缓存或显示友好错误提示
+
+**使用方法：**
+
+```typescript
+import { useStatusCache } from '@/stores/statusCache'
+
+const statusCache = useStatusCache()
+
+// 获取缓存状态（立即返回，无等待）
+const status = statusCache.getStatus(projectPath)
+
+// 刷新状态（如果缓存未过期可能跳过）
+await statusCache.refresh(projectPath)
+
+// 强制刷新（忽略 TTL）
+await statusCache.refresh(projectPath, { force: true })
+
+// 获取状态或自动刷新
+const status = await statusCache.getStatusOrRefresh(projectPath)
+
+// 批量预加载
+await statusCache.preload(projectPaths)
+
+// 乐观更新（支持回滚）
+const rollback = statusCache.updateOptimistic(projectPath, {
+  stagingStatus: { hasChanges: false, stagedCount: 0 }
+})
+// 如果操作失败，调用 rollback()
+
+// 使缓存失效
+statusCache.invalidate(projectPath)
+```
+
+**缓存配置：**
+
+```typescript
+statusCache.updateOptions({
+  ttl: 30000,              // 缓存过期时间（毫秒），默认 30 秒
+  backgroundRefresh: true  // 是否在后台刷新过期缓存
+})
+```
+
+**生命周期：**
+
+1. 应用启动时调用 `statusCache.init()` 预加载所有项目
+2. 用户切换项目时调用 `getStatusOrRefresh()` 获取状态
+3. Git 操作后调用 `updateOptimistic()` 立即更新 UI
+4. 后端通过 Wails Events 发送状态变更事件，自动使缓存失效
+
+**测试：**
+
+```bash
+cd frontend
+npm run test:run  # 运行单元测试
+```
+
+测试文件位于 `frontend/src/stores/__tests__/statusCache.spec.ts`
 
 ### Wails 事件流
 

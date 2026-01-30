@@ -99,7 +99,7 @@ export const useStatusCache = defineStore('statusCache', () => {
    * @param path 项目路径
    * @returns 新的缓存条目
    */
-  function createCacheEntry(path: string): ProjectStatusCache {
+  function createCacheEntry(_path: string): ProjectStatusCache {
     return {
       gitStatus: null,
       stagingStatus: null,
@@ -132,8 +132,9 @@ export const useStatusCache = defineStore('statusCache', () => {
       initCache(path)
     }
 
+    const current = cache.value[path]!
     cache.value[path] = {
-      ...cache.value[path],
+      ...current,
       ...updates,
       lastUpdated: Date.now()
     }
@@ -207,7 +208,10 @@ export const useStatusCache = defineStore('statusCache', () => {
    */
   function invalidateAll(): void {
     Object.keys(cache.value).forEach(path => {
-      cache.value[path].stale = true
+      const cached = cache.value[path]
+      if (cached) {
+        cached.stale = true
+      }
     })
   }
 
@@ -270,19 +274,23 @@ export const useStatusCache = defineStore('statusCache', () => {
         GetPushoverHookStatus(path).catch(() => null)
       ])
 
-      cache.value[path] = {
-        gitStatus,
-        stagingStatus,
-        untrackedCount: untrackedFiles?.length || 0,
-        pushoverStatus: pushoverStatus,
-        lastUpdated: Date.now(),
-        loading: false,
-        error: null,
-        stale: false
+      const cached = cache.value[path]
+      if (cached) {
+        cached.gitStatus = gitStatus as any
+        cached.stagingStatus = stagingStatus
+        cached.untrackedCount = untrackedFiles?.length || 0
+        cached.pushoverStatus = pushoverStatus as any
+        cached.lastUpdated = Date.now()
+        cached.loading = false
+        cached.error = null
+        cached.stale = false
       }
     } catch (error) {
-      cache.value[path].loading = false
-      cache.value[path].error = String(error)
+      const cached = cache.value[path]
+      if (cached) {
+        cached.loading = false
+        cached.error = String(error)
+      }
     } finally {
       pendingRequests.value.delete(path)
     }
@@ -342,7 +350,7 @@ export const useStatusCache = defineStore('statusCache', () => {
    */
   async function init(): Promise<void> {
     // 从 projectStore 获取所有项目路径
-    const { useProjectStore } = await import('./project')
+    const { useProjectStore } = await import('./projectStore')
     const projectStore = useProjectStore()
     const paths = projectStore.projects.map(p => p.path)
     await preload(paths)
