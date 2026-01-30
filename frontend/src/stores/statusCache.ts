@@ -5,6 +5,7 @@ import type {
   ProjectStatusCacheMap,
   CacheOptions
 } from '../types/status'
+import type { HookStatus } from '../types/index'
 import { GetStagingStatus, GetProjectStatus, GetUntrackedFiles, GetPushoverHookStatus, GetAllProjectStatuses } from '../../wailsjs/go/main/App'
 import { EventsOn } from '../../wailsjs/runtime/runtime'
 
@@ -446,7 +447,7 @@ export const useStatusCache = defineStore('statusCache', () => {
    * @param path 项目路径
    * @returns Pushover Hook 状态，如果不存在则返回 null
    */
-  function getPushoverStatus(path: string): any | null {
+  function getPushoverStatus(path: string): HookStatus | null {
     const cached = cache.value[path]
     return cached?.pushoverStatus || null
   }
