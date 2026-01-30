@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
-  GetPushoverHookStatus,
   InstallPushoverHook,
   SetPushoverNotificationMode,
   GetPushoverExtensionInfo,
@@ -21,7 +20,6 @@ import type {
 } from '../types/pushover'
 import { useStatusCache } from './statusCache'
 import { useProjectStore } from './projectStore'
-import type { ProjectStatusCache } from '../types/status'
 
 export const usePushoverStore = defineStore('pushover', () => {
   // State
@@ -49,7 +47,7 @@ export const usePushoverStore = defineStore('pushover', () => {
    */
   const currentProjectHookStatus = computed(() => {
     const projectStore = useProjectStore()
-    const selectedPath = projectStore.selectedProject
+    const selectedPath = projectStore.selectedPath
     if (!selectedPath) return null
 
     const statusCache = useStatusCache()

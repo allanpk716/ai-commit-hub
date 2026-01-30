@@ -11,6 +11,7 @@ export interface HookStatus {
   mode: NotificationMode
   version: string
   installed_at?: string
+  update_available?: boolean  // 是否有可用更新
 }
 
 /** 扩展信息 */

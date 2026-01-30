@@ -78,36 +78,17 @@ export interface ProviderInfo {
   reason?: string        // 未配置的原因
 }
 
-// Pushover Hook 扩展信息
-export interface ExtensionInfo {
-  downloaded: boolean      // 是否已下载
-  path: string            // 扩展路径
-  version: string         // 当前版本
-  current_version: string // 当前版本（同 version）
-  latest_version: string  // 最新版本
-  update_available: boolean // 是否有可用更新
-}
-
-// Pushover Hook 状态
-export interface HookStatus {
-  installed: boolean
-  mode: string          // 'silent' | 'normal' | 'verbose'
-  version: string       // Hook 版本
-  installed_at: string  // 安装时间（ISO 8601）
-  update_available?: boolean  // 是否有可用更新
-}
-
-// Hook 安装结果
-export interface InstallResult {
-  success: boolean
-  message: string
-}
-
-// 通知模式
-export type NotificationMode = 'silent' | 'normal' | 'verbose'
-
 // 排除模式
 export type ExcludeMode = 'exact' | 'extension' | 'directory'
+
+// 重新导出 Pushover 相关类型（从 types/pushover.ts）
+export type {
+  HookStatus,
+  ExtensionInfo,
+  InstallResult,
+  NotificationMode,
+  PushoverConfigStatus
+} from './pushover'
 
 // 目录选项
 export interface DirectoryOption {

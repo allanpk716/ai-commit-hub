@@ -506,4 +506,389 @@ describe('StatusCache Store', () => {
       expect(paths).toContain('/project3')
     })
   })
+
+  describe('数据验证层', () => {
+    describe('isConsistent', () => {
+      it('应该返回 true 对于空缓存', () => {
+        const store = useStatusCache()
+        expect(store.isConsistent(null)).toBe(true)
+      })
+
+      it('应该返回 true 当 untrackedCount 与 untracked 数量一致', () => {
+        const store = useStatusCache()
+        const cache: ProjectStatusCache = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [
+              { path: 'file1.txt', size: 100 },
+              { path: 'file2.txt', size: 200 }
+            ]
+          },
+          untrackedCount: 2,
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        expect(store.isConsistent(cache)).toBe(true)
+      })
+
+      it('应该返回 false 当 untrackedCount 与 untracked 数量不一致', () => {
+        const store = useStatusCache()
+        const cache: ProjectStatusCache = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [
+              { path: 'file1.txt', size: 100 },
+              { path: 'file2.txt', size: 200 }
+            ]
+          },
+          untrackedCount: 5, // 不一致
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        expect(store.isConsistent(cache)).toBe(false)
+      })
+
+      it('应该返回 true 当 stagingStatus 为 null', () => {
+        const store = useStatusCache()
+        const cache: ProjectStatusCache = {
+          gitStatus: null,
+          stagingStatus: null,
+          untrackedCount: 0,
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        expect(store.isConsistent(cache)).toBe(true)
+      })
+    })
+
+    describe('normalizeCache', () => {
+      it('应该修正不一致的 untrackedCount', () => {
+        const store = useStatusCache()
+        const cache: ProjectStatusCache = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [
+              { path: 'file1.txt', size: 100 },
+              { path: 'file2.txt', size: 200 },
+              { path: 'file3.txt', size: 300 }
+            ]
+          },
+          untrackedCount: 5, // 不一致，应该是 3
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        const normalized = store.normalizeCache(cache)
+        expect(normalized.untrackedCount).toBe(3)
+      })
+
+      it('应该保持一致的 untrackedCount 不变', () => {
+        const store = useStatusCache()
+        const cache: ProjectStatusCache = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [
+              { path: 'file1.txt', size: 100 }
+            ]
+          },
+          untrackedCount: 1, // 已经一致
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        const normalized = store.normalizeCache(cache)
+        expect(normalized.untrackedCount).toBe(1)
+      })
+
+      it('应该处理 stagingStatus 为 null 的情况', () => {
+        const store = useStatusCache()
+        const cache: ProjectStatusCache = {
+          gitStatus: null,
+          stagingStatus: null,
+          untrackedCount: 5,
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        const normalized = store.normalizeCache(cache)
+        // stagingStatus 为 null 时，保持 untrackedCount 不变
+        expect(normalized.untrackedCount).toBe(5)
+      })
+
+      it('应该返回原始缓存对于 null 输入', () => {
+        const store = useStatusCache()
+        expect(store.normalizeCache(null)).toBe(null)
+      })
+    })
+
+    describe('validateAndFix', () => {
+      it('应该修正不一致的缓存', () => {
+        const store = useStatusCache()
+        const testPath = '/test/project'
+
+        // 设置不一致的缓存
+        store.cache[testPath] = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [
+              { path: 'file1.txt', size: 100 },
+              { path: 'file2.txt', size: 200 }
+            ]
+          },
+          untrackedCount: 5, // 不一致，应该是 2
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        store.validateAndFix(testPath)
+
+        const cached = store.getStatus(testPath)
+        expect(cached?.untrackedCount).toBe(2)
+      })
+
+      it('应该保持一致的缓存不变', () => {
+        const store = useStatusCache()
+        const testPath = '/test/project'
+
+        // 设置一致的缓存
+        store.cache[testPath] = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [{ path: 'file1.txt', size: 100 }]
+          },
+          untrackedCount: 1, // 一致
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        const beforeLastUpdated = store.getStatus(testPath)?.lastUpdated
+
+        store.validateAndFix(testPath)
+
+        // 应该保持不变（但可能会因为更新 lastUpdated 而变化）
+        const cached = store.getStatus(testPath)
+        expect(cached?.untrackedCount).toBe(1)
+      })
+
+      it('应该对不存在的缓存不进行操作', () => {
+        const store = useStatusCache()
+        const testPath = '/nonexistent'
+
+        // 不应该抛出错误
+        expect(() => store.validateAndFix(testPath)).not.toThrow()
+      })
+    })
+
+    describe('validateAndFixAll', () => {
+      it('应该修正所有不一致的缓存', () => {
+        const store = useStatusCache()
+        const path1 = '/project1'
+        const path2 = '/project2'
+        const path3 = '/project3'
+
+        // 设置不一致的缓存
+        store.cache[path1] = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [{ path: 'file1.txt', size: 100 }]
+          },
+          untrackedCount: 5, // 不一致
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        store.cache[path2] = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: false,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: []
+          },
+          untrackedCount: 0, // 一致
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        store.cache[path3] = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [
+              { path: 'file1.txt', size: 100 },
+              { path: 'file2.txt', size: 200 }
+            ]
+          },
+          untrackedCount: 10, // 不一致
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        store.validateAndFixAll()
+
+        expect(store.getStatus(path1)?.untrackedCount).toBe(1)
+        expect(store.getStatus(path2)?.untrackedCount).toBe(0)
+        expect(store.getStatus(path3)?.untrackedCount).toBe(2)
+      })
+    })
+
+    describe('getHealthStatus', () => {
+      it('应该正确报告缓存健康状态', () => {
+        const store = useStatusCache()
+
+        // 设置不一致的缓存
+        store.cache['/project1'] = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [{ path: 'file1.txt', size: 100 }]
+          },
+          untrackedCount: 5, // 不一致
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        store.cache['/project2'] = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: false,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: []
+          },
+          untrackedCount: 0, // 一致
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        store.cache['/project3'] = {
+          gitStatus: null,
+          stagingStatus: {
+            hasChanges: true,
+            stagedCount: 0,
+            unstagedCount: 0,
+            staged: [],
+            unstaged: [],
+            untracked: [
+              { path: 'file1.txt', size: 100 },
+              { path: 'file2.txt', size: 200 }
+            ]
+          },
+          untrackedCount: 10, // 不一致
+          pushoverStatus: null,
+          lastUpdated: Date.now(),
+          loading: false,
+          error: null,
+          stale: false
+        }
+
+        const health = store.getHealthStatus()
+
+        expect(health.total).toBe(3)
+        expect(health.consistent).toBe(1)
+        expect(health.inconsistent).toContain('/project1')
+        expect(health.inconsistent).toContain('/project3')
+        expect(health.inconsistent).not.toContain('/project2')
+      })
+
+      it('应该正确处理空缓存', () => {
+        const store = useStatusCache()
+
+        const health = store.getHealthStatus()
+
+        expect(health.total).toBe(0)
+        expect(health.consistent).toBe(0)
+        expect(health.inconsistent).toHaveLength(0)
+      })
+    })
+  })
 })

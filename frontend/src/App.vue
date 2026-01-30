@@ -116,7 +116,7 @@ async function initializeApp() {
   ]
 
   const results = await Promise.all(tasks)
-  const errors = results.filter(r => r && r.error)
+  const errors = results.filter((r): r is { error: string; message: string } => r !== null && typeof r === 'object' && 'error' in r && 'message' in r)
   if (errors.length > 0) {
     console.warn('[App] 部分初始化任务失败:', errors)
     initErrors.value = errors

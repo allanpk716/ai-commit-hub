@@ -139,6 +139,9 @@ export const useStatusCache = defineStore('statusCache', () => {
       ...updates,
       lastUpdated: Date.now()
     }
+
+    // 验证并修正数据一致性
+    validateAndFix(path)
   }
 
   /**
@@ -178,9 +181,14 @@ export const useStatusCache = defineStore('statusCache', () => {
       lastUpdated: Date.now()
     }
 
+    // 验证并修正数据一致性
+    validateAndFix(path)
+
     // 返回回滚函数
     return () => {
       cache.value[path] = previous
+      // 回滚后也需要验证一致性
+      validateAndFix(path)
     }
   }
 
@@ -231,6 +239,95 @@ export const useStatusCache = defineStore('statusCache', () => {
   function clearAllCache(): void {
     cache.value = {}
     pendingRequests.value.clear()
+  }
+
+  // ========== 数据验证层 ==========
+
+  /**
+   * 验证缓存条目的数据一致性
+   * @param cacheEntry 要验证的缓存条目
+   * @returns 是否一致
+   */
+  function isConsistent(cacheEntry: ProjectStatusCache | null): boolean {
+    if (!cacheEntry) return true
+
+    const expectedUntrackedCount = cacheEntry.stagingStatus?.untracked?.length ?? 0
+    return cacheEntry.untrackedCount === expectedUntrackedCount
+  }
+
+  /**
+   * 规范化缓存条目（自动修正不一致数据）
+   * @param cacheEntry 要规范化的缓存条目
+   * @returns 规范化后的缓存条目
+   */
+  function normalizeCache(cacheEntry: ProjectStatusCache): ProjectStatusCache {
+    if (!cacheEntry) return cacheEntry
+
+    const normalized = { ...cacheEntry }
+
+    // 修正 untrackedCount
+    if (normalized.stagingStatus?.untracked) {
+      normalized.untrackedCount = normalized.stagingStatus.untracked.length
+    }
+
+    return normalized
+  }
+
+  /**
+   * 验证并修复指定路径的缓存
+   * @param path 项目路径
+   */
+  function validateAndFix(path: string): void {
+    const cached = cache.value[path]
+    if (cached && !isConsistent(cached)) {
+      // 仅在开发环境输出调试信息
+      if (import.meta.env.DEV) {
+        console.debug('[StatusCache] 检测到不一致，已自动修正', {
+          path,
+          before: { untrackedCount: cached.untrackedCount },
+          after: { untrackedCount: normalizeCache(cached).untrackedCount }
+        })
+      }
+      cache.value[path] = normalizeCache(cached)
+    }
+  }
+
+  /**
+   * 批量验证并修复所有缓存
+   */
+  function validateAndFixAll(): void {
+    cachedPaths.value.forEach(path => validateAndFix(path))
+  }
+
+  /**
+   * 获取缓存健康状态（用于调试）
+   * @returns 缓存健康状态信息
+   */
+  function getHealthStatus(): {
+    total: number
+    consistent: number
+    inconsistent: string[]
+  } {
+    const paths = cachedPaths.value
+    const inconsistent: string[] = []
+    let consistent = 0
+
+    for (const path of paths) {
+      const cached = cache.value[path]
+      if (cached) {
+        if (isConsistent(cached)) {
+          consistent++
+        } else {
+          inconsistent.push(path)
+        }
+      }
+    }
+
+    return {
+      total: paths.length,
+      consistent,
+      inconsistent
+    }
   }
 
   /**
@@ -286,6 +383,9 @@ export const useStatusCache = defineStore('statusCache', () => {
         cached.error = null
         cached.stale = false
       }
+
+      // 验证并修正数据一致性
+      validateAndFix(path)
     } catch (error) {
       const cached = cache.value[path]
       if (cached) {
@@ -328,7 +428,8 @@ export const useStatusCache = defineStore('statusCache', () => {
 
       // 将批量获取的状态填充到缓存中
       for (const [path, status] of Object.entries(statuses)) {
-        cache.value[path] = {
+        // 使用 normalizeCache 规范化数据，确保一致性
+        cache.value[path] = normalizeCache({
           gitStatus: status.gitStatus,
           stagingStatus: status.stagingStatus,
           untrackedCount: status.untrackedCount,
@@ -337,7 +438,7 @@ export const useStatusCache = defineStore('statusCache', () => {
           loading: false,
           error: null,
           stale: false
-        };
+        });
       }
     } catch (error) {
       console.error('Preload failed, falling back to individual loads:', error);
@@ -490,6 +591,13 @@ export const useStatusCache = defineStore('statusCache', () => {
     updateOptions,
     isRetryable,
     refreshWithRetry,
-    manualRefresh
+    manualRefresh,
+
+    // 数据验证层
+    isConsistent,
+    normalizeCache,
+    validateAndFix,
+    validateAndFixAll,
+    getHealthStatus
   }
 })

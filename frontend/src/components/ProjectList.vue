@@ -220,7 +220,7 @@ const getProjectStatus = (project: GitProject): {
     loading: false,
     error: false,
     untrackedCount: cached?.untrackedCount ?? 0,
-    pushoverUpdateAvailable: cached?.pushoverStatus?.updateAvailable ?? false,
+    pushoverUpdateAvailable: cached?.pushoverStatus?.update_available ?? false,
     stale: cached?.stale ?? false
   }
 }
