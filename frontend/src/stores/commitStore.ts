@@ -298,6 +298,22 @@ export const useCommitStore = defineStore('commit', () => {
       return
     }
 
+    // 导入 statusCache
+    const { useStatusCache } = await import('./statusCache')
+    const statusCache = useStatusCache()
+
+    // 乐观更新：预估暂存后的状态
+    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+      stagingStatus: {
+        staged: [
+          ...(statusCache.getStatus(selectedProjectPath.value)?.stagingStatus?.staged || []),
+          { path: filePath, status: 'M' }
+        ],
+        unstaged: (statusCache.getStatus(selectedProjectPath.value)?.stagingStatus?.unstaged || [])
+          .filter(f => f.path !== filePath)
+      }
+    })
+
     try {
       console.log('[stageFile] 开始暂存文件:', filePath)
       await StageFile(selectedProjectPath.value, filePath)
@@ -312,6 +328,8 @@ export const useCommitStore = defineStore('commit', () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '暂存文件失败'
       error.value = message
+      // 回滚乐观更新
+      rollback?.()
       throw e
     }
   }
@@ -321,6 +339,24 @@ export const useCommitStore = defineStore('commit', () => {
       error.value = '请先选择项目'
       return
     }
+
+    // 导入 statusCache
+    const { useStatusCache } = await import('./statusCache')
+    const statusCache = useStatusCache()
+
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
+    const unstagedFiles = currentStatus?.stagingStatus?.unstaged || []
+
+    // 乐观更新：预估所有文件暂存后的状态
+    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+      stagingStatus: {
+        staged: [
+          ...(currentStatus?.stagingStatus?.staged || []),
+          ...unstagedFiles
+        ],
+        unstaged: []
+      }
+    })
 
     try {
       await StageAllFiles(selectedProjectPath.value)
@@ -332,6 +368,8 @@ export const useCommitStore = defineStore('commit', () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '暂存所有文件失败'
       error.value = message
+      // 回滚乐观更新
+      rollback?.()
       throw e
     }
   }
@@ -341,6 +379,22 @@ export const useCommitStore = defineStore('commit', () => {
       error.value = '请先选择项目'
       return
     }
+
+    // 导入 statusCache
+    const { useStatusCache } = await import('./statusCache')
+    const statusCache = useStatusCache()
+
+    // 乐观更新：预估取消暂存后的状态
+    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+      stagingStatus: {
+        staged: (statusCache.getStatus(selectedProjectPath.value)?.stagingStatus?.staged || [])
+          .filter(f => f.path !== filePath),
+        unstaged: [
+          ...(statusCache.getStatus(selectedProjectPath.value)?.stagingStatus?.unstaged || []),
+          { path: filePath, status: 'M' }
+        ]
+      }
+    })
 
     try {
       await UnstageFile(selectedProjectPath.value, filePath)
@@ -354,6 +408,8 @@ export const useCommitStore = defineStore('commit', () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '取消暂存文件失败'
       error.value = message
+      // 回滚乐观更新
+      rollback?.()
       throw e
     }
   }
@@ -363,6 +419,20 @@ export const useCommitStore = defineStore('commit', () => {
       error.value = '请先选择项目'
       return
     }
+
+    // 导入 statusCache
+    const { useStatusCache } = await import('./statusCache')
+    const statusCache = useStatusCache()
+
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
+
+    // 乐观更新：预估还原文件后的状态
+    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+      stagingStatus: {
+        staged: (currentStatus?.stagingStatus?.staged || []).filter(f => f.path !== filePath),
+        unstaged: (currentStatus?.stagingStatus?.unstaged || []).filter(f => f.path !== filePath)
+      }
+    })
 
     try {
       await DiscardFileChanges(selectedProjectPath.value, filePath)
@@ -376,6 +446,8 @@ export const useCommitStore = defineStore('commit', () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '还原文件失败'
       error.value = message
+      // 回滚乐观更新
+      rollback?.()
       throw e
     }
   }
@@ -385,6 +457,25 @@ export const useCommitStore = defineStore('commit', () => {
       error.value = '请先选择项目'
       return
     }
+
+    // 导入 statusCache
+    const { useStatusCache } = await import('./statusCache')
+    const statusCache = useStatusCache()
+
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
+    const stagedFiles = currentStatus?.stagingStatus?.staged || []
+    const unstagedFiles = currentStatus?.stagingStatus?.unstaged || []
+
+    // 乐观更新：预估所有文件取消暂存后的状态
+    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+      stagingStatus: {
+        staged: [],
+        unstaged: [
+          ...unstagedFiles,
+          ...stagedFiles
+        ]
+      }
+    })
 
     try {
       await UnstageAllFiles(selectedProjectPath.value)
@@ -396,6 +487,8 @@ export const useCommitStore = defineStore('commit', () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '取消暂存所有文件失败'
       error.value = message
+      // 回滚乐观更新
+      rollback?.()
       throw e
     }
   }
@@ -486,6 +579,25 @@ export const useCommitStore = defineStore('commit', () => {
       return
     }
 
+    // 导入 statusCache
+    const { useStatusCache } = await import('./statusCache')
+    const statusCache = useStatusCache()
+
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
+    const filesToStage = Array.from(selectedUnstagedFiles.value)
+
+    // 乐观更新：预估批量暂存后的状态
+    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+      stagingStatus: {
+        staged: [
+          ...(currentStatus?.stagingStatus?.staged || []),
+          ...filesToStage.map(f => ({ path: f, status: 'M' }))
+        ],
+        unstaged: (currentStatus?.stagingStatus?.unstaged || [])
+          .filter(f => !selectedUnstagedFiles.value.has(f.path))
+      }
+    })
+
     try {
       for (const filePath of selectedUnstagedFiles.value) {
         await StageFile(selectedProjectPath.value, filePath)
@@ -500,6 +612,8 @@ export const useCommitStore = defineStore('commit', () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '批量暂存文件失败'
       error.value = message
+      // 回滚乐观更新
+      rollback?.()
       throw e
     }
   }
@@ -509,6 +623,25 @@ export const useCommitStore = defineStore('commit', () => {
     if (!selectedProjectPath.value || selectedStagedFiles.value.size === 0) {
       return
     }
+
+    // 导入 statusCache
+    const { useStatusCache } = await import('./statusCache')
+    const statusCache = useStatusCache()
+
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
+    const filesToUnstage = Array.from(selectedStagedFiles.value)
+
+    // 乐观更新：预估批量取消暂存后的状态
+    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+      stagingStatus: {
+        staged: (currentStatus?.stagingStatus?.staged || [])
+          .filter(f => !selectedStagedFiles.value.has(f.path)),
+        unstaged: [
+          ...(currentStatus?.stagingStatus?.unstaged || []),
+          ...filesToUnstage.map(f => ({ path: f, status: 'M' }))
+        ]
+      }
+    })
 
     try {
       for (const filePath of selectedStagedFiles.value) {
@@ -524,6 +657,8 @@ export const useCommitStore = defineStore('commit', () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '批量取消暂存文件失败'
       error.value = message
+      // 回滚乐观更新
+      rollback?.()
       throw e
     }
   }
@@ -572,6 +707,24 @@ export const useCommitStore = defineStore('commit', () => {
   async function stageFiles(files: string[]) {
     if (!selectedProjectPath.value) return
 
+    // 导入 statusCache
+    const { useStatusCache } = await import('./statusCache')
+    const statusCache = useStatusCache()
+
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
+
+    // 乐观更新：预估批量暂存后的状态
+    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+      stagingStatus: {
+        staged: [
+          ...(currentStatus?.stagingStatus?.staged || []),
+          ...files.map(f => ({ path: f, status: 'M' }))
+        ],
+        unstaged: (currentStatus?.stagingStatus?.unstaged || [])
+          .filter(f => !files.includes(f.path))
+      }
+    })
+
     try {
       await StageFiles(selectedProjectPath.value, files)
       // 刷新暂存区和未跟踪文件
@@ -583,6 +736,8 @@ export const useCommitStore = defineStore('commit', () => {
       notifyProjectStatusChanged()
     } catch (e) {
       console.error('添加到暂存区失败:', e)
+      // 回滚乐观更新
+      rollback?.()
       throw e
     }
   }
@@ -590,6 +745,18 @@ export const useCommitStore = defineStore('commit', () => {
   // 添加到 .gitignore
   async function addToGitIgnore(file: string, mode: 'exact' | 'extension' | 'directory') {
     if (!selectedProjectPath.value) return
+
+    // 导入 statusCache
+    const { useStatusCache } = await import('./statusCache')
+    const statusCache = useStatusCache()
+
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
+    const untrackedFiles = currentStatus?.untrackedCount || 0
+
+    // 乐观更新：预估添加到 .gitignore 后的状态
+    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+      untrackedCount: Math.max(0, untrackedFiles - 1)
+    })
 
     try {
       await AddToGitIgnore(selectedProjectPath.value, file, mode)
@@ -602,6 +769,8 @@ export const useCommitStore = defineStore('commit', () => {
       notifyProjectStatusChanged()
     } catch (e) {
       console.error('添加到排除列表失败:', e)
+      // 回滚乐观更新
+      rollback?.()
       throw e
     }
   }
