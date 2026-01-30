@@ -5,7 +5,7 @@ import type {
   ProjectStatusCacheMap,
   CacheOptions
 } from '../types/status'
-import { GetStagingStatus, GetProjectStatus, GetUntrackedFiles, GetPushoverHookStatus } from '../../wailsjs/go/main/App'
+import { GetStagingStatus, GetProjectStatus, GetUntrackedFiles, GetPushoverHookStatus, GetAllProjectStatuses } from '../../wailsjs/go/main/App'
 import { EventsOn } from '../../wailsjs/runtime/runtime'
 
 /**
@@ -283,16 +283,29 @@ export const useStatusCache = defineStore('statusCache', () => {
    * @param projectPaths 项目路径数组
    */
   async function preload(projectPaths: string[]): Promise<void> {
-    const MAX_CONCURRENT = 10
-    const chunks: string[][] = []
+    if (projectPaths.length === 0) return;
 
-    // 分块处理，避免同时发起太多请求
-    for (let i = 0; i < projectPaths.length; i += MAX_CONCURRENT) {
-      chunks.push(projectPaths.slice(i, i + MAX_CONCURRENT))
-    }
+    try {
+      // 使用批量接口获取所有项目状态
+      const statuses = await GetAllProjectStatuses(projectPaths);
 
-    for (const chunk of chunks) {
-      await Promise.all(chunk.map(path => refresh(path, { force: true })))
+      // 将批量获取的状态填充到缓存中
+      for (const [path, status] of Object.entries(statuses)) {
+        cache.value[path] = {
+          gitStatus: status.gitStatus,
+          stagingStatus: status.stagingStatus,
+          untrackedCount: status.untrackedCount,
+          pushoverStatus: status.pushoverStatus,
+          lastUpdated: new Date(status.lastUpdated).getTime(),
+          loading: false,
+          error: null,
+          stale: false
+        };
+      }
+    } catch (error) {
+      console.error('Preload failed, falling back to individual loads:', error);
+      // 降级到逐个加载
+      await Promise.all(projectPaths.map(path => refresh(path, { force: true })));
     }
   }
 
