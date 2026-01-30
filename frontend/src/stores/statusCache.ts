@@ -441,6 +441,16 @@ export const useStatusCache = defineStore('statusCache', () => {
     })
   }
 
+  /**
+   * 获取项目的 Pushover 状态
+   * @param path 项目路径
+   * @returns Pushover Hook 状态，如果不存在则返回 null
+   */
+  function getPushoverStatus(path: string): any | null {
+    const cached = cache.value[path]
+    return cached?.pushoverStatus || null
+  }
+
   // ========== 初始化 ==========
 
   // 直接初始化事件监听器（Pinia store 是单例，不需要 onMounted）
@@ -460,6 +470,7 @@ export const useStatusCache = defineStore('statusCache', () => {
 
     // 方法
     getStatus,
+    getPushoverStatus,
     isExpired,
     isLoading,
     initCache,
