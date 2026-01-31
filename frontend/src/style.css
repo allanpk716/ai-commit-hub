@@ -20,6 +20,10 @@
   --accent-error: #ef4444;
   --accent-info: #3b82f6;
 
+  /* Accent colors with transparency */
+  --accent-primary-bg: rgba(6, 182, 212, 0.15);
+  --accent-primary-border: rgba(6, 182, 212, 0.4);
+
   /* Glass effect */
   --glass-bg: rgba(31, 41, 55, 0.7);
   --glass-border: rgba(255, 255, 255, 0.08);
