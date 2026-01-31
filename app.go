@@ -796,6 +796,7 @@ func (a *App) GetPushStatus(projectPath string) *git.PushStatus {
 		return &git.PushStatus{
 			CanPush:      false,
 			AheadCount:   0,
+			BehindCount:  0,
 			RemoteBranch: "",
 			Error:        a.initError.Error(),
 		}
@@ -805,6 +806,7 @@ func (a *App) GetPushStatus(projectPath string) *git.PushStatus {
 		return &git.PushStatus{
 			CanPush:      false,
 			AheadCount:   0,
+			BehindCount:  0,
 			RemoteBranch: "",
 			Error:        err.Error(),
 		}
