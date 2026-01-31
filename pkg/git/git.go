@@ -641,6 +641,7 @@ func GetStagedDiff(ctx context.Context) (string, error) {
 type PushStatus struct {
 	CanPush      bool   `json:"canPush"`
 	AheadCount   int    `json:"ahead_count"`
+	BehindCount  int    `json:"behind_count"`
 	RemoteBranch string `json:"remote_branch"`
 	Error        string `json:"error,omitempty"`
 }
