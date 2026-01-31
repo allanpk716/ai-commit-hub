@@ -889,6 +889,31 @@ func (a *App) UpdatePushoverHook(projectPath string) (*pushover.InstallResult, e
 	return result, nil
 }
 
+// ReinstallPushoverHook 重装项目的 Pushover Hook
+func (a *App) ReinstallPushoverHook(projectPath string) (*pushover.InstallResult, error) {
+	if a.initError != nil {
+		return &pushover.InstallResult{Success: false, Message: a.initError.Error()}, nil
+	}
+	if a.pushoverService == nil {
+		return &pushover.InstallResult{Success: false, Message: "pushover service 未初始化"}, nil
+	}
+
+	result, err := a.pushoverService.ReinstallHook(projectPath)
+	if err != nil {
+		return &pushover.InstallResult{Success: false, Message: err.Error()}, nil
+	}
+
+	// 重装成功后同步数据库状态
+	if result.Success {
+		if syncErr := a.syncProjectHookStatusByPath(projectPath); syncErr != nil {
+			fmt.Printf("同步 Hook 状态失败: %v\n", syncErr)
+			// 不影响重装结果，只记录错误
+		}
+	}
+
+	return result, nil
+}
+
 // SetPushoverNotificationMode 设置项目的通知模式
 func (a *App) SetPushoverNotificationMode(projectPath string, mode string) error {
 	if a.initError != nil {
