@@ -696,16 +696,15 @@ func GetPushStatus(projectPath string) (*PushStatus, error) {
 	cmd3.Dir = projectPath
 	var behindCount bytes.Buffer
 	cmd3.Stdout = &behindCount
-	if err := cmd3.Run(); err != nil {
-		// 失败时不阻塞主流程，返回 0
-		behindCount.WriteString("0")
-	}
 
-	behind := strings.TrimSpace(behindCount.String())
 	behindCountInt := 0
-	if behind != "" {
-		behindCountInt, _ = strconv.Atoi(behind)
+	if err := cmd3.Run(); err == nil {
+		behind := strings.TrimSpace(behindCount.String())
+		if behind != "" {
+			behindCountInt, _ = strconv.Atoi(behind)
+		}
 	}
+	// 失败时 behindCountInt 保持为 0，不阻塞主流程
 	// ===== 新增结束 =====
 
 	return &PushStatus{
