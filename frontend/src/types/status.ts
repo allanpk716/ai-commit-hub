@@ -16,6 +16,8 @@ export interface PushStatus {
   canPush: boolean
   /** 本地领先远程的提交数量 */
   aheadCount: number
+  /** 本地落后远程的提交数量 */
+  behindCount: number
   /** 远程分支名（如 origin/main） */
   remoteBranch: string
   /** 错误信息（无远程仓库等） */
