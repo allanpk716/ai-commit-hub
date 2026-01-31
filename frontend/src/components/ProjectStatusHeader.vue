@@ -4,9 +4,17 @@
     <div class="status-header-top">
       <!-- 左侧：分支和操作按钮 -->
       <div class="header-left">
-        <div class="branch-badge">
-          <span class="icon">⑂</span>
-          {{ branch }}
+        <!-- 分支徽章 + 同步状态 -->
+        <div class="branch-badge-wrapper">
+          <span class="branch-badge">
+            <span class="icon">⑂</span>
+            {{ branch }}
+          </span>
+
+          <!-- 同步状态徽章 -->
+          <span v-if="syncStatus" class="sync-status-badge" :class="syncStatusClass">
+            {{ syncStatusText }}
+          </span>
         </div>
 
         <!-- 操作按钮组 -->
@@ -63,9 +71,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import PushoverStatusRow from './PushoverStatusRow.vue'
 import type { HookStatus } from '../types/pushover'
+import { useStatusCache } from '@/stores/statusCache'
 
 // Props
 interface Props {
@@ -100,6 +109,43 @@ const emit = defineEmits<{
 // 终端菜单状态
 const showTerminalMenu = ref(false)
 const terminalButtonWrapper = ref<HTMLElement | null>(null)
+
+// StatusCache
+const statusCache = useStatusCache()
+
+// 分支同步状态
+const syncStatus = computed(() => {
+  if (!props.projectPath) return null
+  const pushStatus = statusCache.getPushStatus(props.projectPath)
+  if (!pushStatus) return null
+
+  const ahead = pushStatus.aheadCount || 0
+  const behind = pushStatus.behindCount || 0
+
+  // 如果同步了，不显示徽章
+  if (ahead === 0 && behind === 0) return null
+
+  return { ahead, behind }
+})
+
+// 同步状态文本
+const syncStatusText = computed(() => {
+  if (!syncStatus.value) return ''
+  const { ahead, behind } = syncStatus.value
+  let text = ''
+  if (ahead > 0) text += `↑${ahead}`
+  if (behind > 0) text += (text ? ' ' : '') + `↓${behind}`
+  return text
+})
+
+// 同步状态样式类
+const syncStatusClass = computed(() => {
+  if (!syncStatus.value) return ''
+  const { ahead, behind } = syncStatus.value
+  if (ahead > 0 && behind === 0) return 'status-ahead'
+  if (behind > 0 && ahead === 0) return 'status-behind'
+  return 'status-diverged'
+})
 
 // 切换终端菜单
 function toggleTerminalMenu() {
@@ -192,6 +238,12 @@ defineExpose({
   flex-shrink: 0;
 }
 
+.branch-badge-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .branch-badge {
   display: flex;
   align-items: center;
@@ -207,6 +259,32 @@ defineExpose({
 
 .branch-badge .icon {
   font-size: 12px;
+}
+
+.sync-status-badge {
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.sync-status-badge.status-ahead {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--accent-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.sync-status-badge.status-behind {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.sync-status-badge.status-diverged {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-error);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .action-buttons-inline {
