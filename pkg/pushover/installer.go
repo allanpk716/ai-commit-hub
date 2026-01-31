@@ -72,38 +72,9 @@ func (in *Installer) Install(projectPath string, force bool) (*InstallResult, er
 		}, nil
 	}
 
-	// 解析输出的最后一行 JSON
-	outputStr := string(output)
-	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
-	lastLine := lines[len(lines)-1]
-
-	// 尝试解析 Python 格式的输出 (status: "success")
-	var pythonResult PythonInstallResult
-	if err := json.Unmarshal([]byte(lastLine), &pythonResult); err == nil {
-		// 成功解析 Python 格式
-		result := pythonResult.ToInstallResult()
-		return &result, nil
-	}
-
-	// 尝试解析标准格式的输出 (success: true)
-	var standardResult InstallResult
-	if err := json.Unmarshal([]byte(lastLine), &standardResult); err == nil {
-		return &standardResult, nil
-	}
-
-	// 如果两种格式都无法解析，检查输出中是否包含成功关键字
-	if strings.Contains(outputStr, "success") || strings.Contains(outputStr, "complete") {
-		return &InstallResult{
-			Success:  true,
-			Message:  "安装成功",
-			HookPath: filepath.Join(projectPath, ".claude", "hooks", "pushover-hook"),
-		}, nil
-	}
-
-	return &InstallResult{
-		Success: false,
-		Message: fmt.Sprintf("无法解析安装结果: %v\n输出: %s", err, outputStr),
-	}, nil
+	// 解析并返回结果
+	hookPath := filepath.Join(projectPath, ".claude", "hooks", "pushover-hook")
+	return in.parseInstallResult(output, hookPath)
 }
 
 // Uninstall 卸载 Hook
@@ -161,38 +132,67 @@ func (in *Installer) Update(projectPath string) (*InstallResult, error) {
 		}, nil
 	}
 
-	// 解析输出的最后一行 JSON
-	outputStr := string(output)
-	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
-	lastLine := lines[len(lines)-1]
+	// 解析并返回结果
+	hookPath := filepath.Join(projectPath, ".claude", "hooks", "pushover-hook")
+	return in.parseInstallResult(output, hookPath)
+}
 
-	// 尝试解析 Python 格式的输出 (status: "success")
-	var pythonResult PythonInstallResult
-	if err := json.Unmarshal([]byte(lastLine), &pythonResult); err == nil {
-		// 成功解析 Python 格式
-		result := pythonResult.ToInstallResult()
-		return &result, nil
+// Reinstall 重装 Hook（保留用户配置）
+func (in *Installer) Reinstall(projectPath string) (*InstallResult, error) {
+	// 检查扩展目录是否存在
+	if _, err := os.Stat(in.extensionPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("cc-pushover-hook 扩展未下载，请先下载扩展")
 	}
 
-	// 尝试解析标准格式的输出 (success: true)
-	var standardResult InstallResult
-	if err := json.Unmarshal([]byte(lastLine), &standardResult); err == nil {
-		return &standardResult, nil
+	// 检查 install.py 是否存在
+	installScript := filepath.Join(in.extensionPath, "install.py")
+	if _, err := os.Stat(installScript); os.IsNotExist(err) {
+		return nil, fmt.Errorf("install.py 不存在，请确保 cc-pushover-hook 扩展完整")
 	}
 
-	// 如果两种格式都无法解析，检查输出中是否包含成功关键字
-	if strings.Contains(outputStr, "success") || strings.Contains(outputStr, "complete") {
+	// 检查 Python 是否可用
+	pythonCmd, err := in.findPython()
+	if err != nil {
+		return nil, err
+	}
+
+	// 读取当前通知配置
+	config := in.readNotificationConfig(projectPath)
+
+	// 构建命令参数（使用 --reinstall 标志）
+	args := []string{
+		installScript,
+		"--target-dir", projectPath,
+		"--non-interactive",
+		"--reinstall",
+	}
+
+	// 调试日志
+	fmt.Fprintf(os.Stderr, "[DEBUG] Reinstalling Hook: %s %v\n", pythonCmd, args)
+	fmt.Fprintf(os.Stderr, "[DEBUG] Working dir: %s\n", in.extensionPath)
+	fmt.Fprintf(os.Stderr, "[DEBUG] Config: NoPushover=%v, NoWindows=%v\n", config.NoPushoverFile, config.NoWindowsFile)
+
+	// 执行安装脚本
+	cmd := exec.Command(pythonCmd, args...)
+	cmd.Dir = in.extensionPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
 		return &InstallResult{
-			Success:  true,
-			Message:  "更新成功",
-			HookPath: filepath.Join(projectPath, ".claude", "hooks", "pushover-hook"),
+			Success: false,
+			Message: fmt.Sprintf("重装失败: %v\n输出: %s", err, string(output)),
 		}, nil
 	}
 
-	return &InstallResult{
-		Success: false,
-		Message: fmt.Sprintf("无法解析更新结果: 输出: %s", outputStr),
-	}, nil
+	// 恢复通知配置
+	if restoreErr := in.restoreNotificationConfig(projectPath, config); restoreErr != nil {
+		// 配置恢复失败记录警告，但不影响重装结果
+		fmt.Fprintf(os.Stderr, "[WARN] 恢复通知配置失败: %v\n", restoreErr)
+	}
+
+	// 解析并返回结果
+	hookPath := filepath.Join(projectPath, ".claude", "hooks", "pushover-hook")
+	return in.parseInstallResult(output, hookPath)
 }
 
 // SetNotificationMode 设置通知模式
@@ -256,4 +256,95 @@ func (in *Installer) findPython() (string, error) {
 	}
 
 	return "", fmt.Errorf("未找到 Python，请确保已安装 Python 3.6+")
+}
+
+// NotificationConfig 通知配置
+type NotificationConfig struct {
+	NoPushoverFile bool
+	NoWindowsFile  bool
+}
+
+// fileExists 检查文件是否存在
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// readNotificationConfig 读取通知配置
+func (in *Installer) readNotificationConfig(projectPath string) NotificationConfig {
+	noPushoverPath := filepath.Join(projectPath, ".no-pushover")
+	noWindowsPath := filepath.Join(projectPath, ".no-windows")
+
+	return NotificationConfig{
+		NoPushoverFile: fileExists(noPushoverPath),
+		NoWindowsFile:  fileExists(noWindowsPath),
+	}
+}
+
+// restoreNotificationConfig 恢复通知配置
+func (in *Installer) restoreNotificationConfig(projectPath string, config NotificationConfig) error {
+	noPushoverPath := filepath.Join(projectPath, ".no-pushover")
+	noWindowsPath := filepath.Join(projectPath, ".no-windows")
+
+	// 恢复 .no-pushover
+	if config.NoPushoverFile {
+		if err := os.WriteFile(noPushoverPath, []byte(""), 0644); err != nil {
+			return fmt.Errorf("恢复 .no-pushover 失败: %w", err)
+		}
+	} else {
+		os.Remove(noPushoverPath)
+	}
+
+	// 恢复 .no-windows
+	if config.NoWindowsFile {
+		if err := os.WriteFile(noWindowsPath, []byte(""), 0644); err != nil {
+			return fmt.Errorf("恢复 .no-windows 失败: %w", err)
+		}
+	} else {
+		os.Remove(noWindowsPath)
+	}
+
+	return nil
+}
+
+// parseInstallResult 解析安装结果
+func (in *Installer) parseInstallResult(output []byte, hookPath string) (*InstallResult, error) {
+	outputStr := string(output)
+	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
+
+	if len(lines) == 0 {
+		return &InstallResult{
+			Success: false,
+			Message: "安装脚本无输出",
+		}, nil
+	}
+
+	lastLine := lines[len(lines)-1]
+
+	// 尝试解析 Python 格式的输出 (status: "success")
+	var pythonResult PythonInstallResult
+	if err := json.Unmarshal([]byte(lastLine), &pythonResult); err == nil {
+		result := pythonResult.ToInstallResult()
+		return &result, nil
+	}
+
+	// 尝试解析标准格式的输出 (success: true)
+	var standardResult InstallResult
+	if err := json.Unmarshal([]byte(lastLine), &standardResult); err == nil {
+		return &standardResult, nil
+	}
+
+	// 如果两种格式都无法解析，检查输出中是否包含成功关键字
+	if strings.Contains(outputStr, "success") || strings.Contains(outputStr, "complete") {
+		return &InstallResult{
+			Success:  true,
+			Message:  "操作成功",
+			HookPath: hookPath,
+		}, nil
+	}
+
+	return &InstallResult{
+		Success: false,
+		Message:  fmt.Sprintf("无法解析安装结果: %s", outputStr),
+	}, nil
 }
