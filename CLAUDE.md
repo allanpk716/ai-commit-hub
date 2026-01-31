@@ -165,6 +165,220 @@ Frontend (Vue3)  ←→  Wails Bindings  ←→  Backend (Go)
 **类型定义 (`types/index.ts`)**: TypeScript 类型与 Go 结构体同步
 **类型定义 (`types/status.ts`)**: StatusCache 相关类型定义
 
+### 程序启动流程
+
+AI Commit Hub 采用后端预加载 + 前端缓存填充的启动策略，确保应用启动时项目状态立即可用，避免 UI 闪烁。
+
+#### 后端启动流程（app.go:66-208）
+
+**关键步骤：**
+
+1. **数据库和配置初始化**：
+   - 初始化 SQLite 数据库连接
+   - 加载 AI Provider 配置
+   - 初始化 Pushover 服务
+
+2. **异步预加载项目状态**（核心改进）：
+   - 在后台 goroutine 中执行，不阻塞主线程
+   - 通过 `StartupService.Preload()` 批量获取所有项目状态
+   - 包括：Git 状态、暂存区状态、Pushover Hook 状态、推送状态等
+
+3. **发送启动完成事件**：
+   - 成功时：通过 `startup-complete` 事件将预加载的状态数据传递给前端
+   - 失败时：仍发送 `startup-complete` 事件（success=false），避免界面卡死
+
+```go
+// 后端启动示例
+func (a *App) startup(ctx context.Context) {
+    a.ctx = ctx
+    // 初始化服务...
+
+    go func() {
+        startupService := service.NewStartupService(ctx, a.gitProjectRepo, a.pushoverService)
+        statuses, err := startupService.Preload()
+
+        if err != nil {
+            runtime.EventsEmit(ctx, "startup-complete", nil)
+            return
+        }
+
+        // 发送预加载的状态数据到前端
+        runtime.EventsEmit(ctx, "startup-complete", map[string]interface{}{
+            "success": true,
+            "statuses": statuses,
+        })
+    }()
+}
+```
+
+#### 前端启动流程（App.vue & main.ts）
+
+**关键步骤：**
+
+1. **显示启动画面**（SplashScreen）：
+   - 优先显示启动画面，提供视觉反馈
+   - 防止用户看到状态未加载的界面
+
+2. **监听启动完成事件**：
+   - 监听后端 `startup-complete` 事件
+   - 成功时：将预加载的状态数据填充到 StatusCache
+   - 失败时：降级为懒加载模式，使用时再获取状态
+
+3. **超时保护机制**（main.ts:13-28）：
+   - 30 秒超时保护，强制隐藏启动画面
+   - 避免后端预加载失败导致界面卡死
+
+```typescript
+// main.ts - 超时保护
+const startupTimeout = setTimeout(() => {
+  if (startupStore.isVisible) {
+    console.warn('启动超时，强制隐藏启动画面')
+    startupStore.complete()
+  }
+}, 30000)
+
+// App.vue - 监听后端事件
+EventsOn('startup-complete', async (data: { success?: boolean; statuses?: Record<string, any> } | null) => {
+  if (data?.success && data?.statuses) {
+    const statusCache = useStatusCache()
+    // 填充预加载的状态数据到缓存
+    for (const [path, status] of Object.entries(data.statuses)) {
+      statusCache.updateCache(path, status)
+    }
+  }
+  // 隐藏启动画面
+  showSplash.value = false
+})
+```
+
+#### 启动流程设计理念
+
+- **性能优化**：后端批量预加载减少网络请求次数
+- **容错设计**：预加载失败自动降级为懒加载模式
+- **用户体验**：启动画面 + 立即可用的状态，避免 UI 闪烁
+- **超时保护**：防止后端预加载卡死导致界面无法使用
+
+### 项目状态更新机制
+
+StatusCache 实现了完整的状态管理生命周期，包括缓存、更新、乐观更新和后台刷新。
+
+#### 状态缓存策略
+
+**缓存结构**（`ProjectStatusCache`）：
+
+```typescript
+interface ProjectStatusCache {
+  gitStatus: ProjectStatus | null        // Git 状态（分支、提交信息等）
+  stagingStatus: StagingStatus | null    // 暂存区状态（已暂存文件）
+  untrackedCount: number                 // 未跟踪文件数量
+  pushoverStatus: HookStatus | null      // Pushover Hook 状态
+  pushStatus: PushStatus | null          // 推送状态
+  lastUpdated: number                    // 最后更新时间（时间戳）
+  loading: boolean                       // 是否正在加载
+  error: string | null                   // 错误信息
+  stale: boolean                         // 是否已过期
+}
+```
+
+**缓存过期判断**：
+
+- 默认 TTL（Time To Live）：30 秒
+- 通过 `isExpired(path)` 判断缓存是否过期
+- 过期的缓存在后台静默刷新，不影响当前显示
+
+#### 乐观更新机制（Optimistic Updates）
+
+**核心方法**：`updateOptimistic(path, updates)`（statusCache.ts:170-195）
+
+**工作流程**：
+
+1. **立即更新 UI**：Git 操作（提交、暂存等）后立即更新缓存，无需等待后端确认
+2. **保存回滚快照**：保存更新前的状态，用于失败时回滚
+3. **返回回滚函数**：如果操作失败，调用回滚函数恢复原状态
+
+```typescript
+// 示例：Git 提交后的乐观更新
+const rollback = statusCache.updateOptimistic(projectPath, {
+  hasUncommittedChanges: false,
+  untrackedCount: updatedUntrackedCount
+})
+
+try {
+  // 执行 Git 提交
+  await CommitProject(projectPath, commitMessage)
+  // 提交成功，触发后台刷新以获取最新状态
+  await statusCache.refresh(projectPath, { force: true })
+} catch (error) {
+  // 提交失败，回滚状态
+  rollback?.()
+  throw error
+}
+```
+
+**使用场景**：
+- Git 提交后立即更新提交状态
+- 文件暂存后更新暂存区状态
+- 推送操作后更新推送状态
+
+#### 后台刷新机制（Background Refresh）
+
+**核心方法**：`refresh(path, options)`（statusCache.ts:342-407）
+
+**工作流程**：
+
+1. **防重复请求**：如果已有相同请求在进行中，跳过本次刷新
+2. **TTL 检查**：如果未强制刷新且缓存未过期，跳过刷新
+3. **并发获取状态**：同时获取 Git 状态、暂存区状态、Pushover 状态等
+4. **更新缓存**：将获取的最新状态更新到缓存中
+
+```typescript
+// 后台刷新示例
+await statusCache.refresh(projectPath, {
+  force: false,    // 是否强制刷新（忽略 TTL）
+  silent: true     // 是否静默刷新（不显示加载状态）
+})
+```
+
+**刷新策略**：
+- **缓存优先**：优先使用缓存数据提供快速响应
+- **后台更新**：缓存过期后在后台静默刷新，不影响 UI
+- **强制刷新**：用户操作（如手动刷新按钮）后强制刷新，忽略 TTL
+
+#### Git 操作后的状态同步
+
+**操作流程**：
+
+1. **乐观更新**：操作前立即更新 UI，提供即时反馈
+2. **执行操作**：调用后端 API 执行 Git 操作
+3. **强制刷新**：操作成功后强制刷新状态，确保数据一致性
+4. **错误回滚**：操作失败时回滚到操作前状态
+
+```typescript
+// 完整示例：Git 提交操作
+async function commitProject(projectPath: string, message: string) {
+  const statusCache = useStatusCache()
+
+  // 1. 乐观更新：立即更新 UI
+  const rollback = statusCache.updateOptimistic(projectPath, {
+    hasUncommittedChanges: false,
+    lastCommitTime: Date.now()
+  })
+
+  try {
+    // 2. 执行 Git 提交
+    await CommitProject(projectPath, message)
+
+    // 3. 强制刷新：获取最新状态
+    await statusCache.refresh(projectPath, { force: true })
+
+  } catch (error) {
+    // 4. 错误回滚：恢复原状态
+    rollback?.()
+    throw error
+  }
+}
+```
+
 ### StatusCache 层
 
 `frontend/src/stores/statusCache.ts` 是状态缓存层，用于优化项目状态的加载和更新性能。
@@ -292,6 +506,70 @@ Frontend          Backend
 3. **错误处理**: 所有 API 方法应检查 `a.initError`，如果数据库初始化失败应返回错误
 
 4. **Wails Events**: 流式输出使用 `runtime.EventsEmit()` 发送事件，前端使用 `EventsOn()` 监听
+
+5. **控制台窗口隐藏**（Windows 平台）：
+
+   **问题描述：**
+   - 在 Windows 上执行外部命令（如 git）时，会出现控制台窗口闪烁
+   - 影响用户体验，尤其是频繁执行命令时
+
+   **解决方案：**
+   - 使用自定义 `Command` 函数封装 `exec.Cmd`
+   - 在 Windows 平台下设置 `CREATE_NO_WINDOW` 标志
+
+   ```go
+   // app.go:32-45
+   import (
+       "os/exec"
+       "runtime" as stdruntime
+       "golang.org/x/sys/windows"
+   )
+
+   // Command creates a new exec.Cmd with hidden window on Windows
+   func Command(name string, args ...string) *exec.Cmd {
+       cmd := exec.Command(name, args...)
+
+       // On Windows, hide the console window to prevent popups
+       if stdruntime.GOOS == "windows" {
+           cmd.SysProcAttr = &windows.SysProcAttr{
+               CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+           }
+       }
+
+       return cmd
+   }
+   ```
+
+   **使用示例：**
+
+   ```go
+   // 在所有外部命令执行时使用 Command 函数
+   cmd := Command("git", "status", "--porcelain")
+   cmd.Dir = projectPath
+   output, err := cmd.CombinedOutput()
+   ```
+
+   **注意事项：**
+   - 所有外部命令（git、python 等）都必须使用 `Command` 函数
+   - 不能直接使用 `exec.Command`，否则会导致控制台窗口闪烁
+   - Unix/Linux 平台不受影响，`CREATE_NO_WINDOW` 标志仅在 Windows 下生效
+
+6. **日志输出规范**：
+   - 统一使用 `github.com/WQGroup/logger` 日志库
+   - 不要使用 `fmt.Printf` 或 `log.Println` 输出日志
+   - 生产构建后的日志应输出到文件，避免控制台输出
+
+   ```go
+   import "github.com/WQGroup/logger"
+
+   // 正确的日志输出
+   logger.Info("AI Commit Hub starting up...")
+   logger.Errorf("数据库初始化失败: %v", err)
+
+   // 错误的日志输出（避免使用）
+   fmt.Printf("应用启动: %s\n", version)
+   log.Println("错误:", err)
+   ```
 
 ### Git 提交规范
 
