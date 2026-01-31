@@ -3,7 +3,8 @@ import { ref, computed } from 'vue'
 import type {
   ProjectStatusCache,
   ProjectStatusCacheMap,
-  CacheOptions
+  CacheOptions,
+  PushStatus
 } from '../types/status'
 import type { HookStatus } from '../types/index'
 import { GetStagingStatus, GetProjectStatus, GetUntrackedFiles, GetPushoverHookStatus, GetAllProjectStatuses, GetPushStatus } from '../../wailsjs/go/main/App'
@@ -563,7 +564,7 @@ export const useStatusCache = defineStore('statusCache', () => {
    * @param path 项目路径
    * @returns 推送状态，如果不存在则返回 null
    */
-  function getPushStatus(path: string): any | null {
+  function getPushStatus(path: string): PushStatus | null {
     const cached = cache.value[path]
     return cached?.pushStatus || null
   }
