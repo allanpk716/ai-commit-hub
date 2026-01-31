@@ -356,6 +356,7 @@ export const useStatusCache = defineStore('statusCache', () => {
         stagingStatus: null,
         untrackedCount: 0,
         pushoverStatus: null,
+        pushStatus: null,
         lastUpdated: 0,
         loading: true,
         error: null,
