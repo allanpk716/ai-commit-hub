@@ -313,12 +313,28 @@ defineExpose({
   transform: translateY(-1px);
 }
 
+/* 终端按钮 hover 特殊样式 */
+.terminal-btn-main:hover,
+.terminal-btn-dropdown:hover {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: var(--accent-primary);
+}
+
 .icon-btn:active {
   transform: translateY(0);
 }
 
 .icon-btn .icon {
   font-size: 14px;
+}
+
+/* 终端按钮图标颜色 */
+.terminal-btn-main .icon {
+  color: var(--accent-primary);
+}
+
+.terminal-btn-dropdown .dropdown-arrow {
+  color: var(--accent-primary);
 }
 
 /* 终端按钮复合样式 */
@@ -331,6 +347,7 @@ defineExpose({
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
   border-right: none;
+  border-color: rgba(6, 182, 212, 0.4);
 }
 
 .terminal-btn-dropdown {
@@ -339,6 +356,7 @@ defineExpose({
   border-bottom-left-radius: 0;
   padding-left: 2px;
   padding-right: 2px;
+  border-color: rgba(6, 182, 212, 0.4);
 }
 
 .dropdown-arrow {
