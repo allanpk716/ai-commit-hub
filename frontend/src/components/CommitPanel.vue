@@ -46,27 +46,25 @@
             <span class="btn-text" v-else>生成中...</span>
           </button>
 
-          <!-- 新增：提交和推送按钮（仅在有消息时显示） -->
-          <template v-if="commitStore.streamingMessage || commitStore.generatedMessage">
-            <button
-              @click="handleCommit"
-              class="btn-action-inline btn-primary-inline"
-              :disabled="!commitStore.hasStagedFiles"
-              title="提交到本地"
-            >
-              <span class="icon">✓</span>
-              提交
-            </button>
-            <button
-              @click="handlePush"
-              class="btn-action-inline btn-push-inline"
-              :disabled="isPushing || !pushStatus?.canPush"
-              :title="pushStatus?.aheadCount ? `领先 ${pushStatus.aheadCount} 个提交` : pushStatus?.error || '无待推送内容'"
-            >
-              <span class="icon" :class="{ spin: isPushing }">↑</span>
-              {{ isPushing ? '推送中' : '推送' }}
-            </button>
-          </template>
+          <!-- 提交和推送按钮（始终显示，禁用状态取决于是否有消息） -->
+          <button
+            @click="handleCommit"
+            class="btn-action-inline btn-primary-inline"
+            :disabled="!commitStore.hasStagedFiles || !(commitStore.streamingMessage || commitStore.generatedMessage)"
+            title="提交到本地"
+          >
+            <span class="icon">✓</span>
+            提交
+          </button>
+          <button
+            @click="handlePush"
+            class="btn-action-inline btn-push-inline"
+            :disabled="isPushing || !pushStatus?.canPush || !(commitStore.streamingMessage || commitStore.generatedMessage)"
+            :title="pushStatus?.aheadCount ? `领先 ${pushStatus.aheadCount} 个提交` : pushStatus?.error || '无待推送内容'"
+          >
+            <span class="icon" :class="{ spin: isPushing }">↑</span>
+            {{ isPushing ? '推送中' : '推送' }}
+          </button>
         </div>
 
         <!-- 中间：配置控件 -->
