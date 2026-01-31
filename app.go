@@ -1382,17 +1382,28 @@ func (a *App) AddToGitIgnore(projectPath, pattern, mode string) error {
 	}
 
 	gitMode := git.ExcludeMode(mode)
-	finalPattern, err := git.GenerateGitIgnorePattern(pattern, gitMode)
-	if err != nil {
-		logger.Errorf("[App.AddToGitIgnore] 生成规则失败: %v", err)
-		return fmt.Errorf("生成规则失败: %w", err)
+
+	// 目录模式：pattern 已经是用户选择的最终目录路径，直接使用
+	// 其他模式：需要根据文件路径生成对应的 gitignore 规则
+	var finalPattern string
+	var err error
+
+	if gitMode == git.ExcludeModeDirectory {
+		// 用户在下拉框中选择的目录已经是最终 pattern
+		finalPattern = pattern
+	} else {
+		finalPattern, err = git.GenerateGitIgnorePattern(pattern, gitMode)
+		if err != nil {
+			logger.Errorf("[App.AddToGitIgnore] 生成规则失败: %v", err)
+			return fmt.Errorf("生成规则失败: %w", err)
+		}
 	}
 
 	err = git.AddToGitIgnoreFile(projectPath, finalPattern)
 	if err != nil {
 		logger.Errorf("[App.AddToGitIgnore] 添加失败: %v", err)
 	} else {
-		logger.Infof("[App.AddToGitIgnore] 添加成功")
+		logger.Infof("[App.AddToGitIgnore] 添加成功: pattern=%s", finalPattern)
 	}
 	return err
 }

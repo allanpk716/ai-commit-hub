@@ -456,10 +456,10 @@ function handleUntrackedExclude() {
   excludeDialogVisible.value = true
 }
 
-async function handleExcludeConfirm(mode: 'exact' | 'extension' | 'directory', _pattern: string) {
+async function handleExcludeConfirm(mode: 'exact' | 'extension' | 'directory', pattern: string) {
   if (!selectedUntrackedFile.value) return
   try {
-    await commitStore.addToGitIgnore(selectedUntrackedFile.value.path, mode)
+    await commitStore.addToGitIgnore(pattern, mode)
   } catch (e) {
     console.error('添加到排除列表失败:', e)
   }
