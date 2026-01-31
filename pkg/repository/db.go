@@ -6,9 +6,10 @@ import (
 	"path/filepath"
 	"sync"
 
+	wqlogger "github.com/WQGroup/logger"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 )
@@ -46,7 +47,7 @@ func InitializeDatabase(config *DatabaseConfig) error {
 	once.Do(func() {
 		var err error
 		db, err = gorm.Open(sqlite.Open(config.Path), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Silent),
+			Logger: gormlogger.Default.LogMode(gormlogger.Silent),
 		})
 		if err != nil {
 			initErr = fmt.Errorf("failed to connect to database: %w", err)
@@ -59,7 +60,7 @@ func InitializeDatabase(config *DatabaseConfig) error {
 			return
 		}
 
-		fmt.Println("Database initialized:", config.Path)
+		wqlogger.Infof("Database initialized: %s", config.Path)
 	})
 
 	return initErr

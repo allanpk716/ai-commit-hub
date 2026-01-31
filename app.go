@@ -16,6 +16,7 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"golang.org/x/sys/windows"
 	"gorm.io/gorm"
 
 	// Provider 注册 - 匿名导入以触发 init()
@@ -27,6 +28,21 @@ import (
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/openrouter"
 	_ "github.com/allanpk716/ai-commit-hub/pkg/provider/phind"
 )
+
+// Command creates a new exec.Cmd with hidden window on Windows
+// This prevents console windows from popping up when running external commands
+func Command(name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...)
+
+	// On Windows, hide the console window to prevent popups
+	if stdruntime.GOOS == "windows" {
+		cmd.SysProcAttr = &windows.SysProcAttr{
+			CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+		}
+	}
+
+	return cmd
+}
 
 // App struct
 type App struct {
@@ -49,18 +65,18 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	fmt.Println("AI Commit Hub starting up...")
+	logger.Info("AI Commit Hub starting up...")
 
 	// Initialize database
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println("Failed to get home directory:", err)
+		logger.Errorf("Failed to get home directory: %v", err)
 		return
 	}
 
 	configDir := filepath.Join(homeDir, ".ai-commit-hub")
 	if err := os.MkdirAll(configDir, 0755); err != nil {
-		fmt.Println("Failed to create config directory:", err)
+		logger.Errorf("Failed to create config directory: %v", err)
 		return
 	}
 
@@ -70,7 +86,7 @@ func (a *App) startup(ctx context.Context) {
 	dbConfig := &repository.DatabaseConfig{Path: a.dbPath}
 	if err := repository.InitializeDatabase(dbConfig); err != nil {
 		a.initError = fmt.Errorf("database initialization failed: %w", err)
-		fmt.Println("Failed to initialize database:", err)
+		logger.Errorf("Failed to initialize database: %v", err)
 		return
 	}
 
@@ -81,7 +97,7 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize config service and ensure default config exists
 	a.configService = service.NewConfigService()
 	if _, err := a.configService.LoadConfig(ctx); err != nil {
-		fmt.Println("Failed to initialize config:", err)
+		logger.Errorf("Failed to initialize config: %v", err)
 		// Continue anyway - config will be created when needed
 	}
 
@@ -92,13 +108,13 @@ func (a *App) startup(ctx context.Context) {
 	// Run database migrations
 	db := repository.GetDB()
 	if err := repository.MigrateAddProjectAIConfig(db); err != nil {
-		fmt.Printf("数据库迁移失败: %v\n", err)
+		logger.Warnf("数据库迁移失败: %v", err)
 		// Continue anyway - migration may have already been applied
 	}
 
 	// Run Pushover Hook migration
 	if err := repository.MigrateAddPushoverHookFields(db); err != nil {
-		fmt.Printf("Pushover Hook 迁移失败: %v\n", err)
+		logger.Warnf("Pushover Hook 迁移失败: %v", err)
 		// Continue anyway - migration may have already been applied
 	}
 
@@ -106,7 +122,7 @@ func (a *App) startup(ctx context.Context) {
 	// 获取可执行文件所在目录作为 appPath
 	execPath, err := os.Executable()
 	if err != nil {
-		fmt.Printf("获取可执行文件路径失败: %v\n", err)
+		logger.Errorf("获取可执行文件路径失败: %v", err)
 	} else {
 		appPath := filepath.Dir(execPath)
 		a.pushoverService = pushover.NewService(appPath)
@@ -114,28 +130,28 @@ func (a *App) startup(ctx context.Context) {
 		// 自动下载 cc-pushover-hook 扩展（如果不存在）
 		if a.pushoverService != nil {
 			if !a.pushoverService.IsExtensionDownloaded() {
-				fmt.Println("cc-pushover-hook 扩展未安装，开始自动下载...")
+				logger.Info("cc-pushover-hook 扩展未安装，开始自动下载...")
 				if err := a.pushoverService.CloneExtension(); err != nil {
-					fmt.Printf("自动下载 cc-pushover-hook 扩展失败: %v\n", err)
+					logger.Errorf("自动下载 cc-pushover-hook 扩展失败: %v", err)
 					// 不中断启动流程，继续运行
 				} else {
-					fmt.Println("cc-pushover-hook 扩展下载成功")
+					logger.Info("cc-pushover-hook 扩展下载成功")
 				}
 			} else {
-				fmt.Println("cc-pushover-hook 扩展已存在")
+				logger.Info("cc-pushover-hook 扩展已存在")
 			}
 		}
 	}
 
 	// 同步所有项目的 Hook 状态（阻塞执行，确保前端获取到最新状态）
 	if a.pushoverService != nil {
-		fmt.Println("准备启动 Hook 状态同步...")
+		logger.Info("准备启动 Hook 状态同步...")
 		a.syncAllProjectsHookStatus()
 	} else {
-		fmt.Println("Pushover service 未初始化，跳过 Hook 状态同步")
+		logger.Warn("Pushover service 未初始化，跳过 Hook 状态同步")
 	}
 
-	fmt.Println("AI Commit Hub initialized successfully")
+	logger.Info("AI Commit Hub initialized successfully")
 
 	// 启动预加载（异步）
 	if a.pushoverService != nil && a.gitProjectRepo != nil {
@@ -155,7 +171,7 @@ func (a *App) startup(ctx context.Context) {
 
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
-	fmt.Println("AI Commit Hub shutting down...")
+	logger.Info("AI Commit Hub shutting down...")
 }
 
 // Greet returns a greeting
@@ -175,11 +191,11 @@ func (a *App) OpenConfigFolder() error {
 	var cmd *exec.Cmd
 	switch stdruntime.GOOS {
 	case "windows":
-		cmd = exec.Command("explorer", configDir)
+		cmd = Command("explorer", configDir)
 	case "darwin":
-		cmd = exec.Command("open", configDir)
+		cmd = Command("open", configDir)
 	default:
-		cmd = exec.Command("xdg-open", configDir)
+		cmd = Command("xdg-open", configDir)
 	}
 
 	return cmd.Start()
@@ -206,11 +222,11 @@ func (a *App) OpenExtensionFolder() error {
 	var cmd *exec.Cmd
 	switch stdruntime.GOOS {
 	case "windows":
-		cmd = exec.Command("explorer", extensionPath)
+		cmd = Command("explorer", extensionPath)
 	case "darwin":
-		cmd = exec.Command("open", extensionPath)
+		cmd = Command("open", extensionPath)
 	default:
-		cmd = exec.Command("xdg-open", extensionPath)
+		cmd = Command("xdg-open", extensionPath)
 	}
 
 	return cmd.Start()
@@ -232,7 +248,7 @@ func (a *App) OpenInFileExplorer(projectPath string) error {
 	}
 	absPath = filepath.Clean(absPath)
 
-	fmt.Printf("DEBUG OpenInFileExplorer: 原始路径=%s, 绝对路径=%s\n", projectPath, absPath)
+	logger.Debugf("OpenInFileExplorer: 原始路径=%s, 绝对路径=%s", projectPath, absPath)
 
 	// 检查路径是否存在
 	if _, err := os.Stat(absPath); os.IsNotExist(err) {
@@ -244,16 +260,16 @@ func (a *App) OpenInFileExplorer(projectPath string) error {
 	case "windows":
 		// 使用 rundll32 调用 Shell API，这是 Windows 打开文件管理器的标准方式
 		// 不会打开命令行窗口，正确处理各种路径格式
-		cmd = exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", absPath)
+		cmd = Command("rundll32.exe", "url.dll,FileProtocolHandler", absPath)
 	case "darwin":
-		cmd = exec.Command("open", absPath)
+		cmd = Command("open", absPath)
 	case "linux":
-		cmd = exec.Command("xdg-open", absPath)
+		cmd = Command("xdg-open", absPath)
 	default:
 		return fmt.Errorf("unsupported platform: %s", stdruntime.GOOS)
 	}
 
-	fmt.Printf("DEBUG OpenInFileExplorer: 执行命令=%s %v\n", cmd.Path, cmd.Args)
+	logger.Debugf("OpenInFileExplorer: 执行命令=%s %v", cmd.Path, cmd.Args)
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("打开文件管理器失败: %w", err)
@@ -284,15 +300,15 @@ func (a *App) OpenInTerminal(projectPath, terminalType string) error {
 		case "powershell":
 			// 使用 cmd /c start 启动新的独立 PowerShell 窗口
 			// "PowerShell" 是窗口标题
-			cmd = exec.Command("cmd", "/c", "start", "PowerShell", "powershell",
+			cmd = Command("cmd", "/c", "start", "PowerShell", "powershell",
 				"-NoExit", "-Command", fmt.Sprintf("Set-Location -LiteralPath '%s'", absPath))
 		case "cmd":
 			// 使用 cmd /c start 启动新的独立 CMD 窗口
 			// "CMD" 是窗口标题
-			cmd = exec.Command("cmd", "/c", "start", "CMD", "/k", fmt.Sprintf("cd /d %s", absPath))
+			cmd = Command("cmd", "/c", "start", "CMD", "/k", fmt.Sprintf("cd /d %s", absPath))
 		case "windows-terminal":
 			// 使用 Windows Terminal 的 -d 参数直接设置工作目录
-			cmd = exec.Command("wt", "-d", absPath)
+			cmd = Command("wt", "-d", absPath)
 		default:
 			return fmt.Errorf("不支持的终端类型: %s", terminalType)
 		}
@@ -301,11 +317,11 @@ func (a *App) OpenInTerminal(projectPath, terminalType string) error {
 		case "terminal":
 			// 使用 AppleScript 打开 Terminal 并执行 cd 命令
 			script := fmt.Sprintf(`tell application "Terminal" to do script "cd %s"`, projectPath)
-			cmd = exec.Command("osascript", "-e", script)
+			cmd = Command("osascript", "-e", script)
 		case "iterm2":
 			// 使用 AppleScript 打开 iTerm2 并执行 cd 命令
 			script := fmt.Sprintf(`tell application "iTerm" to tell current window to create tab with default profile and tell current session to write text "cd %s"`, projectPath)
-			cmd = exec.Command("osascript", "-e", script)
+			cmd = Command("osascript", "-e", script)
 		default:
 			return fmt.Errorf("不支持的终端类型: %s", terminalType)
 		}
@@ -314,7 +330,7 @@ func (a *App) OpenInTerminal(projectPath, terminalType string) error {
 		switch terminalType {
 		case "default":
 			// 尝试使用常见的 Linux 终端模拟器
-			cmd = exec.Command("x-terminal-emulator", "-e", fmt.Sprintf("cd %s && exec $SHELL", projectPath))
+			cmd = Command("x-terminal-emulator", "-e", fmt.Sprintf("cd %s && exec $SHELL", projectPath))
 		default:
 			return fmt.Errorf("不支持的终端类型: %s", terminalType)
 		}
@@ -832,7 +848,7 @@ func (a *App) InstallPushoverHook(projectPath string, force bool) (*pushover.Ins
 	// 安装成功后同步数据库状态
 	if result.Success {
 		if syncErr := a.syncProjectHookStatusByPath(projectPath); syncErr != nil {
-			fmt.Printf("同步 Hook 状态失败: %v\n", syncErr)
+			logger.Warnf("同步 Hook 状态失败: %v", syncErr)
 			// 不影响安装结果，只记录错误
 		}
 	}
@@ -856,7 +872,7 @@ func (a *App) UninstallPushoverHook(projectPath string) error {
 
 	// 卸载成功后同步数据库状态
 	if syncErr := a.syncProjectHookStatusByPath(projectPath); syncErr != nil {
-		fmt.Printf("同步 Hook 状态失败: %v\n", syncErr)
+		logger.Warnf("同步 Hook 状态失败: %v", syncErr)
 		// 不影响卸载结果，只记录错误
 	}
 
@@ -881,7 +897,7 @@ func (a *App) UpdatePushoverHook(projectPath string) (*pushover.InstallResult, e
 	// 更新成功后同步数据库状态
 	if result.Success {
 		if syncErr := a.syncProjectHookStatusByPath(projectPath); syncErr != nil {
-			fmt.Printf("同步 Hook 状态失败: %v\n", syncErr)
+			logger.Warnf("同步 Hook 状态失败: %v", syncErr)
 			// 不影响更新结果，只记录错误
 		}
 	}
@@ -906,7 +922,7 @@ func (a *App) ReinstallPushoverHook(projectPath string) (*pushover.InstallResult
 	// 重装成功后同步数据库状态
 	if result.Success {
 		if syncErr := a.syncProjectHookStatusByPath(projectPath); syncErr != nil {
-			fmt.Printf("同步 Hook 状态失败: %v\n", syncErr)
+			logger.Warnf("同步 Hook 状态失败: %v", syncErr)
 			// 不影响重装结果，只记录错误
 		}
 	}
@@ -928,7 +944,7 @@ func (a *App) SetPushoverNotificationMode(projectPath string, mode string) error
 // ToggleNotification 切换指定项目的通知类型
 // 通过创建或删除 .no-pushover 或 .no-windows 文件来实现
 func (a *App) ToggleNotification(projectPath string, notificationType string) error {
-	fmt.Printf("切换通知状态: 项目=%s, 类型=%s\n", projectPath, notificationType)
+	logger.Infof("切换通知状态: 项目=%s, 类型=%s", projectPath, notificationType)
 
 	// 检查初始化错误
 	if a.initError != nil {
@@ -961,15 +977,15 @@ func (a *App) ToggleNotification(projectPath string, notificationType string) er
 			// 文件不存在，创建文件来禁用通知
 			file, err := os.Create(filePath)
 			if err != nil {
-				fmt.Printf("创建禁用文件失败: %v\n", err)
+				logger.Errorf("创建禁用文件失败: %v", err)
 				return fmt.Errorf("创建禁用文件失败: %w", err)
 			}
 			file.Close()
-			fmt.Printf("已禁用 %s 通知: 创建 %s\n", notificationType, fileName)
+			logger.Infof("已禁用 %s 通知: 创建 %s", notificationType, fileName)
 			return nil
 		}
 		// 其他错误
-		fmt.Printf("检查文件失败: %v\n", err)
+		logger.Errorf("检查文件失败: %v", err)
 		return fmt.Errorf("检查文件失败: %w", err)
 	}
 
@@ -979,11 +995,11 @@ func (a *App) ToggleNotification(projectPath string, notificationType string) er
 	}
 
 	if err := os.Remove(filePath); err != nil {
-		fmt.Printf("删除禁用文件失败: %v\n", err)
+		logger.Errorf("删除禁用文件失败: %v", err)
 		return fmt.Errorf("删除禁用文件失败: %w", err)
 	}
 
-	fmt.Printf("已启用 %s 通知: 删除 %s\n", notificationType, fileName)
+	logger.Infof("已启用 %s 通知: 删除 %s", notificationType, fileName)
 	return nil
 }
 
@@ -1124,38 +1140,38 @@ func (a *App) CheckPushoverUpdates(projectPath string) (map[string]interface{}, 
 func (a *App) syncAllProjectsHookStatus() {
 	projects, err := a.gitProjectRepo.GetAll()
 	if err != nil {
-		fmt.Printf("获取项目列表失败: %v\n", err)
+		logger.Errorf("获取项目列表失败: %v", err)
 		return
 	}
 
-	fmt.Printf("开始同步 %d 个项目的 Hook 状态...\n", len(projects))
+	logger.Infof("开始同步 %d 个项目的 Hook 状态...", len(projects))
 
 	for _, project := range projects {
 		if err := a.syncProjectHookStatus(&project); err != nil {
-			fmt.Printf("同步项目 %s Hook 状态失败: %v\n", project.Name, err)
+			logger.Warnf("同步项目 %s Hook 状态失败: %v", project.Name, err)
 		}
 	}
 
-	fmt.Printf("Hook 状态同步完成\n")
+	logger.Info("Hook 状态同步完成")
 }
 
 // syncProjectHookStatus 同步单个项目的 Hook 状态
 func (a *App) syncProjectHookStatus(project *models.GitProject) error {
-	fmt.Printf("[DEBUG] 正在检查项目 %s (路径: %s) 的 Hook 状态...\n", project.Name, project.Path)
+	logger.Debugf("正在检查项目 %s (路径: %s) 的 Hook 状态...", project.Name, project.Path)
 	status, err := a.pushoverService.GetHookStatus(project.Path)
 	if err != nil {
 		return fmt.Errorf("获取 Hook 状态失败: %w", err)
 	}
 
-	fmt.Printf("[DEBUG] 项目 %s Hook 状态: installed=%v, mode=%s\n", project.Name, status.Installed, status.Mode)
-	fmt.Printf("[DEBUG] 数据库中状态: installed=%v, mode=%s\n", project.HookInstalled, project.NotificationMode)
+	logger.Debugf("项目 %s Hook 状态: installed=%v, mode=%s", project.Name, status.Installed, status.Mode)
+	logger.Debugf("数据库中状态: installed=%v, mode=%s", project.HookInstalled, project.NotificationMode)
 
 	// 只在状态发生变化时更新数据库
 	needsUpdate := project.HookInstalled != status.Installed ||
 		(status.Installed && project.NotificationMode != string(status.Mode))
 
 	if !needsUpdate {
-		fmt.Printf("[DEBUG] 项目 %s 状态无需更新\n", project.Name)
+		logger.Debugf("项目 %s 状态无需更新", project.Name)
 		return nil
 	}
 
@@ -1173,7 +1189,7 @@ func (a *App) syncProjectHookStatus(project *models.GitProject) error {
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
-	fmt.Printf("已更新项目 %s 的 Hook 状态: installed=%v, mode=%s\n",
+	logger.Infof("已更新项目 %s 的 Hook 状态: installed=%v, mode=%s",
 		project.Name, status.Installed, status.Mode)
 
 	return nil

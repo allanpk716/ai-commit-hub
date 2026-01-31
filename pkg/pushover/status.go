@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/WQGroup/logger"
 )
 
 // StatusChecker Hook 状态检测器
@@ -25,21 +27,21 @@ func NewStatusChecker(projectPath string) *StatusChecker {
 func (sc *StatusChecker) CheckInstalled() bool {
 	// 优先检查新位置
 	newHookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-hook", "pushover-notify.py")
-	fmt.Printf("[DEBUG] StatusChecker: 检查新位置: %s\n", newHookPath)
+	logger.Debugf("StatusChecker: 检查新位置: %s", newHookPath)
 	if _, err := os.Stat(newHookPath); err == nil {
-		fmt.Printf("[DEBUG] StatusChecker: 找到文件！\n")
+		logger.Debug("StatusChecker: 找到文件！")
 		return true
 	}
-	fmt.Printf("[DEBUG] StatusChecker: 新位置不存在\n")
+	logger.Debug("StatusChecker: 新位置不存在")
 
 	// 兼容旧位置
 	oldHookPath := filepath.Join(sc.projectPath, ".claude", "hooks", "pushover-notify.py")
-	fmt.Printf("[DEBUG] StatusChecker: 检查旧位置: %s\n", oldHookPath)
+	logger.Debugf("StatusChecker: 检查旧位置: %s", oldHookPath)
 	if _, err := os.Stat(oldHookPath); err == nil {
-		fmt.Printf("[DEBUG] StatusChecker: 找到文件！\n")
+		logger.Debug("StatusChecker: 找到文件！")
 		return true
 	}
-	fmt.Printf("[DEBUG] StatusChecker: 旧位置不存在\n")
+	logger.Debug("StatusChecker: 旧位置不存在")
 
 	return false
 }

@@ -61,7 +61,7 @@ func (in *Installer) Install(projectPath string, force bool) (*InstallResult, er
 	logger.Debugf("Working dir: %s", in.extensionPath)
 
 	// 执行安装脚本
-	cmd := exec.Command(pythonCmd, args...)
+	cmd := Command(pythonCmd, args...)
 	cmd.Dir = in.extensionPath // 设置工作目录为扩展目录
 
 	// 打印实际的命令参数
@@ -127,7 +127,7 @@ func (in *Installer) Update(projectPath string) (*InstallResult, error) {
 	logger.Debugf("Working dir: %s", in.extensionPath)
 
 	// 执行安装脚本
-	cmd := exec.Command(pythonCmd, args...)
+	cmd := Command(pythonCmd, args...)
 	cmd.Dir = in.extensionPath // 设置工作目录为扩展目录
 
 	output, err := cmd.CombinedOutput()
@@ -179,7 +179,7 @@ func (in *Installer) Reinstall(projectPath string) (*InstallResult, error) {
 	logger.Debugf("Config: NoPushover=%v, NoWindows=%v", config.NoPushoverFile, config.NoWindowsFile)
 
 	// 执行安装脚本
-	cmd := exec.Command(pythonCmd, args...)
+	cmd := Command(pythonCmd, args...)
 	cmd.Dir = in.extensionPath
 
 	output, err := cmd.CombinedOutput()
