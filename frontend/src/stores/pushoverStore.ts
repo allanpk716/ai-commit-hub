@@ -8,6 +8,7 @@ import {
   UpdatePushoverExtension,
   CheckPushoverUpdates,
   UpdatePushoverHook,
+  ReinstallPushoverHook,
   ToggleNotification,
   CheckPushoverConfig
 } from '../../wailsjs/go/main/App'
@@ -226,6 +227,29 @@ export const usePushoverStore = defineStore('pushover', () => {
   }
 
   /**
+   * 重装项目的 Hook（保留用户配置）
+   */
+  async function reinstallHook(projectPath: string): Promise<InstallResult> {
+    loading.value = true
+    error.value = null
+
+    try {
+      const result = await ReinstallPushoverHook(projectPath)
+      if (result && result.success) {
+        // 刷新项目状态
+        await getProjectHookStatus(projectPath)
+      }
+      return result || { success: false, message: '重装失败' }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误'
+      error.value = `重装 Hook 失败: ${message}`
+      return { success: false, message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
    * 检查扩展更新
    */
   async function checkExtensionStatus() {
@@ -370,6 +394,7 @@ export const usePushoverStore = defineStore('pushover', () => {
     clearCache,
     checkForUpdates,
     updateHook,
+    reinstallHook,
     checkForExtensionUpdates,
     recloneExtension,
     checkPushoverConfig
