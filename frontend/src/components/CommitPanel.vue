@@ -45,6 +45,28 @@
             <span class="btn-text" v-if="!commitStore.isGenerating">生成消息</span>
             <span class="btn-text" v-else>生成中...</span>
           </button>
+
+          <!-- 新增：提交和推送按钮（仅在有消息时显示） -->
+          <template v-if="commitStore.streamingMessage || commitStore.generatedMessage">
+            <button
+              @click="handleCommit"
+              class="btn-action-inline btn-primary-inline"
+              :disabled="!commitStore.hasStagedFiles"
+              title="提交到本地"
+            >
+              <span class="icon">✓</span>
+              提交
+            </button>
+            <button
+              @click="handlePush"
+              class="btn-action-inline btn-push-inline"
+              :disabled="isPushing || !pushStatus?.canPush"
+              :title="pushStatus?.aheadCount ? `领先 ${pushStatus.aheadCount} 个提交` : pushStatus?.error || '无待推送内容'"
+            >
+              <span class="icon" :class="{ spin: isPushing }">↑</span>
+              {{ isPushing ? '推送中' : '推送' }}
+            </button>
+          </template>
         </div>
 
         <!-- 中间：配置控件 -->
@@ -104,23 +126,10 @@
         </pre>
       </div>
 
-      <div class="action-buttons" v-if="commitStore.streamingMessage || commitStore.generatedMessage">
+      <div class="action-buttons-helper" v-if="commitStore.streamingMessage || commitStore.generatedMessage">
         <button @click="handleCopy" class="btn-action btn-secondary">
           <span class="icon">📋</span>
           复制
-        </button>
-        <button @click="handleCommit" class="btn-action btn-primary" :disabled="!commitStore.hasStagedFiles">
-          <span class="icon">✓</span>
-          提交到本地
-        </button>
-        <button
-          @click="handlePush"
-          class="btn-action btn-primary-push"
-          :disabled="isPushing || !pushStatus?.canPush"
-          :title="pushStatus?.aheadCount ? `领先 ${pushStatus.aheadCount} 个提交` : pushStatus?.error || '无待推送内容'"
-        >
-          <span class="icon" :class="{ spin: isPushing }">↑</span>
-          {{ isPushing ? '推送中...' : `推送${pushStatus?.aheadCount ? ` (${pushStatus.aheadCount})` : ''}` }}
         </button>
         <button @click="handleRegenerate" :disabled="commitStore.isGenerating" class="btn-action btn-tertiary">
           <span class="icon">🔄</span>
@@ -1547,6 +1556,7 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--space-sm);
   flex-shrink: 0;
+  flex-wrap: wrap;  /* 允许在小屏幕上换行 */
 }
 
 /* 新的左侧主按钮样式 */
@@ -1711,6 +1721,63 @@ onUnmounted(() => {
 .icon-btn-small:hover {
   background: var(--bg-elevated);
   color: var(--text-primary);
+}
+
+/* 紧凑型操作按钮（标题栏内） */
+.btn-action-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-action-inline .icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.btn-primary-inline {
+  background: var(--accent-success);
+  color: white;
+}
+
+.btn-primary-inline:hover:not(:disabled) {
+  background: #059669;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-primary-inline:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-push-inline {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: white;
+}
+
+.btn-push-inline:hover:not(:disabled) {
+  background: #7c3aed;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+}
+
+.btn-push-inline:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 辅助操作按钮区域（消息下方） */
+.action-buttons-helper {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-start;
 }
 
 /* 内联警告提示 */
