@@ -302,7 +302,9 @@ func (in *Installer) restoreNotificationConfig(projectPath string, config Notifi
 			return fmt.Errorf("恢复 .no-pushover 失败: %w", err)
 		}
 	} else {
-		os.Remove(noPushoverPath)
+		if err := os.Remove(noPushoverPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("删除 .no-pushover 失败: %w", err)
+		}
 	}
 
 	// 恢复 .no-windows
@@ -311,7 +313,9 @@ func (in *Installer) restoreNotificationConfig(projectPath string, config Notifi
 			return fmt.Errorf("恢复 .no-windows 失败: %w", err)
 		}
 	} else {
-		os.Remove(noWindowsPath)
+		if err := os.Remove(noWindowsPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("删除 .no-windows 失败: %w", err)
+		}
 	}
 
 	return nil
