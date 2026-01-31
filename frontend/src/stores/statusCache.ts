@@ -6,7 +6,7 @@ import type {
   CacheOptions
 } from '../types/status'
 import type { HookStatus } from '../types/index'
-import { GetStagingStatus, GetProjectStatus, GetUntrackedFiles, GetPushoverHookStatus, GetAllProjectStatuses } from '../../wailsjs/go/main/App'
+import { GetStagingStatus, GetProjectStatus, GetUntrackedFiles, GetPushoverHookStatus, GetAllProjectStatuses, GetPushStatus } from '../../wailsjs/go/main/App'
 import { EventsOn } from '../../wailsjs/runtime/runtime'
 
 /**
@@ -106,6 +106,7 @@ export const useStatusCache = defineStore('statusCache', () => {
       stagingStatus: null,
       untrackedCount: 0,
       pushoverStatus: null,
+      pushStatus: null,
       lastUpdated: Date.now(),
       loading: false,
       error: null,
@@ -365,11 +366,12 @@ export const useStatusCache = defineStore('statusCache', () => {
     }
 
     try {
-      const [gitStatus, stagingStatus, untrackedFiles, pushoverStatus] = await Promise.all([
+      const [gitStatus, stagingStatus, untrackedFiles, pushoverStatus, pushStatus] = await Promise.all([
         GetProjectStatus(path).catch(() => null),
         GetStagingStatus(path).catch(() => null),
         GetUntrackedFiles(path).catch(() => []),
-        GetPushoverHookStatus(path).catch(() => null)
+        GetPushoverHookStatus(path).catch(() => null),
+        GetPushStatus(path).catch(() => null)
       ])
 
       const cached = cache.value[path]
@@ -378,6 +380,7 @@ export const useStatusCache = defineStore('statusCache', () => {
         cached.stagingStatus = stagingStatus
         cached.untrackedCount = untrackedFiles?.length || 0
         cached.pushoverStatus = pushoverStatus as any
+        cached.pushStatus = pushStatus as any
         cached.lastUpdated = Date.now()
         cached.loading = false
         cached.error = null
@@ -434,6 +437,7 @@ export const useStatusCache = defineStore('statusCache', () => {
           stagingStatus: status.stagingStatus,
           untrackedCount: status.untrackedCount,
           pushoverStatus: status.pushoverStatus,
+          pushStatus: status.pushStatus,
           lastUpdated: new Date(status.lastUpdated).getTime(),
           loading: false,
           error: null,
@@ -553,6 +557,16 @@ export const useStatusCache = defineStore('statusCache', () => {
     return cached?.pushoverStatus || null
   }
 
+  /**
+   * 获取项目的推送状态
+   * @param path 项目路径
+   * @returns 推送状态，如果不存在则返回 null
+   */
+  function getPushStatus(path: string): any | null {
+    const cached = cache.value[path]
+    return cached?.pushStatus || null
+  }
+
   // ========== 初始化 ==========
 
   // 直接初始化事件监听器（Pinia store 是单例，不需要 onMounted）
@@ -573,6 +587,7 @@ export const useStatusCache = defineStore('statusCache', () => {
     // 方法
     getStatus,
     getPushoverStatus,
+    getPushStatus,
     isExpired,
     isLoading,
     initCache,

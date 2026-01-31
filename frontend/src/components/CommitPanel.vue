@@ -113,16 +113,18 @@
           <span class="icon">✓</span>
           提交到本地
         </button>
+        <button
+          @click="handlePush"
+          class="btn-action btn-primary-push"
+          :disabled="isPushing || !pushStatus?.canPush"
+          :title="pushStatus?.aheadCount ? `领先 ${pushStatus.aheadCount} 个提交` : pushStatus?.error || '无待推送内容'"
+        >
+          <span class="icon" :class="{ spin: isPushing }">↑</span>
+          {{ isPushing ? '推送中...' : `推送${pushStatus?.aheadCount ? ` (${pushStatus.aheadCount})` : ''}` }}
+        </button>
         <button @click="handleRegenerate" :disabled="commitStore.isGenerating" class="btn-action btn-tertiary">
           <span class="icon">🔄</span>
           重新生成
-        </button>
-      </div>
-      <!-- 推送按钮独立显示，只要 canPush 为 true 就显示 -->
-      <div class="action-buttons" v-if="canPush" style="margin-top: var(--space-sm);">
-        <button @click="handlePush" class="btn-action btn-primary-push" :disabled="isPushing" style="width: 100%;">
-          <span class="icon" :class="{ spin: isPushing }">↑</span>
-          {{ isPushing ? '推送中...' : '推送到远程' }}
         </button>
       </div>
     </section>
@@ -175,7 +177,6 @@ const commitStore = useCommitStore()
 const projectStore = useProjectStore()
 const pushoverStore = usePushoverStore()
 const statusCache = useStatusCache()
-const canPush = ref(false) // 推送按钮是否可用
 const isPushing = ref(false) // 是否正在推送
 
 // Toast 通知状态
@@ -200,6 +201,13 @@ const pushoverStatus = computed(() => {
   if (currentProjectPath.value) {
     const cached = statusCache.getStatus(currentProjectPath.value)
     return cached?.pushoverStatus || null
+  }
+  return null
+})
+// 推送状态 - 从 StatusCache 获取
+const pushStatus = computed(() => {
+  if (currentProjectPath.value) {
+    return statusCache.getPushStatus(currentProjectPath.value)
   }
   return null
 })
@@ -235,7 +243,6 @@ function updateUIFromCache(cached: any) {
 watch(() => projectStore.selectedProject, async (project) => {
   if (project) {
     commitStore.clearMessage()
-    canPush.value = false
     await commitStore.loadProjectAIConfig(project.id)
 
     // 策略C：优先显示缓存，过期时等待刷新
@@ -342,9 +349,6 @@ async function handleCommit() {
     EventsEmit('project-status-changed', {
       path: commitStore.selectedProjectPath
     })
-
-    // 启用推送按钮
-    canPush.value = true
   } catch (e: unknown) {
     let errMessage = '提交失败'
     if (e instanceof Error) {
@@ -356,7 +360,6 @@ async function handleCommit() {
     }
     console.error('提交失败详细错误:', e)
     showToast('error', '提交失败: ' + errMessage)
-    canPush.value = false
   }
 }
 
@@ -370,7 +373,6 @@ async function handlePush() {
   try {
     await PushToRemote(commitStore.selectedProjectPath)
     showToast('success', '推送成功!')
-    canPush.value = false  // 推送成功后禁用按钮
 
     // 使用 StatusCache 刷新状态
     await statusCache.refresh(commitStore.selectedProjectPath, { force: true })
@@ -508,7 +510,6 @@ async function handleRefresh() {
       updateUIFromCache(fresh)
     }
 
-    canPush.value = false  // 重置推送按钮状态
     showToast('success', '已刷新')
   } catch (e) {
     const message = e instanceof Error ? e.message : '刷新失败'

@@ -9,6 +9,20 @@ export interface GitStatus {
 }
 
 /**
+ * 推送状态
+ */
+export interface PushStatus {
+  /** 是否可推送（本地领先远程） */
+  canPush: boolean
+  /** 本地领先远程的提交数量 */
+  aheadCount: number
+  /** 远程分支名（如 origin/main） */
+  remoteBranch: string
+  /** 错误信息（无远程仓库等） */
+  error?: string
+}
+
+/**
  * 项目状态缓存条目
  */
 export interface ProjectStatusCache {
@@ -20,6 +34,8 @@ export interface ProjectStatusCache {
   untrackedCount: number
   /** Pushover Hook 状态 */
   pushoverStatus: PushoverHookStatus | null
+  /** 推送状态 */
+  pushStatus: PushStatus | null
   /** 最后更新时间戳（毫秒） */
   lastUpdated: number
   /** 是否正在加载 */

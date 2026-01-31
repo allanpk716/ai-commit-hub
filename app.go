@@ -790,6 +790,28 @@ func (a *App) GetPushoverHookStatus(projectPath string) (*pushover.HookStatus, e
 	return a.pushoverService.GetHookStatus(projectPath)
 }
 
+// GetPushStatus 获取项目的推送状态
+func (a *App) GetPushStatus(projectPath string) *git.PushStatus {
+	if a.initError != nil {
+		return &git.PushStatus{
+			CanPush:      false,
+			AheadCount:   0,
+			RemoteBranch: "",
+			Error:        a.initError.Error(),
+		}
+	}
+	status, err := git.GetPushStatus(projectPath)
+	if err != nil {
+		return &git.PushStatus{
+			CanPush:      false,
+			AheadCount:   0,
+			RemoteBranch: "",
+			Error:        err.Error(),
+		}
+	}
+	return status
+}
+
 // InstallPushoverHook 为项目安装 Pushover Hook
 func (a *App) InstallPushoverHook(projectPath string, force bool) (*pushover.InstallResult, error) {
 	if a.initError != nil {
@@ -1425,6 +1447,7 @@ type ProjectFullStatus struct {
 	StagingStatus  *git.StagingStatus  `json:"stagingStatus"`
 	UntrackedCount int                 `json:"untrackedCount"`
 	PushoverStatus *pushover.HookStatus `json:"pushoverStatus"`
+	PushStatus     *git.PushStatus     `json:"pushStatus"`
 	LastUpdated    time.Time           `json:"lastUpdated"`
 }
 
@@ -1471,6 +1494,10 @@ func (a *App) GetAllProjectStatuses(projectPaths []string) (map[string]*ProjectF
 				pushover, _ := a.pushoverService.GetHookStatus(p)
 				status.PushoverStatus = pushover
 			}
+
+			// 获取推送状态
+			pushStatus, _ := git.GetPushStatus(p)
+			status.PushStatus = pushStatus
 
 			results <- result{
 				path:   p,

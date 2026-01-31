@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -634,4 +635,61 @@ func GetStagedDiff(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("failed to get staged diff: %w", err)
 	}
 	return stdout.String(), nil
+}
+
+// PushStatus represents the push status of a Git repository.
+type PushStatus struct {
+	CanPush      bool   `json:"canPush"`
+	AheadCount   int    `json:"ahead_count"`
+	RemoteBranch string `json:"remote_branch"`
+	Error        string `json:"error,omitempty"`
+}
+
+// GetPushStatus detects whether the local branch is ahead of the remote branch.
+func GetPushStatus(projectPath string) (*PushStatus, error) {
+	// Check if there's a remote tracking branch
+	cmd := Command("git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+	cmd.Dir = projectPath
+
+	var remoteBranch bytes.Buffer
+	cmd.Stdout = &remoteBranch
+	err := cmd.Run()
+
+	// No remote tracking branch
+	if err != nil {
+		return &PushStatus{
+			CanPush:      false,
+			AheadCount:   0,
+			RemoteBranch: "",
+			Error:        "未配置远程仓库",
+		}, nil
+	}
+
+	remoteBranchName := strings.TrimSpace(remoteBranch.String())
+
+	// Count local commits ahead of remote
+	cmd2 := Command("git", "rev-list", "--count", "@{u}..HEAD")
+	cmd2.Dir = projectPath
+	var aheadCount bytes.Buffer
+	cmd2.Stdout = &aheadCount
+	if err := cmd2.Run(); err != nil {
+		return &PushStatus{
+			CanPush:      false,
+			AheadCount:   0,
+			RemoteBranch: remoteBranchName,
+			Error:        "获取推送状态失败",
+		}, nil
+	}
+
+	ahead := strings.TrimSpace(aheadCount.String())
+	count := 0
+	if ahead != "" {
+		count, _ = strconv.Atoi(ahead)
+	}
+
+	return &PushStatus{
+		CanPush:      count > 0,
+		AheadCount:   count,
+		RemoteBranch: remoteBranchName,
+	}, nil
 }
