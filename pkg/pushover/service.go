@@ -71,6 +71,26 @@ func (s *Service) UpdateHook(projectPath string) (*InstallResult, error) {
 	return s.installer.Update(projectPath)
 }
 
+// ReinstallHook 重装项目的 Hook（保留用户配置）
+func (s *Service) ReinstallHook(projectPath string) (*InstallResult, error) {
+	// 检查项目路径是否存在
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("项目路径不存在: %s", projectPath)
+	}
+
+	// 检查扩展是否已下载
+	if !s.repoManager.IsCloned() {
+		return nil, fmt.Errorf("cc-pushover-hook 扩展未下载，请先下载扩展")
+	}
+
+	// 检查项目是否已安装 Hook
+	if !s.CheckHookInstalled(projectPath) {
+		return nil, fmt.Errorf("项目未安装 Pushover Hook，请先安装")
+	}
+
+	return s.installer.Reinstall(projectPath)
+}
+
 // SetNotificationMode 设置项目的通知模式
 func (s *Service) SetNotificationMode(projectPath string, mode NotificationMode) error {
 	return s.installer.SetNotificationMode(projectPath, mode)
