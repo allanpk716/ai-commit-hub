@@ -46,6 +46,44 @@
       >
         {{ loading ? '更新中...' : '更新 Hook' }}
       </button>
+      <!-- 已是最新版本时显示重装按钮 -->
+      <button
+        v-else
+        class="action-btn btn-reinstall"
+        :disabled="loading"
+        @click="handleReinstall"
+      >
+        {{ loading ? '重装中...' : '重装 Hook' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- 重装确认对话框 -->
+  <div v-if="showReinstallDialog" class="dialog-overlay" @click="closeReinstallDialog">
+    <div class="dialog-content" @click.stop>
+      <h3>重装 Pushover Hook</h3>
+      <p class="dialog-description">
+        这将重新安装 Pushover Hook 到该项目：
+      </p>
+      <ul class="dialog-list">
+        <li>使用最新版本的 Hook 文件覆盖当前安装</li>
+        <li>保留您的通知配置（Pushover/Windows 通知设置）</li>
+      </ul>
+      <div class="dialog-actions">
+        <button
+          class="dialog-btn btn-cancel"
+          @click="closeReinstallDialog"
+        >
+          取消
+        </button>
+        <button
+          class="dialog-btn btn-confirm"
+          :disabled="localLoading"
+          @click="confirmReinstall"
+        >
+          确定重装
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -74,6 +112,7 @@ const emit = defineEmits<{
 const pushoverStore = usePushoverStore()
 const localLoading = ref(false)
 const updateInfo = ref<{ updateAvailable: boolean; currentVersion: string; latestVersion: string } | null>(null)
+const showReinstallDialog = ref(false)
 
 const statusIcon = computed(() => {
   if (!props.status?.installed) return '🔴'
@@ -137,6 +176,37 @@ function handleInstall() {
 
 function handleUpdate() {
   emit('update')
+}
+
+function handleReinstall() {
+  showReinstallDialog.value = true
+}
+
+function closeReinstallDialog() {
+  showReinstallDialog.value = false
+}
+
+async function confirmReinstall() {
+  if (localLoading.value) return
+
+  localLoading.value = true
+  try {
+    const result = await pushoverStore.reinstallHook(props.projectPath)
+
+    if (result.success) {
+      // 关闭对话框
+      closeReinstallDialog()
+      // 可选：显示成功提示
+      console.log('重装成功:', result.message)
+    } else {
+      // 显示错误信息
+      console.error('重装失败:', result.message)
+    }
+  } catch (e) {
+    console.error('重装 Hook 失败:', e)
+  } finally {
+    localLoading.value = false
+  }
 }
 
 async function checkForUpdates() {
@@ -302,5 +372,103 @@ watch(() => props.status, (newStatus) => {
 
 .btn-update:hover:not(:disabled) {
   background: rgba(245, 158, 11, 0.3);
+}
+
+/* 重装按钮样式 */
+.btn-reinstall {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--accent-primary);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.btn-reinstall:hover:not(:disabled) {
+  background: rgba(6, 182, 212, 0.25);
+}
+
+/* 对话框样式 */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dialog-content h3 {
+  margin: 0 0 var(--space-md) 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dialog-description {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.dialog-list {
+  margin: 0 0 var(--space-md) 0;
+  padding-left: var(--space-lg);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.dialog-list li {
+  margin-bottom: var(--space-xs);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.dialog-btn {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast);
+}
+
+.dialog-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: var(--bg-elevated);
+}
+
+.btn-confirm {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: var(--accent-secondary);
 }
 </style>
