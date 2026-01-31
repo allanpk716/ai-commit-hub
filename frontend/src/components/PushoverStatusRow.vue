@@ -29,9 +29,8 @@
     </div>
 
     <div class="status-right">
-      <span v-if="isLatest && status?.installed" class="latest-badge">已是最新</span>
       <button
-        v-else-if="!status?.installed"
+        v-if="!status?.installed"
         class="action-btn btn-primary"
         :disabled="loading"
         @click="handleInstall"
@@ -46,15 +45,27 @@
       >
         {{ loading ? '更新中...' : '更新 Hook' }}
       </button>
-      <!-- 已是最新版本时显示重装按钮 -->
-      <button
-        v-else
-        class="action-btn btn-reinstall"
-        :disabled="loading"
-        @click="handleReinstall"
-      >
-        {{ loading ? '重装中...' : '重装 Hook' }}
-      </button>
+      <!-- 已是最新版本时显示标签和下拉菜单 -->
+      <div v-else-if="isLatest && status?.installed" class="latest-dropdown">
+        <span class="latest-badge">已是最新</span>
+        <button
+          class="dropdown-btn"
+          :disabled="loading"
+          @click="toggleDropdown"
+        >
+          ▼
+        </button>
+        <!-- 下拉菜单 -->
+        <div v-if="showDropdown" class="dropdown-menu">
+          <button
+            class="dropdown-item"
+            :disabled="loading"
+            @click="handleReinstall"
+          >
+            🔧 重装 Hook
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -89,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { usePushoverStore } from '../stores/pushoverStore'
 import { formatVersion } from '../utils/versionFormat'
 import type { HookStatus } from '../types/pushover'
@@ -113,6 +124,7 @@ const pushoverStore = usePushoverStore()
 const localLoading = ref(false)
 const updateInfo = ref<{ updateAvailable: boolean; currentVersion: string; latestVersion: string } | null>(null)
 const showReinstallDialog = ref(false)
+const showDropdown = ref(false)
 
 const statusIcon = computed(() => {
   if (!props.status?.installed) return '🔴'
@@ -179,7 +191,24 @@ function handleUpdate() {
 }
 
 function handleReinstall() {
+  showDropdown.value = false
   showReinstallDialog.value = true
+}
+
+function toggleDropdown() {
+  showDropdown.value = !showDropdown.value
+}
+
+function closeDropdown() {
+  showDropdown.value = false
+}
+
+// 点击外部关闭下拉菜单
+function handleClickOutside(event: MouseEvent) {
+  const dropdown = document.querySelector('.latest-dropdown')
+  if (dropdown && !dropdown.contains(event.target as Node)) {
+    closeDropdown()
+  }
 }
 
 function closeReinstallDialog() {
@@ -223,6 +252,14 @@ watch(() => props.status, (newStatus) => {
     checkForUpdates()
   }
 }, { immediate: true })
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <style scoped>
@@ -337,6 +374,78 @@ watch(() => props.status, (newStatus) => {
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
   white-space: nowrap;
+}
+
+/* 下拉菜单容器 */
+.latest-dropdown {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  position: relative;
+}
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  padding: 0;
+  font-size: 10px;
+}
+
+.dropdown-btn:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  border-color: var(--accent-primary);
+}
+
+.dropdown-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 下拉菜单 */
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 140px;
+  z-index: 100;
+  padding: var(--space-xs) 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dropdown-item:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.dropdown-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .action-btn {
