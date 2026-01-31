@@ -59,7 +59,7 @@
           <button
             @click="handlePush"
             class="btn-action-inline btn-push-inline"
-            :disabled="isPushing || !pushStatus?.canPush || !(commitStore.streamingMessage || commitStore.generatedMessage)"
+            :disabled="isPushing || !pushStatus?.canPush"
             :title="pushStatus?.aheadCount ? `领先 ${pushStatus.aheadCount} 个提交` : pushStatus?.error || '无待推送内容'"
           >
             <span class="icon" :class="{ spin: isPushing }">↑</span>
