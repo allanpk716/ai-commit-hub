@@ -661,6 +661,7 @@ func GetPushStatus(projectPath string) (*PushStatus, error) {
 		return &PushStatus{
 			CanPush:      false,
 			AheadCount:   0,
+			BehindCount:  0,
 			RemoteBranch: "",
 			Error:        "未配置远程仓库",
 		}, nil
@@ -677,6 +678,7 @@ func GetPushStatus(projectPath string) (*PushStatus, error) {
 		return &PushStatus{
 			CanPush:      false,
 			AheadCount:   0,
+			BehindCount:  0,
 			RemoteBranch: remoteBranchName,
 			Error:        "获取推送状态失败",
 		}, nil
@@ -691,6 +693,7 @@ func GetPushStatus(projectPath string) (*PushStatus, error) {
 	return &PushStatus{
 		CanPush:      count > 0,
 		AheadCount:   count,
+		BehindCount:  0,
 		RemoteBranch: remoteBranchName,
 	}, nil
 }
