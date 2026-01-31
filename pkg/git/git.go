@@ -690,10 +690,28 @@ func GetPushStatus(projectPath string) (*PushStatus, error) {
 		count, _ = strconv.Atoi(ahead)
 	}
 
+	// ===== 新增开始：统计落后数量 =====
+	// Count remote commits ahead of local
+	cmd3 := Command("git", "rev-list", "--count", "HEAD..@{u}")
+	cmd3.Dir = projectPath
+	var behindCount bytes.Buffer
+	cmd3.Stdout = &behindCount
+	if err := cmd3.Run(); err != nil {
+		// 失败时不阻塞主流程，返回 0
+		behindCount.WriteString("0")
+	}
+
+	behind := strings.TrimSpace(behindCount.String())
+	behindCountInt := 0
+	if behind != "" {
+		behindCountInt, _ = strconv.Atoi(behind)
+	}
+	// ===== 新增结束 =====
+
 	return &PushStatus{
 		CanPush:      count > 0,
 		AheadCount:   count,
-		BehindCount:  0,
+		BehindCount:  behindCountInt,
 		RemoteBranch: remoteBranchName,
 	}, nil
 }
