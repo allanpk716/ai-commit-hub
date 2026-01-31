@@ -336,8 +336,10 @@ export const useStatusCache = defineStore('statusCache', () => {
    * 刷新项目状态（从后端获取最新状态）
    * @param path 项目路径
    * @param options 刷新选项
+   * @param options.force 是否强制刷新
+   * @param options.silent 是否静默刷新（不设置 loading 状态）
    */
-  async function refresh(path: string, options?: { force?: boolean }): Promise<void> {
+  async function refresh(path: string, options?: { force?: boolean; silent?: boolean }): Promise<void> {
     // 防止并发重复请求
     if (pendingRequests.value.has(path)) {
       return
@@ -359,12 +361,14 @@ export const useStatusCache = defineStore('statusCache', () => {
         pushoverStatus: null,
         pushStatus: null,
         lastUpdated: 0,
-        loading: true,
+        loading: !options?.silent,  // 静默模式下不设置 loading
         error: null,
         stale: false
       }
     } else {
-      cache.value[path].loading = true
+      if (!options?.silent) {
+        cache.value[path].loading = true
+      }
     }
 
     try {

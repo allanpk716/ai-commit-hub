@@ -65,10 +65,15 @@
 
           <!-- 状态指示器行（从 StatusCache 获取） -->
           <div class="project-status-row">
-            <template v-if="!getProjectStatus(project).loading">
+            <!-- 加载中显示旧数据或骨架屏（首次加载） -->
+            <template v-if="getProjectStatus(project).loading && getProjectStatus(project).untrackedCount === 0">
+              <StatusSkeleton />
+            </template>
+            <template v-else>
               <span
                 v-if="getProjectStatus(project).untrackedCount > 0"
                 class="status-indicator untracked"
+                :class="{ loading: getProjectStatus(project).loading }"
                 :title="`${getProjectStatus(project).untrackedCount} 个未跟踪文件`"
               >
                 ➕ {{ getProjectStatus(project).untrackedCount }}
@@ -76,12 +81,12 @@
               <span
                 v-if="getProjectStatus(project).pushoverUpdateAvailable"
                 class="status-indicator update"
+                :class="{ loading: getProjectStatus(project).loading }"
                 title="Pushover 插件可更新"
               >
                 ⬆️
               </span>
             </template>
-            <StatusSkeleton v-else />
           </div>
         </div>
 
@@ -208,8 +213,15 @@ const getProjectStatus = (project: GitProject): {
 } => {
   const cached = statusCache.getStatus(project.path)
 
+  // 加载中时保留旧数据显示，避免 UI 闪烁
   if (cached?.loading) {
-    return { loading: true, error: false, untrackedCount: 0, pushoverUpdateAvailable: false, stale: false }
+    return {
+      loading: true,
+      error: false,
+      untrackedCount: cached.untrackedCount ?? 0,
+      pushoverUpdateAvailable: cached.pushoverStatus?.update_available ?? false,
+      stale: cached.stale ?? false
+    }
   }
 
   if (cached?.error) {

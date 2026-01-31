@@ -258,7 +258,7 @@ watch(() => projectStore.selectedProject, async (project) => {
     if (cached && !cached.loading && !statusCache.isExpired(project.path)) {
       updateUIFromCache(cached)
     } else {
-      await statusCache.refresh(project.path, { force: true })
+      await statusCache.refresh(project.path, { force: true, silent: true })
       const fresh = statusCache.getStatus(project.path)
       if (fresh) {
         updateUIFromCache(fresh)
@@ -344,7 +344,7 @@ async function handleCommit() {
     showToast('success', '提交成功!')
 
     // 使用 StatusCache 刷新状态
-    await statusCache.refresh(commitStore.selectedProjectPath, { force: true })
+    await statusCache.refresh(commitStore.selectedProjectPath, { force: true, silent: true })
     const fresh = statusCache.getStatus(commitStore.selectedProjectPath)
     if (fresh) {
       updateUIFromCache(fresh)
@@ -382,7 +382,7 @@ async function handlePush() {
     showToast('success', '推送成功!')
 
     // 使用 StatusCache 刷新状态
-    await statusCache.refresh(commitStore.selectedProjectPath, { force: true })
+    await statusCache.refresh(commitStore.selectedProjectPath, { force: true, silent: true })
     const fresh = statusCache.getStatus(commitStore.selectedProjectPath)
     if (fresh) {
       updateUIFromCache(fresh)
@@ -414,7 +414,7 @@ async function handleInstallPushover() {
   const result = await pushoverStore.installHook(currentProject.value.path, false)
   if (result.success) {
     // 使用 StatusCache 刷新状态
-    await statusCache.refresh(currentProject.value.path, { force: true })
+    await statusCache.refresh(currentProject.value.path, { force: true, silent: true })
     const fresh = statusCache.getStatus(currentProject.value.path)
     if (fresh) {
       updateUIFromCache(fresh)
@@ -434,7 +434,7 @@ async function handleUpdatePushover() {
   const result = await pushoverStore.updateHook(currentProject.value.path)
   if (result.success) {
     // 使用 StatusCache 刷新状态
-    await statusCache.refresh(currentProject.value.path, { force: true })
+    await statusCache.refresh(currentProject.value.path, { force: true, silent: true })
     const fresh = statusCache.getStatus(currentProject.value.path)
     if (fresh) {
       updateUIFromCache(fresh)
