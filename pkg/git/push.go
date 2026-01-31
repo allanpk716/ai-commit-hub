@@ -3,60 +3,35 @@ package git
 import (
 	"context"
 	"fmt"
-
-	gogit "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing/transport"
+	"strings"
 )
 
 // PushToRemote pushes the current branch to the origin remote repository.
-// It returns an error if there's no remote repository or if the push fails.
+// It uses the system git command to ensure compatibility with SSH keys and credentials.
 func PushToRemote(ctx context.Context) error {
-	repo, err := gogit.PlainOpen(".")
+	// 获取当前分支名
+	branchCmd := Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branchOutput, err := branchCmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to open repository: %w", err)
+		return fmt.Errorf("failed to get current branch: %w", err)
+	}
+	branchName := strings.TrimSpace(string(branchOutput))
+
+	if branchName == "" || branchName == "HEAD" {
+		return fmt.Errorf("not on any branch")
 	}
 
-	// Get the current branch name
-	headRef, err := repo.Head()
-	if err != nil {
-		return fmt.Errorf("failed to get HEAD reference: %w", err)
-	}
+	// 执行推送命令
+	pushCmd := Command("git", "push", "origin", branchName)
+	output, err := pushCmd.CombinedOutput()
 
-	branchName := headRef.Name()
-	if !branchName.IsBranch() {
-		return fmt.Errorf("HEAD is not a branch")
-	}
-
-	// Get the origin remote
-	remote, err := repo.Remote("origin")
 	if err != nil {
-		if err == gogit.ErrRemoteNotFound {
-			return fmt.Errorf("no remote repository named 'origin' found")
+		// 提供详细的错误信息
+		errorMsg := string(output)
+		if errorMsg == "" {
+			errorMsg = err.Error()
 		}
-		return fmt.Errorf("failed to get remote: %w", err)
-	}
-
-	// Prepare the push reference: push current branch to remote branch with the same name
-	refSpec := fmt.Sprintf("%s:%s", branchName.String(), branchName.String())
-
-	// Execute the push
-	err = remote.PushContext(ctx, &gogit.PushOptions{
-		RemoteName: "origin",
-		RefSpecs:   []config.RefSpec{config.RefSpec(refSpec)},
-		Progress:   nil,
-	})
-
-	// Handle common push errors
-	if err != nil {
-		if err == transport.ErrEmptyRemoteRepository {
-			// First push to an empty repository is fine
-			return nil
-		}
-		if err == transport.ErrAuthenticationRequired {
-			return fmt.Errorf("authentication required for push: %w", err)
-		}
-		return fmt.Errorf("push failed: %w", err)
+		return fmt.Errorf("push failed: %s", errorMsg)
 	}
 
 	return nil

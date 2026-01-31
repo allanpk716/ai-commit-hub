@@ -1,15 +1,9 @@
 <template>
-  <!-- Loading screen -->
-  <div v-if="initialLoading" class="startup-loading">
-    <div class="spinner"></div>
-    <p>加载项目状态...</p>
-  </div>
+  <!-- SplashScreen (优先显示) -->
+  <SplashScreen v-if="showSplash" />
 
-  <!-- SplashScreen -->
-  <SplashScreen v-else-if="showSplash" />
-
-  <!-- Main App -->
-  <div v-else class="app grid-pattern">
+  <!-- Main App (初始化完成后显示) -->
+  <div v-show="!showSplash" class="app grid-pattern">
     <!-- 错误横幅 -->
     <transition name="slide-down">
       <div v-if="initErrors.length > 0" class="init-error-banner">
@@ -73,12 +67,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useProjectStore } from './stores/projectStore'
 import { useCommitStore } from './stores/commitStore'
 import { usePushoverStore } from './stores/pushoverStore'
 import { SelectProjectFolder } from '../wailsjs/go/main/App'
-import { EventsOn } from '../wailsjs/runtime/runtime'
+import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
 import ProjectList from './components/ProjectList.vue'
 import CommitPanel from './components/CommitPanel.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
@@ -93,22 +87,16 @@ const pushoverStore = usePushoverStore()
 const selectedProjectId = ref<number>()
 const settingsOpen = ref(false)
 const extensionDialogOpen = ref(false)
-const initialLoading = ref(true)
 const showSplash = ref(true)
 const initErrors = ref<Array<{ error: string; message: string }>>([])
 
 async function initializeApp() {
-  console.log('[App] 开始初始化应用')
+  console.log('[App] 开始初始化前端应用')
 
+  // 只执行不阻塞启动的基础初始化
   const tasks = [
     projectStore.loadProjects()
       .catch(err => ({ error: 'loadProjects', message: err?.message || '未知错误' })),
-    (async () => {
-      const { useStatusCache } = await import('./stores/statusCache')
-      const statusCache = useStatusCache()
-      return statusCache.init()
-        .catch(err => ({ error: 'statusCache', message: err?.message || '未知错误' }))
-    })(),
     pushoverStore.checkExtensionStatus()
       .catch(err => ({ error: 'extensionStatus', message: err?.message || '未知错误' })),
     pushoverStore.checkPushoverConfig()
@@ -122,21 +110,67 @@ async function initializeApp() {
     initErrors.value = errors
   }
 
-  console.log('[App] 应用初始化完成')
-  return errors
+  console.log('[App] 前端应用初始化完成')
 }
 
 onMounted(async () => {
   console.log('[App] onMounted 开始')
+
+  // 1. 立即执行前端基础初始化
   await initializeApp()
-  initialLoading.value = false
 
-  setTimeout(() => {
-    showSplash.value = false
-  }, 500)
+  // 2. 监听后端启动完成事件
+  EventsOn('startup-complete', async (data: { success?: boolean; statuses?: Record<string, any> } | null) => {
+    console.log('[App] 收到 startup-complete 事件', { data })
 
-  EventsOn("startup-complete", () => {
+    // 如果后端发送了预加载的状态数据，填充到 StatusCache
+    if (data?.success && data?.statuses) {
+      try {
+        const { useStatusCache } = await import('./stores/statusCache')
+        const statusCache = useStatusCache()
+
+        // 将后端预加载的状态数据填充到缓存
+        for (const [path, status] of Object.entries(data.statuses)) {
+          statusCache.updateCache(path, {
+            gitStatus: status.gitStatus,
+            stagingStatus: status.stagingStatus,
+            untrackedCount: status.untrackedCount,
+            pushoverStatus: status.pushoverStatus,
+            pushStatus: status.pushStatus,
+            lastUpdated: new Date(status.lastUpdated).getTime(),
+            loading: false,
+            error: null,
+            stale: false
+          })
+        }
+
+        console.log('[App] StatusCache 已填充预加载数据', {
+          count: Object.keys(data.statuses).length
+        })
+      } catch (error) {
+        console.error('[App] 填充 StatusCache 失败:', error)
+        // 失败不影响进入主界面，StatusCache 会按需加载
+      }
+    } else {
+      console.log('[App] 后端未发送预加载数据，StatusCache 将按需加载')
+    }
+
+    // 隐藏 SplashScreen
     showSplash.value = false
+  })
+
+  // 3. 超时保护（30秒后强制进入主界面）
+  const timeoutId = setTimeout(() => {
+    if (showSplash.value) {
+      console.warn('[App] 启动超时（30秒），强制进入主界面')
+      showSplash.value = false
+    }
+  }, 30000)
+
+  // 4. 组件卸载时清理
+  onUnmounted(() => {
+    EventsOff('startup-complete')
+    clearTimeout(timeoutId)
   })
 
   console.log('[App] onMounted 完成')
@@ -167,50 +201,6 @@ function openSettings() {
 </script>
 
 <style scoped>
-/* Loading screen */
-.startup-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background: var(--bg-primary);
-  position: relative;
-  z-index: var(--z-elevated);
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--border-default);
-  border-top-color: var(--accent-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: var(--space-lg);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.startup-loading p {
-  margin: 0;
-  font-size: 16px;
-  color: var(--text-secondary);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
 .app {
   display: flex;
   flex-direction: column;

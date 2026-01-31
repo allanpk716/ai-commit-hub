@@ -159,12 +159,50 @@ func (a *App) startup(ctx context.Context) {
 			startupService := service.NewStartupService(ctx, a.gitProjectRepo, a.pushoverService)
 			if err := startupService.Preload(); err != nil {
 				logger.Errorf("启动预加载失败: %v", err)
+				// 失败时也发送完成事件（不带数据）
+				runtime.EventsEmit(ctx, "startup-complete", nil)
+				return
 			}
-			// 无论成功或失败，都发送完成事件以进入主界面
-			runtime.EventsEmit(ctx, "startup-complete", nil)
+
+			// 预加载成功，批量获取所有项目状态
+			projects, err := a.gitProjectRepo.GetAll()
+			if err != nil {
+				logger.Errorf("获取项目列表失败: %v", err)
+				runtime.EventsEmit(ctx, "startup-complete", nil)
+				return
+			}
+
+			if len(projects) == 0 {
+				// 无项目，发送完成事件（不带数据）
+				runtime.EventsEmit(ctx, "startup-complete", nil)
+				return
+			}
+
+			// 提取所有项目路径
+			projectPaths := make([]string, len(projects))
+			for i, p := range projects {
+				projectPaths[i] = p.Path
+			}
+
+			// 批量获取所有项目状态
+			statuses, err := a.GetAllProjectStatuses(projectPaths)
+			if err != nil {
+				logger.Errorf("批量获取项目状态失败: %v", err)
+				// 失败时仍发送完成事件（不带数据），让用户进入主界面
+				runtime.EventsEmit(ctx, "startup-complete", nil)
+				return
+			}
+
+			logger.Infof("成功预加载 %d 个项目的状态", len(statuses))
+
+			// 发送完成事件（包含预加载的状态数据）
+			runtime.EventsEmit(ctx, "startup-complete", map[string]interface{}{
+				"success": true,
+				"statuses": statuses,
+			})
 		}()
 	} else {
-		// 无需预加载，直接完成
+		// 无需预加载，直接完成（不带数据）
 		runtime.EventsEmit(ctx, "startup-complete", nil)
 	}
 }

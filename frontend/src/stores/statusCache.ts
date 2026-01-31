@@ -459,6 +459,10 @@ export const useStatusCache = defineStore('statusCache', () => {
 
   /**
    * 初始化状态缓存，预加载所有项目状态
+   *
+   * 注意：此方法现在由前端主动调用，而不是在应用启动时自动调用
+   * 后端的 StartupService.Preload() 会在 SplashScreen 期间预加载项目状态
+   * 前端在 startup-complete 事件后不再调用此方法
    */
   async function init(): Promise<void> {
     try {
