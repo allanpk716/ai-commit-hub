@@ -8,6 +8,12 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/WQGroup/logger"
+)
+
+const (
+	configFileMode = 0644
 )
 
 // Installer Hook 安装器
@@ -51,17 +57,17 @@ func (in *Installer) Install(projectPath string, force bool) (*InstallResult, er
 	}
 
 	// 调试日志：打印执行的命令
-	fmt.Fprintf(os.Stderr, "[DEBUG] Executing: %s %v\n", pythonCmd, args)
-	fmt.Fprintf(os.Stderr, "[DEBUG] Working dir: %s\n", in.extensionPath)
+	logger.Debugf("Executing: %s %v", pythonCmd, args)
+	logger.Debugf("Working dir: %s", in.extensionPath)
 
 	// 执行安装脚本
 	cmd := exec.Command(pythonCmd, args...)
 	cmd.Dir = in.extensionPath // 设置工作目录为扩展目录
 
 	// 打印实际的命令参数
-	fmt.Fprintf(os.Stderr, "[DEBUG] cmd.Path: %s\n", cmd.Path)
+	logger.Debugf("cmd.Path: %s", cmd.Path)
 	for i, arg := range cmd.Args {
-		fmt.Fprintf(os.Stderr, "[DEBUG] cmd.Args[%d]: %s\n", i, arg)
+		logger.Debugf("cmd.Args[%d]: %s", i, arg)
 	}
 
 	output, err := cmd.CombinedOutput()
@@ -117,8 +123,8 @@ func (in *Installer) Update(projectPath string) (*InstallResult, error) {
 	}
 
 	// 调试日志：打印执行的命令
-	fmt.Fprintf(os.Stderr, "[DEBUG] Updating Hook: %s %v\n", pythonCmd, args)
-	fmt.Fprintf(os.Stderr, "[DEBUG] Working dir: %s\n", in.extensionPath)
+	logger.Debugf("Updating Hook: %s %v", pythonCmd, args)
+	logger.Debugf("Working dir: %s", in.extensionPath)
 
 	// 执行安装脚本
 	cmd := exec.Command(pythonCmd, args...)
@@ -168,9 +174,9 @@ func (in *Installer) Reinstall(projectPath string) (*InstallResult, error) {
 	}
 
 	// 调试日志
-	fmt.Fprintf(os.Stderr, "[DEBUG] Reinstalling Hook: %s %v\n", pythonCmd, args)
-	fmt.Fprintf(os.Stderr, "[DEBUG] Working dir: %s\n", in.extensionPath)
-	fmt.Fprintf(os.Stderr, "[DEBUG] Config: NoPushover=%v, NoWindows=%v\n", config.NoPushoverFile, config.NoWindowsFile)
+	logger.Debugf("Reinstalling Hook: %s %v", pythonCmd, args)
+	logger.Debugf("Working dir: %s", in.extensionPath)
+	logger.Debugf("Config: NoPushover=%v, NoWindows=%v", config.NoPushoverFile, config.NoWindowsFile)
 
 	// 执行安装脚本
 	cmd := exec.Command(pythonCmd, args...)
@@ -187,7 +193,7 @@ func (in *Installer) Reinstall(projectPath string) (*InstallResult, error) {
 	// 恢复通知配置
 	if restoreErr := in.restoreNotificationConfig(projectPath, config); restoreErr != nil {
 		// 配置恢复失败记录警告，但不影响重装结果
-		fmt.Fprintf(os.Stderr, "[WARN] 恢复通知配置失败: %v\n", restoreErr)
+		logger.Warnf("恢复通知配置失败: %v", restoreErr)
 	}
 
 	// 解析并返回结果
@@ -204,29 +210,33 @@ func (in *Installer) SetNotificationMode(projectPath string, mode NotificationMo
 	switch mode {
 	case ModeEnabled:
 		// 删除两个标记文件
-		os.Remove(noPushoverPath)
-		os.Remove(noWindowsPath)
+		if err := os.Remove(noPushoverPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("删除 .no-pushover 失败: %w", err)
+		}
+		if err := os.Remove(noWindowsPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("删除 .no-windows 失败: %w", err)
+		}
 
 	case ModePushoverOnly:
 		// 创建 .no-windows，删除 .no-pushover
-		if err := os.WriteFile(noWindowsPath, []byte(""), 0644); err != nil {
+		if err := os.WriteFile(noWindowsPath, []byte(""), configFileMode); err != nil {
 			return fmt.Errorf("创建 .no-windows 失败: %w", err)
 		}
 		os.Remove(noPushoverPath)
 
 	case ModeWindowsOnly:
 		// 创建 .no-pushover，删除 .no-windows
-		if err := os.WriteFile(noPushoverPath, []byte(""), 0644); err != nil {
+		if err := os.WriteFile(noPushoverPath, []byte(""), configFileMode); err != nil {
 			return fmt.Errorf("创建 .no-pushover 失败: %w", err)
 		}
 		os.Remove(noWindowsPath)
 
 	case ModeDisabled:
 		// 创建两个标记文件
-		if err := os.WriteFile(noPushoverPath, []byte(""), 0644); err != nil {
+		if err := os.WriteFile(noPushoverPath, []byte(""), configFileMode); err != nil {
 			return fmt.Errorf("创建 .no-pushover 失败: %w", err)
 		}
-		if err := os.WriteFile(noWindowsPath, []byte(""), 0644); err != nil {
+		if err := os.WriteFile(noWindowsPath, []byte(""), configFileMode); err != nil {
 			return fmt.Errorf("创建 .no-windows 失败: %w", err)
 		}
 	}
@@ -288,7 +298,7 @@ func (in *Installer) restoreNotificationConfig(projectPath string, config Notifi
 
 	// 恢复 .no-pushover
 	if config.NoPushoverFile {
-		if err := os.WriteFile(noPushoverPath, []byte(""), 0644); err != nil {
+		if err := os.WriteFile(noPushoverPath, []byte(""), configFileMode); err != nil {
 			return fmt.Errorf("恢复 .no-pushover 失败: %w", err)
 		}
 	} else {
@@ -297,7 +307,7 @@ func (in *Installer) restoreNotificationConfig(projectPath string, config Notifi
 
 	// 恢复 .no-windows
 	if config.NoWindowsFile {
-		if err := os.WriteFile(noWindowsPath, []byte(""), 0644); err != nil {
+		if err := os.WriteFile(noWindowsPath, []byte(""), configFileMode); err != nil {
 			return fmt.Errorf("恢复 .no-windows 失败: %w", err)
 		}
 	} else {
