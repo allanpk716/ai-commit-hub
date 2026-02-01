@@ -329,12 +329,41 @@ onMounted(() => {
       console.error('[ProjectList] 加载项目列表失败:', error)
     }
   })
+
+  // 新增：定期刷新所有项目状态（每 30 秒）
+  const REFRESH_INTERVAL = 30000 // 30 秒，与 StatusCache TTL 一致
+
+  const refreshInterval = setInterval(async () => {
+    // 静默刷新所有项目状态，避免 UI 闪烁
+    for (const project of projectStore.projects) {
+      try {
+        await statusCache.refresh(project.path, { silent: true })
+      } catch (error) {
+        console.warn(`[ProjectList] 刷新项目状态失败: ${project.name}`, error)
+      }
+    }
+    console.log('[ProjectList] 定期刷新完成，已刷新所有项目状态')
+  }, REFRESH_INTERVAL)
+
+  // 保存定时器引用，用于清理
+  ;(window as any).__projectListRefreshInterval = refreshInterval
+  console.log('[ProjectList] 已启动定期刷新机制，间隔:', REFRESH_INTERVAL, 'ms')
 })
 
-// 清理事件监听器，防止内存泄漏
+// 清理事件监听器和定时器，防止内存泄漏
 onUnmounted(() => {
-  console.log('[ProjectList] 组件卸载，移除事件监听器')
+  console.log('[ProjectList] 组件卸载，移除事件监听器和定时器')
+
+  // 清理事件监听器
   EventsOff('startup-complete')
+
+  // 清理定时器
+  const interval = (window as any).__projectListRefreshInterval
+  if (interval) {
+    clearInterval(interval)
+    delete (window as any).__projectListRefreshInterval
+    console.log('[ProjectList] 已清理定期刷新定时器')
+  }
 })
 </script>
 

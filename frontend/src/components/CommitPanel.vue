@@ -390,6 +390,12 @@ async function handlePush() {
     if (fresh) {
       updateUIFromCache(fresh)
     }
+
+    // 通知项目列表状态已更新
+    EventsEmit('project-status-changed', {
+      projectPath: commitStore.selectedProjectPath,
+      changeType: 'push'
+    })
   } catch (e) {
     let errMessage = '推送失败'
     if (e instanceof Error) {

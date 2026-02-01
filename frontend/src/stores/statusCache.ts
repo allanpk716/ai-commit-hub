@@ -547,11 +547,25 @@ export const useStatusCache = defineStore('statusCache', () => {
    * 初始化事件监听器
    */
   function initEventListeners(): void {
-    // 监听项目状态变化事件，自动使缓存失效
-    EventsOn('project-status-changed', (data: { path?: string }) => {
-      if (data.path) {
-        invalidate(data.path)
+    // 监听项目状态变化事件，立即刷新缓存
+    EventsOn('project-status-changed', async (data: { projectPath?: string; path?: string; changeType?: string }) => {
+      // 兼容两种事件格式：projectPath (新格式) 和 path (旧格式)
+      const path = data.projectPath || data.path
+
+      if (path) {
+        console.log('[StatusCache] 收到状态变化事件，立即刷新项目:', path, '类型:', data.changeType)
+
+        // 立即刷新该项目状态（静默模式，避免 UI 闪烁）
+        try {
+          await refresh(path, { force: true, silent: true })
+          console.log('[StatusCache] 项目状态刷新完成:', path)
+        } catch (error) {
+          console.warn('[StatusCache] 刷新项目状态失败:', path, error)
+          // 失败时也使缓存失效，确保下次读取时会重新获取
+          invalidate(path)
+        }
       } else {
+        console.log('[StatusCache] 收到全局状态变化事件，使所有缓存失效')
         invalidateAll()
       }
     })
