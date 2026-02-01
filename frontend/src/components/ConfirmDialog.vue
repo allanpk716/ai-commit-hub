@@ -2,24 +2,47 @@
   <div v-if="visible" class="dialog-overlay" @click.self="$emit('cancel')">
     <div class="dialog">
       <div class="dialog-header">
-        <h3>⚠️ 确认还原文件</h3>
+        <h3 :class="type">{{ title }}</h3>
       </div>
+
       <div class="dialog-body">
-        <p>此操作将<strong>永久丢失</strong>文件 <code>{{ fileName }}</code> 的所有未提交修改。</p>
-        <p class="warning-text">此操作无法撤销！</p>
+        <p class="message">{{ message }}</p>
+
+        <!-- 详细信息列表 -->
+        <div v-if="details && details.length > 0" class="details-list">
+          <div v-for="item in details" :key="item.label" class="detail-item">
+            <span class="detail-label">{{ item.label }}:</span>
+            <span class="detail-value">{{ item.value }}</span>
+          </div>
+        </div>
+
+        <!-- 附加提示信息 -->
+        <p v-if="note" class="note-text">{{ note }}</p>
       </div>
+
       <div class="dialog-footer">
-        <button @click="$emit('cancel')" class="btn-cancel">取消</button>
-        <button @click="$emit('confirm')" class="btn-confirm">确认还原</button>
+        <button @click="$emit('cancel')" class="btn-cancel">{{ cancelText }}</button>
+        <button @click="$emit('confirm')" :class="['btn-confirm', type]">{{ confirmText }}</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+interface DetailItem {
+  label: string
+  value: string
+}
+
 defineProps<{
   visible: boolean
-  fileName: string
+  title: string
+  message: string
+  details?: DetailItem[]
+  note?: string
+  confirmText: string
+  cancelText: string
+  type?: 'warning' | 'danger'
 }>()
 
 defineEmits<{
@@ -61,7 +84,14 @@ defineEmits<{
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+}
+
+.dialog-header h3.warning {
   color: var(--color-warning);
+}
+
+.dialog-header h3.danger {
+  color: var(--color-error);
 }
 
 .dialog-body {
@@ -84,10 +114,45 @@ defineEmits<{
   color: var(--text-primary);
 }
 
-.warning-text {
-  color: var(--color-error);
+/* 详细信息列表 */
+.details-list {
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+}
+
+.detail-item {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  font-size: 13px;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
   font-weight: 500;
-  margin: 0 !important;
+  color: var(--text-secondary);
+  min-width: 80px;
+}
+
+.detail-value {
+  flex: 1;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* 提示信息 */
+.note-text {
+  margin: var(--space-sm) 0 0 0 !important;
+  font-size: 13px;
+  color: var(--accent-primary);
+  line-height: 1.6;
 }
 
 .dialog-footer {
@@ -121,11 +186,23 @@ defineEmits<{
 }
 
 .btn-confirm {
-  background: var(--color-error);
   color: white;
 }
 
-.btn-confirm:hover {
+.btn-confirm.warning {
+  background: var(--color-warning);
+}
+
+.btn-confirm.warning:hover {
+  background: #d97706;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.btn-confirm.danger {
+  background: var(--color-error);
+}
+
+.btn-confirm.danger:hover {
   background: #dc2626;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }

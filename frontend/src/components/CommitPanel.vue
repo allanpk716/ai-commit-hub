@@ -157,6 +157,19 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+
+const emit = defineEmits<{
+  'show-delete-dialog': [config: {
+    title: string
+    message: string
+    details: Array<{label: string; value: string}>
+    note?: string
+    confirmText: string
+    cancelText: string
+    type: 'warning' | 'danger'
+    onConfirm: () => Promise<void>
+  }]
+}>()
 import {
   CommitLocally,
   PushToRemote,

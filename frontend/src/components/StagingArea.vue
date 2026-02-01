@@ -10,7 +10,7 @@
           :class="{ 'resizing': isVerticalResizing }"
         ></div>
 
-        <UnstagedList />
+        <UnstagedList @show-delete-dialog="$emit('show-delete-dialog', $event)" />
       </div>
 
       <div
@@ -31,6 +31,19 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import StagedList from './StagedList.vue'
 import UnstagedList from './UnstagedList.vue'
 import DiffViewer from './DiffViewer.vue'
+
+const emit = defineEmits<{
+  'show-delete-dialog': [config: {
+    title: string
+    message: string
+    details: Array<{label: string; value: string}>
+    note?: string
+    confirmText: string
+    cancelText: string
+    type: 'warning' | 'danger'
+    onConfirm: () => Promise<void>
+  }]
+}>()
 
 const STORAGE_KEY = 'ai-commit-hub:staging-area-left-width'
 const VERTICAL_STORAGE_KEY = 'ai-commit-hub:staged-list-height-ratio'

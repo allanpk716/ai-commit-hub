@@ -163,6 +163,16 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [project: GitProject]
+  'show-delete-dialog': [config: {
+    title: string
+    message: string
+    details: Array<{label: string; value: string}>
+    note?: string
+    confirmText: string
+    cancelText: string
+    type: 'warning' | 'danger'
+    onConfirm: () => Promise<void>
+  }]
 }>()
 
 const projectStore = useProjectStore()
@@ -171,6 +181,8 @@ const searchQuery = ref('')
 const draggedItem = ref<{ project: GitProject; index: number } | null>(null)
 // 响应式刷新触发器，用于强制组件在 StatusCache 更新时重新渲染
 const refreshTrigger = ref(0)
+// 保留删除的项目引用（用于回调）
+const projectToDelete = ref<GitProject | null>(null)
 
 const filteredProjects = computed(() => {
   if (!searchQuery.value) {
@@ -187,15 +199,28 @@ function selectProject(project: GitProject) {
   emit('select', project)
 }
 
-async function handleDelete(project: GitProject) {
-  if (confirm(`确定要删除项目 "${project.name}" 吗?`)) {
-    try {
-      await projectStore.deleteProject(project.id)
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '删除失败'
-      alert('删除失败: ' + message)
+function handleDelete(project: GitProject) {
+  projectToDelete.value = project
+
+  // 发出事件到 App.vue
+  emit('show-delete-dialog', {
+    title: '⚠️ 确认删除项目',
+    message: '确定要从项目列表中删除以下项目吗？',
+    details: [
+      { label: '项目名称', value: project.name },
+      { label: '项目路径', value: project.path }
+    ],
+    note: '💡 这只会从应用中移除项目，不会删除实际的代码文件。',
+    confirmText: '删除',
+    cancelText: '取消',
+    type: 'danger' as const,
+    onConfirm: async () => {
+      if (projectToDelete.value) {
+        await projectStore.deleteProject(projectToDelete.value.id)
+        projectToDelete.value = null
+      }
     }
-  }
+  })
 }
 
 function handleDragStart(project: GitProject, index: number, event: DragEvent) {

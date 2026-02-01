@@ -49,15 +49,34 @@
     <!-- Error Toast (全局错误提示) -->
     <ErrorToast />
 
+    <!-- 删除确认对话框 -->
+    <ConfirmDialog
+      :visible="showDeleteDialog"
+      :title="deleteDialogTitle"
+      :message="deleteDialogMessage"
+      :details="deleteDialogDetails"
+      :note="deleteDialogNote"
+      :confirm-text="deleteDialogConfirmText"
+      :cancel-text="deleteDialogCancelText"
+      :type="deleteDialogType"
+      @confirm="handleDeleteConfirm"
+      @cancel="showDeleteDialog = false"
+    />
+
     <!-- Main content area -->
     <main class="content">
       <ProjectList
         :selected-id="selectedProjectId"
         @select="handleSelectProject"
+        @show-delete-dialog="handleShowDeleteDialog"
       />
       <div class="commit-area">
         <transition name="fade-slide" mode="out-in">
-          <CommitPanel v-if="selectedProjectId" :key="selectedProjectId" />
+          <CommitPanel
+            v-if="selectedProjectId"
+            :key="selectedProjectId"
+            @show-delete-dialog="handleShowDeleteDialog"
+          />
           <div v-else class="empty-state">
             <div class="empty-icon">📝</div>
             <h2>选择一个项目开始</h2>
@@ -81,6 +100,7 @@ import CommitPanel from './components/CommitPanel.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
 import ExtensionStatusButton from './components/ExtensionStatusButton.vue'
 import ExtensionInfoDialog from './components/ExtensionInfoDialog.vue'
+import ConfirmDialog from './components/ConfirmDialog.vue'
 import SplashScreen from './components/SplashScreen.vue'
 import ErrorToast from './components/ErrorToast.vue'
 import type { GitProject } from './types'
@@ -93,6 +113,17 @@ const settingsOpen = ref(false)
 const extensionDialogOpen = ref(false)
 const showSplash = ref(true)
 const initErrors = ref<Array<{ error: string; message: string }>>([])
+
+// 删除对话框状态
+const showDeleteDialog = ref(false)
+const deleteDialogTitle = ref('')
+const deleteDialogMessage = ref('')
+const deleteDialogDetails = ref<Array<{label: string; value: string}>>([])
+const deleteDialogNote = ref('')
+const deleteDialogConfirmText = ref('删除')
+const deleteDialogCancelText = ref('取消')
+const deleteDialogType = ref<'warning' | 'danger'>('danger')
+const deleteDialogCallback = ref<(() => Promise<void>) | null>(null)
 
 async function initializeApp() {
   console.log('[App] 开始初始化前端应用')
@@ -201,6 +232,53 @@ function handleSelectProject(project: GitProject) {
 
 function openSettings() {
   settingsOpen.value = true
+}
+
+// 处理删除对话框显示请求
+function handleShowDeleteDialog(config: {
+  title: string
+  message: string
+  details: Array<{label: string; value: string}>
+  note?: string
+  confirmText: string
+  cancelText: string
+  type: 'warning' | 'danger'
+  onConfirm: () => Promise<void>
+}) {
+  openDeleteDialog(config)
+}
+
+function openDeleteDialog(config: {
+  title: string
+  message: string
+  details: Array<{label: string; value: string}>
+  note?: string
+  confirmText: string
+  cancelText: string
+  type: 'warning' | 'danger'
+  onConfirm: () => Promise<void>
+}) {
+  deleteDialogTitle.value = config.title
+  deleteDialogMessage.value = config.message
+  deleteDialogDetails.value = config.details
+  deleteDialogNote.value = config.note || ''
+  deleteDialogConfirmText.value = config.confirmText
+  deleteDialogCancelText.value = config.cancelText
+  deleteDialogType.value = config.type
+  deleteDialogCallback.value = config.onConfirm
+  showDeleteDialog.value = true
+}
+
+async function handleDeleteConfirm() {
+  if (deleteDialogCallback.value) {
+    try {
+      await deleteDialogCallback.value()
+      showDeleteDialog.value = false
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '操作失败'
+      console.error('操作失败:', message)
+    }
+  }
 }
 </script>
 

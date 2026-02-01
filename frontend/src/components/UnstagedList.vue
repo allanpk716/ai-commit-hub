@@ -158,14 +158,6 @@
       @close="closeUntrackedContextMenu"
     />
 
-    <!-- 还原确认对话框 -->
-    <DiscardConfirmDialog
-      :visible="discardDialogVisible"
-      :fileName="selectedUnstagedFile?.path || ''"
-      @confirm="handleDiscardConfirm"
-      @cancel="discardDialogVisible = false"
-    />
-
     <!-- 排除对话框 -->
     <ExcludeDialog
       :visible="excludeDialogVisible"
@@ -181,9 +173,21 @@ import { computed, ref } from 'vue'
 import { useCommitStore } from '../stores/commitStore'
 import type { StagedFile, UntrackedFile } from '../types'
 import FileContextMenu from './FileContextMenu.vue'
-import DiscardConfirmDialog from './DiscardConfirmDialog.vue'
 import ExcludeDialog from './ExcludeDialog.vue'
 import { OpenInFileExplorer } from '../../wailsjs/go/main/App'
+
+const emit = defineEmits<{
+  'show-delete-dialog': [config: {
+    title: string
+    message: string
+    details: Array<{label: string; value: string}>
+    note?: string
+    confirmText: string
+    cancelText: string
+    type: 'warning' | 'danger'
+    onConfirm: () => Promise<void>
+  }]
+}>()
 
 const commitStore = useCommitStore()
 
@@ -209,7 +213,6 @@ const untrackedContextMenuY = ref(0)
 const selectedUntrackedFile = ref<UntrackedFile | null>(null)
 
 // 对话框状态
-const discardDialogVisible = ref(false)
 const excludeDialogVisible = ref(false)
 
 // 计算属性
@@ -395,17 +398,28 @@ async function handleUnstagedStage() {
 
 function handleUnstagedDiscard() {
   closeUnstagedContextMenu()
-  discardDialogVisible.value = true
-}
 
-async function handleDiscardConfirm() {
   if (!selectedUnstagedFile.value) return
-  try {
-    await commitStore.discardFileChanges(selectedUnstagedFile.value.path)
-  } catch (e) {
-    // 错误已在 store 中处理
-  }
-  discardDialogVisible.value = false
+
+  // 发出事件到 App.vue（通过父组件 CommitPanel 传递）
+  emit('show-delete-dialog', {
+    title: '⚠️ 确认还原文件',
+    message: '此操作将永久丢失文件的所有未提交修改。',
+    details: [{ label: '文件', value: selectedUnstagedFile.value.path }],
+    note: '此操作无法撤销！',
+    confirmText: '确认还原',
+    cancelText: '取消',
+    type: 'danger' as const,
+    onConfirm: async () => {
+      if (selectedUnstagedFile.value) {
+        try {
+          await commitStore.discardFileChanges(selectedUnstagedFile.value.path)
+        } catch (e) {
+          // 错误已在 store 中处理
+        }
+      }
+    }
+  })
 }
 
 async function handleUnstagedOpenExplorer() {
