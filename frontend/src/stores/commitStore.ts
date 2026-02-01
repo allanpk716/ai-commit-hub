@@ -241,7 +241,8 @@ export const useCommitStore = defineStore('commit', () => {
     }
     console.log('[commitStore] 发送 project-status-changed 事件:', selectedProjectPath.value)
     EventsEmit('project-status-changed', {
-      path: selectedProjectPath.value
+      projectPath: selectedProjectPath.value,
+      changeType: 'commit'
     })
   }
 

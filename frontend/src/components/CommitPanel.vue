@@ -356,7 +356,8 @@ async function handleCommit() {
 
     // 通知项目列表状态已更新
     EventsEmit('project-status-changed', {
-      path: commitStore.selectedProjectPath
+      projectPath: commitStore.selectedProjectPath,
+      changeType: 'commit'
     })
   } catch (e: unknown) {
     let errMessage = '提交失败'
@@ -423,7 +424,8 @@ async function handleInstallPushover() {
     }
     // 通知项目列表状态已更新（Hook 状态变化会影响 pushover_needs_update）
     EventsEmit('project-status-changed', {
-      path: currentProject.value.path
+      projectPath: currentProject.value.path,
+      changeType: 'pushover'
     })
   } else {
     alert('安装失败: ' + (result.message || '未知错误'))
@@ -443,7 +445,8 @@ async function handleUpdatePushover() {
     }
     // 通知项目列表状态已更新（Hook 状态变化会影响 pushover_needs_update）
     EventsEmit('project-status-changed', {
-      path: currentProject.value.path
+      projectPath: currentProject.value.path,
+      changeType: 'pushover'
     })
   } else {
     alert('更新失败: ' + (result.message || '未知错误'))

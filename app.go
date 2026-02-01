@@ -1605,3 +1605,20 @@ func (a *App) GetAllProjectStatuses(projectPaths []string) (map[string]*ProjectF
 
 	return statuses, nil
 }
+
+// LogFrontendError 记录前端错误到后端日志
+// 接收 JSON 字符串，解析后记录到日志文件
+func (a *App) LogFrontendError(errJSON string) error {
+	// 检查初始化状态
+	if a.initError != nil {
+		return fmt.Errorf("app not initialized: %w", a.initError)
+	}
+
+	// 检查 errorService 是否已初始化
+	if a.errorService == nil {
+		return fmt.Errorf("error service not initialized")
+	}
+
+	// 调用 ErrorService 的 LogErrorFromJSON 方法
+	return a.errorService.LogErrorFromJSON(errJSON)
+}
