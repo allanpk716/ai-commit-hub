@@ -640,9 +640,9 @@ func GetStagedDiff(ctx context.Context) (string, error) {
 // PushStatus represents the push status of a Git repository.
 type PushStatus struct {
 	CanPush      bool   `json:"canPush"`
-	AheadCount   int    `json:"ahead_count"`
-	BehindCount  int    `json:"behind_count"`
-	RemoteBranch string `json:"remote_branch"`
+	AheadCount   int    `json:"aheadCount"`
+	BehindCount  int    `json:"behindCount"`
+	RemoteBranch string `json:"remoteBranch"`
 	Error        string `json:"error,omitempty"`
 }
 
