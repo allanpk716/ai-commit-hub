@@ -547,12 +547,26 @@ export const useStatusCache = defineStore('statusCache', () => {
    * 初始化事件监听器
    */
   function initEventListeners(): void {
+    // 添加事件去重和防抖
+    let lastEventTime = 0
+    let lastEventPath = ''
+    const EVENT_DEBOUNCE_MS = 500
+
     // 监听项目状态变化事件，立即刷新缓存
     EventsOn('project-status-changed', async (data: { projectPath?: string; path?: string; changeType?: string }) => {
       // 兼容两种事件格式：projectPath (新格式) 和 path (旧格式)
       const path = data.projectPath || data.path
 
       if (path) {
+        // 防抖：防止短时间内同一项目重复触发
+        const now = Date.now()
+        if (path === lastEventPath && now - lastEventTime < EVENT_DEBOUNCE_MS) {
+          console.log('[StatusCache] 跳过重复事件:', path, '间隔:', now - lastEventTime, 'ms')
+          return
+        }
+        lastEventTime = now
+        lastEventPath = path
+
         console.log('[StatusCache] 收到状态变化事件，立即刷新项目:', path, '类型:', data.changeType)
 
         // 立即刷新该项目状态（静默模式，避免 UI 闪烁）

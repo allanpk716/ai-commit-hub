@@ -334,10 +334,30 @@ async function handleCommit() {
     return
   }
 
+  // ========== 1. 乐观更新：立即更新 UI ==========
+  const rollback = statusCache.updateOptimistic(commitStore.selectedProjectPath, {
+    stagingStatus: {
+      staged: [],
+      unstaged: [],
+      untracked: []
+    },
+    untrackedCount: 0,
+    lastUpdated: Date.now()
+  })
+
+  // 立即更新 commitStore 的状态
+  const previousStagingStatus = commitStore.stagingStatus
+  commitStore.stagingStatus = {
+    staged: [],
+    unstaged: [],
+    untracked: []
+  }
+
   try {
+    // ========== 2. 执行 Git 提交 ==========
     await CommitLocally(commitStore.selectedProjectPath, message)
 
-    // 保存历史记录到数据库（后台功能，不显示在UI中）
+    // ========== 3. 保存历史记录到数据库 ==========
     const project = projectStore.projects.find(p => p.path === commitStore.selectedProjectPath)
     if (project) {
       await SaveCommitHistory(project.id, message, commitStore.provider, commitStore.language)
@@ -345,7 +365,7 @@ async function handleCommit() {
 
     showToast('success', '提交成功!')
 
-    // 使用 StatusCache 刷新状态
+    // ========== 4. 强制刷新状态（获取真实状态） ==========
     await statusCache.refresh(commitStore.selectedProjectPath, { force: true, silent: true })
     const fresh = statusCache.getStatus(commitStore.selectedProjectPath)
     if (fresh) {
@@ -354,12 +374,18 @@ async function handleCommit() {
 
     commitStore.clearMessage()
 
-    // 通知项目列表状态已更新
+    // ========== 5. 通知项目列表状态已更新 ==========
     EventsEmit('project-status-changed', {
       projectPath: commitStore.selectedProjectPath,
       changeType: 'commit'
     })
   } catch (e: unknown) {
+    // ========== 6. 错误时回滚 ==========
+    rollback?.()
+
+    // 回滚 commitStore 的状态
+    commitStore.stagingStatus = previousStagingStatus
+
     let errMessage = '提交失败'
     if (e instanceof Error) {
       errMessage = e.message
