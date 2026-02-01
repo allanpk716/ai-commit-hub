@@ -48,7 +48,7 @@
     <transition-group v-else tag="div" name="list-item" class="projects">
       <div
         v-for="(project, index) in filteredProjects"
-        :key="project.id"
+        :key="`${project.id}-${project.lastModified || 0}`"
         class="project-item"
         :class="{ selected: selectedId === project.id }"
         :draggable="!searchQuery"

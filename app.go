@@ -53,6 +53,7 @@ type App struct {
 	configService        *service.ConfigService
 	projectConfigService *service.ProjectConfigService
 	pushoverService      *pushover.Service
+	errorService         *service.ErrorService
 	initError            error
 }
 
@@ -142,6 +143,9 @@ func (a *App) startup(ctx context.Context) {
 			}
 		}
 	}
+
+	// Initialize error service
+	a.errorService = service.NewErrorService()
 
 	// 同步所有项目的 Hook 状态（阻塞执行，确保前端获取到最新状态）
 	if a.pushoverService != nil {
@@ -698,6 +702,14 @@ func (a *App) CommitLocally(projectPath, message string) error {
 	}
 
 	logger.Infof("提交成功 - 目录: %s", projectPath)
+
+	// 发送项目状态变更事件，触发前端刷新
+	runtime.EventsEmit(a.ctx, "project-status-changed", map[string]interface{}{
+		"projectPath": projectPath,
+		"changeType":  "commit",
+		"timestamp":   time.Now(),
+	})
+
 	return nil
 }
 

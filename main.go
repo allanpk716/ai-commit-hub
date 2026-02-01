@@ -2,6 +2,8 @@ package main
 
 import (
 	"embed"
+	"os"
+	"path/filepath"
 
 	"github.com/WQGroup/logger"
 	"github.com/wailsapp/wails/v2"
@@ -13,7 +15,39 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+func initLogger() {
+	// 获取用户主目录
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		logger.Errorf("Failed to get home directory: %v", err)
+		return
+	}
+
+	// 创建日志目录
+	logDir := filepath.Join(homeDir, ".ai-commit-hub", "logs")
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		logger.Errorf("Failed to create log directory: %v", err)
+		return
+	}
+
+	// 配置 logger 输出到文件
+	logger.SetLoggerSettings(
+		&logger.Settings{
+			LogRootFPath: logDir,
+			LogNameBase:  "app.log",
+			MaxSizeMB:    100,
+			MaxAgeDays:   30,
+			FormatterType: "text",
+		},
+	)
+
+	logger.Info("Logger initialized, log directory:", logDir)
+}
+
 func main() {
+	// 初始化 logger
+	initLogger()
+
 	// Create an instance of the app structure
 	app := NewApp()
 

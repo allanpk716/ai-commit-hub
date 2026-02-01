@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import type { GitProject } from '../types'
 import { GetAllProjects, GetProjectsWithStatus, AddProject, DeleteProject, MoveProject, ReorderProjects, DebugHookStatus } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
+import { EventsOn } from '../../wailsjs/runtime/runtime'
+import { useStatusCache } from './statusCache'
 
 // 扩展接口，将运行时状态字段设为可选
 type GitProjectWithStatus = Omit<models.GitProject, 'has_uncommitted_changes' | 'untracked_count' | 'pushover_needs_update'> & {
@@ -187,6 +189,28 @@ export const useProjectStore = defineStore('project', () => {
       return null
     }
   }
+
+  // 监听项目状态变更事件（来自后端的 Git 操作）
+  EventsOn('project-status-changed', async (data: { projectPath: string; changeType: string; timestamp: string }) => {
+    console.log('[projectStore] 收到 project-status-changed 事件:', data)
+
+    const { projectPath } = data
+    const project = projects.value.find(p => p.path === projectPath)
+
+    if (project) {
+      console.log('[projectStore] 刷新项目状态:', projectPath)
+
+      // 刷新该项目的状态（包括推送状态、分支信息等）
+      const statusCache = useStatusCache()
+      await statusCache.refresh(projectPath, { force: true })
+
+      // 触发项目列表重新渲染（通过更新 project 的某个响应式属性）
+      // 使用时间戳触发更新，这会强制 Vue 重新渲染该项目的组件
+      project.lastModified = Date.now()
+
+      console.log('[projectStore] 项目状态已刷新，lastModified 更新为:', project.lastModified)
+    }
+  })
 
   return {
     projects,

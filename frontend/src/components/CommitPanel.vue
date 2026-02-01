@@ -170,6 +170,7 @@ import { useCommitStore } from '../stores/commitStore'
 import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
 import { useStatusCache } from '../stores/statusCache'
+import { useErrorStore } from '../stores/errorStore'
 import ProjectStatusHeader from './ProjectStatusHeader.vue'
 import StagingArea from './StagingArea.vue'
 
@@ -184,6 +185,7 @@ const commitStore = useCommitStore()
 const projectStore = useProjectStore()
 const pushoverStore = usePushoverStore()
 const statusCache = useStatusCache()
+const errorStore = useErrorStore()
 const isPushing = ref(false) // 是否正在推送
 
 // Toast 通知状态
@@ -322,13 +324,13 @@ async function handleCopy() {
 
 async function handleCommit() {
   if (!commitStore.selectedProjectPath) {
-    showToast('error', '请先选择项目')
+    errorStore.addError('请先选择项目', '', 'error', 'CommitPanel')
     return
   }
 
   const message = commitStore.streamingMessage || commitStore.generatedMessage
   if (!message) {
-    showToast('error', '请先生成 commit 消息')
+    errorStore.addError('请先生成 commit 消息', '需要先生成 commit 消息才能提交', 'error', 'CommitPanel')
     return
   }
 
@@ -366,13 +368,13 @@ async function handleCommit() {
       errMessage = JSON.stringify(e)
     }
     console.error('提交失败详细错误:', e)
-    showToast('error', '提交失败: ' + errMessage)
+    errorStore.addError('提交失败: ' + errMessage, e instanceof Error ? e.stack : '', 'error', 'CommitPanel')
   }
 }
 
 async function handlePush() {
   if (!commitStore.selectedProjectPath) {
-    showToast('error', '请先选择项目')
+    errorStore.addError('请先选择项目', '', 'error', 'CommitPanel')
     return
   }
 
@@ -397,7 +399,7 @@ async function handlePush() {
       errMessage = JSON.stringify(e)
     }
     console.error('推送失败详细错误:', e)
-    showToast('error', '推送失败: ' + errMessage)
+    errorStore.addError('推送失败: ' + errMessage, e instanceof Error ? e.stack : '', 'error', 'CommitPanel')
   } finally {
     isPushing.value = false
   }
@@ -469,7 +471,7 @@ async function openInExplorer() {
     showToast('success', '已在文件管理器中打开')
   } catch (e) {
     const message = e instanceof Error ? e.message : '打开失败'
-    showToast('error', message)
+    errorStore.addError('打开终端失败: ' + message, e instanceof Error ? e.stack : '', 'error', 'CommitPanel')
   }
 }
 
@@ -484,7 +486,7 @@ async function openInTerminalDirectly() {
     showToast('success', '已在终端中打开')
   } catch (e) {
     const message = e instanceof Error ? e.message : '打开失败'
-    showToast('error', message)
+    errorStore.addError('打开终端失败: ' + message, e instanceof Error ? e.stack : '', 'error', 'CommitPanel')
   }
 }
 
@@ -499,7 +501,7 @@ async function openInTerminal(terminalId: string) {
     showToast('success', '已在终端中打开')
   } catch (e) {
     const message = e instanceof Error ? e.message : '打开失败'
-    showToast('error', message)
+    errorStore.addError('操作失败: ' + message, e instanceof Error ? e.stack : '', 'error', 'CommitPanel')
   }
 }
 
@@ -520,7 +522,7 @@ async function handleRefresh() {
     showToast('success', '已刷新')
   } catch (e) {
     const message = e instanceof Error ? e.message : '刷新失败'
-    showToast('error', message)
+    errorStore.addError('刷新项目状态失败: ' + message, e instanceof Error ? e.stack : '', 'error', 'CommitPanel')
   }
 }
 

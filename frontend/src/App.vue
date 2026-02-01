@@ -46,6 +46,9 @@
     <!-- Extension Info Dialog -->
     <ExtensionInfoDialog :open="extensionDialogOpen" @close="extensionDialogOpen = false" />
 
+    <!-- Error Toast (全局错误提示) -->
+    <ErrorToast />
+
     <!-- Main content area -->
     <main class="content">
       <ProjectList
@@ -79,6 +82,7 @@ import SettingsDialog from './components/SettingsDialog.vue'
 import ExtensionStatusButton from './components/ExtensionStatusButton.vue'
 import ExtensionInfoDialog from './components/ExtensionInfoDialog.vue'
 import SplashScreen from './components/SplashScreen.vue'
+import ErrorToast from './components/ErrorToast.vue'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()

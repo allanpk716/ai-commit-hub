@@ -22,6 +22,7 @@ export interface GitProject {
   has_uncommitted_changes?: boolean   // 是否有未提交更改
   untracked_count?: number            // 未跟踪文件数量
   pushover_needs_update?: boolean     // Pushover 插件是否需要更新
+  lastModified?: number               // 最后修改时间戳（用于触发列表重新渲染）
 }
 
 export interface ProjectAIConfig {
