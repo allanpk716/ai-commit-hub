@@ -84,10 +84,11 @@ print("Hook version 1.0.0 installed")
 	assert.Equal(t, "1.0.0", newVersion, "版本号应该是 1.0.0")
 
 	// 9. 验证 Hook 仍然正常工作
-	status, err := checker.GetStatus()
+	status, err := checker.GetStatus("1.0.0")
 	require.NoError(t, err, "获取状态不应该失败")
 	assert.True(t, status.Installed, "Hook 应该仍然已安装")
 	assert.Equal(t, "1.0.0", status.Version, "状态中的版本号应该是 1.0.0")
+	assert.False(t, status.UpdateAvailable, "版本相同不应该有可用更新")
 }
 
 // TestPushoverVersionComparison 测试版本比较功能
@@ -133,7 +134,7 @@ func TestPushoverStatusChecker(t *testing.T) {
 	installed := checker.CheckInstalled()
 	assert.False(t, installed, "未安装时应该返回 false")
 
-	status, err := checker.GetStatus()
+	status, err := checker.GetStatus("1.0.0")
 	require.NoError(t, err, "获取状态不应该失败")
 	assert.False(t, status.Installed, "未安装时状态应该是 false")
 
@@ -144,11 +145,23 @@ func TestPushoverStatusChecker(t *testing.T) {
 	installed = checker.CheckInstalled()
 	assert.True(t, installed, "安装后应该返回 true")
 
-	status, err = checker.GetStatus()
+	status, err = checker.GetStatus("1.0.0")
 	require.NoError(t, err)
 	assert.True(t, status.Installed, "安装后状态应该是 true")
 	assert.Equal(t, "1.0.0", status.Version, "版本号应该是 1.0.0")
 	assert.NotNil(t, status.InstalledAt, "安装时间不应该为空")
+	assert.False(t, status.UpdateAvailable, "版本相同不应该有可用更新")
+
+	// 4. 测试版本比较功能 - 旧版本 Hook
+	status, err = checker.GetStatus("1.2.0")
+	require.NoError(t, err)
+	assert.True(t, status.UpdateAvailable, "Hook 版本旧于扩展版本时应该有可用更新")
+
+	// 5. 测试版本比较功能 - 新版本 Hook
+	installHookWithVersion(t, projectPath, "2.0.0")
+	status, err = checker.GetStatus("1.2.0")
+	require.NoError(t, err)
+	assert.False(t, status.UpdateAvailable, "Hook 版本新于扩展版本时不应该有可用更新")
 }
 
 // TestPushoverNotificationModes 测试通知模式

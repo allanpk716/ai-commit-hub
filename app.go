@@ -1148,7 +1148,7 @@ func (a *App) CheckPushoverUpdates(projectPath string) (map[string]interface{}, 
 
 	// 获取项目中的 Hook 状态
 	checker := pushover.NewStatusChecker(projectPath)
-	status, err := checker.GetStatus()
+	status, err := checker.GetStatus(latestVersion)
 	if err != nil {
 		return nil, fmt.Errorf("获取 Hook 状态失败: %w", err)
 	}
@@ -1162,12 +1162,9 @@ func (a *App) CheckPushoverUpdates(projectPath string) (map[string]interface{}, 
 		}, nil
 	}
 
-	// 比较版本
-	updateAvailable := pushover.CompareVersions(status.Version, latestVersion)
-	needsUpdate := updateAvailable < 0
-
+	// 使用 status.UpdateAvailable（已在 GetStatus 中计算）
 	return map[string]interface{}{
-		"update_available": needsUpdate,
+		"update_available": status.UpdateAvailable,
 		"current_version":  status.Version,
 		"latest_version":   latestVersion,
 		"installed":        true,

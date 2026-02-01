@@ -33,7 +33,16 @@ func (s *Service) CheckHookInstalled(projectPath string) bool {
 // GetHookStatus 获取项目的 Hook 状态
 func (s *Service) GetHookStatus(projectPath string) (*HookStatus, error) {
 	checker := NewStatusChecker(projectPath)
-	return checker.GetStatus()
+
+	// 获取扩展最新版本（用于比较）
+	latestVersion := ""
+	if s.repoManager.IsCloned() {
+		if v, err := s.repoManager.GetVersion(); err == nil {
+			latestVersion = v
+		}
+	}
+
+	return checker.GetStatus(latestVersion)
 }
 
 // InstallHook 为项目安装 Hook

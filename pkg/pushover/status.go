@@ -124,7 +124,7 @@ func (sc *StatusChecker) GetInstalledAt() (*time.Time, error) {
 }
 
 // GetStatus 获取完整的 Hook 状态
-func (sc *StatusChecker) GetStatus() (*HookStatus, error) {
+func (sc *StatusChecker) GetStatus(latestExtensionVersion string) (*HookStatus, error) {
 	installed := sc.CheckInstalled()
 	if !installed {
 		return &HookStatus{
@@ -141,10 +141,17 @@ func (sc *StatusChecker) GetStatus() (*HookStatus, error) {
 	}
 	installedAt, _ := sc.GetInstalledAt()
 
+	// 检查是否有可用更新
+	updateAvailable := false
+	if installed && version != "" && version != "unknown" && latestExtensionVersion != "" {
+		updateAvailable = CompareVersions(version, latestExtensionVersion) < 0
+	}
+
 	return &HookStatus{
-		Installed:   true,
-		Mode:        mode,
-		Version:     version,
-		InstalledAt: installedAt,
+		Installed:       true,
+		Mode:            mode,
+		Version:         version,
+		InstalledAt:     installedAt,
+		UpdateAvailable: updateAvailable,
 	}, nil
 }

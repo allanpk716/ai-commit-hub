@@ -65,19 +65,64 @@
 
           <!-- 状态指示器行（从 StatusCache 获取） -->
           <div class="project-status-row">
-            <!-- 加载中显示旧数据或骨架屏（首次加载） -->
-            <template v-if="getProjectStatus(project).loading && getProjectStatus(project).untrackedCount === 0">
+            <!-- 加载中且无旧数据时显示骨架屏 -->
+            <template v-if="getProjectStatus(project).loading && getProjectStatus(project).stagedCount === 0 && getProjectStatus(project).unstagedCount === 0 && getProjectStatus(project).untrackedCount === 0 && getProjectStatus(project).aheadCount === 0 && getProjectStatus(project).behindCount === 0">
               <StatusSkeleton />
             </template>
+
+            <!-- 显示文件和推送状态指示器 -->
             <template v-else>
+              <!-- 已暂存文件 (绿色，✓ 图标) -->
+              <span
+                v-if="getProjectStatus(project).stagedCount > 0"
+                class="status-indicator staged"
+                :class="{ loading: getProjectStatus(project).loading }"
+                :title="`${getProjectStatus(project).stagedCount} 个已暂存文件`"
+              >
+                ✓ {{ getProjectStatus(project).stagedCount }}
+              </span>
+
+              <!-- 未暂存文件 (橙色，≠ 图标) -->
+              <span
+                v-if="getProjectStatus(project).unstagedCount > 0"
+                class="status-indicator unstaged"
+                :class="{ loading: getProjectStatus(project).loading }"
+                :title="`${getProjectStatus(project).unstagedCount} 个未暂存文件`"
+              >
+                ≠ {{ getProjectStatus(project).unstagedCount }}
+              </span>
+
+              <!-- 未跟踪文件 (黄色，➤ 图标) -->
               <span
                 v-if="getProjectStatus(project).untrackedCount > 0"
                 class="status-indicator untracked"
                 :class="{ loading: getProjectStatus(project).loading }"
                 :title="`${getProjectStatus(project).untrackedCount} 个未跟踪文件`"
               >
-                ➕ {{ getProjectStatus(project).untrackedCount }}
+                ➤ {{ getProjectStatus(project).untrackedCount }}
               </span>
+
+              <!-- 本地领先远程 (蓝绿色，↑ 图标) -->
+              <span
+                v-if="getProjectStatus(project).aheadCount > 0"
+                class="status-indicator ahead"
+                :class="{ loading: getProjectStatus(project).loading }"
+                :title="`本地领先 ${getProjectStatus(project).aheadCount} 个提交，可推送`"
+              >
+                ↑ {{ getProjectStatus(project).aheadCount }}
+              </span>
+
+              <!-- 本地落后远程 (红色，↓ 图标) -->
+              <span
+                v-if="getProjectStatus(project).behindCount > 0"
+                class="status-indicator behind"
+                :class="{ loading: getProjectStatus(project).loading }"
+                :title="`本地落后 ${getProjectStatus(project).behindCount} 个提交，需要拉取`"
+              >
+                ↓ {{ getProjectStatus(project).behindCount }}
+              </span>
+
+              <!-- Pushover 更新提示 -->
               <span
                 v-if="getProjectStatus(project).pushoverUpdateAvailable"
                 class="status-indicator update"
@@ -207,33 +252,63 @@ const getProjectStatus = (project: GitProject): {
   loading: boolean
   error: boolean
   message?: string
+  stagedCount: number        // 新增：已暂存文件数量
+  unstagedCount: number      // 新增：未暂存文件数量
   untrackedCount: number
   pushoverUpdateAvailable: boolean
   stale: boolean
+  aheadCount: number         // 新增：本地领先远程的提交数
+  behindCount: number        // 新增：本地落后远程的提交数
+  canPush: boolean           // 新增：是否可推送
 } => {
   const cached = statusCache.getStatus(project.path)
+  const pushStatus = cached ? statusCache.getPushStatus(project.path) : null
 
   // 加载中时保留旧数据显示，避免 UI 闪烁
   if (cached?.loading) {
+    const stagingStatus = cached.stagingStatus
     return {
       loading: true,
       error: false,
+      stagedCount: stagingStatus?.staged?.length ?? 0,
+      unstagedCount: stagingStatus?.unstaged?.length ?? 0,
       untrackedCount: cached.untrackedCount ?? 0,
       pushoverUpdateAvailable: cached.pushoverStatus?.update_available ?? false,
-      stale: cached.stale ?? false
+      stale: cached.stale ?? false,
+      aheadCount: pushStatus?.aheadCount ?? 0,
+      behindCount: pushStatus?.behindCount ?? 0,
+      canPush: pushStatus?.canPush ?? false
     }
   }
 
   if (cached?.error) {
-    return { error: true, message: cached.error, loading: false, untrackedCount: 0, pushoverUpdateAvailable: false, stale: false }
+    return {
+      error: true,
+      message: cached.error,
+      loading: false,
+      stagedCount: 0,
+      unstagedCount: 0,
+      untrackedCount: 0,
+      pushoverUpdateAvailable: false,
+      stale: false,
+      aheadCount: 0,
+      behindCount: 0,
+      canPush: false
+    }
   }
 
+  const stagingStatus = cached?.stagingStatus
   return {
     loading: false,
     error: false,
+    stagedCount: stagingStatus?.staged?.length ?? 0,
+    unstagedCount: stagingStatus?.unstaged?.length ?? 0,
     untrackedCount: cached?.untrackedCount ?? 0,
     pushoverUpdateAvailable: cached?.pushoverStatus?.update_available ?? false,
-    stale: cached?.stale ?? false
+    stale: cached?.stale ?? false,
+    aheadCount: pushStatus?.aheadCount ?? 0,
+    behindCount: pushStatus?.behindCount ?? 0,
+    canPush: pushStatus?.canPush ?? false
   }
 }
 
@@ -535,21 +610,47 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.status-indicator.uncommitted {
+/* File status indicators */
+
+/* Staged files status (green) */
+.status-indicator.staged {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+/* Unstaged files status (orange) */
+.status-indicator.unstaged {
   color: #f97316;
   background: rgba(249, 115, 22, 0.15);
 }
 
+/* Untracked files status (yellow) */
 .status-indicator.untracked {
   color: #eab308;
   background: rgba(234, 179, 8, 0.15);
 }
 
+/* Push status indicators */
+
+/* Local ahead of remote (cyan - can push) */
+.status-indicator.ahead {
+  color: #06b6d4;
+  background: rgba(6, 182, 212, 0.15);
+}
+
+/* Local behind remote (red - need to pull) */
+.status-indicator.behind {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Pushover update indicator (blue) */
 .status-indicator.update {
   color: #3b82f6;
   background: rgba(59, 130, 246, 0.15);
 }
 
+/* Loading status (purple) */
 .status-indicator.loading {
   color: #8b5cf6;
   background: rgba(139, 92, 246, 0.15);

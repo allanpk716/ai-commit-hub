@@ -14,10 +14,11 @@ const (
 
 // HookStatus Hook 状态信息
 type HookStatus struct {
-	Installed   bool            `json:"installed"`
-	Mode        NotificationMode `json:"mode"`
-	Version     string          `json:"version"`
-	InstalledAt *time.Time      `json:"installed_at,omitempty"`
+	Installed       bool            `json:"installed"`
+	Mode            NotificationMode `json:"mode"`
+	Version         string          `json:"version"`
+	InstalledAt     *time.Time      `json:"installed_at,omitempty"`
+	UpdateAvailable bool            `json:"update_available,omitempty"` // 是否有可用更新
 }
 
 // ExtensionInfo 扩展信息
