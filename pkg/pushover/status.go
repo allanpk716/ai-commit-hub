@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -75,6 +76,23 @@ func (sc *StatusChecker) GetNotificationMode() NotificationMode {
 	}
 }
 
+// cleanVersion 清理版本号，从 Git describe 输出中提取纯版本号
+// 例如: "v1.6.0-1-g3871faa" -> "v1.6.0"
+// 如果不是 Git describe 格式（如 "v1.6.0-alpha"），则保持不变
+func cleanVersion(version string) string {
+	// 匹配 Git describe 输出格式: v{major}.{minor}[.{patch}]-{num}-g{hash}
+	// 例如: v1.6.0-1-g3871faa, v2.0.0-15-gabc123, v1.6-5-gabc123
+	re := regexp.MustCompile(`^v?(\d+\.\d+(?:\.\d+)?)-\d+-g[0-9a-f]+$`)
+	if re.MatchString(version) {
+		// 提取纯版本号部分
+		parts := strings.Split(version, "-")
+		if len(parts) >= 1 {
+			return parts[0] // 返回版本号部分
+		}
+	}
+	return version
+}
+
 // GetHookVersion 获取 Hook 版本
 // 优先从 VERSION 文件读取，如果不存在则返回空字符串（表示旧版本）
 func (sc *StatusChecker) GetHookVersion() (string, error) {
@@ -95,6 +113,8 @@ func (sc *StatusChecker) GetHookVersion() (string, error) {
 			version := strings.TrimPrefix(line, "version=")
 			version = strings.TrimSpace(version)
 			if version != "" {
+				// 清理版本号，移除 Git 提交信息
+				version = cleanVersion(version)
 				return version, nil
 			}
 		}
