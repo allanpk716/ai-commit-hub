@@ -48,7 +48,7 @@
     <transition-group v-else tag="div" name="list-item" class="projects">
       <div
         v-for="(project, index) in filteredProjects"
-        :key="`${project.id}-${project.lastModified || 0}`"
+        :key="project.id"
         class="project-item"
         :class="{ selected: selectedId === project.id }"
         :draggable="!searchQuery"
@@ -169,6 +169,8 @@ const projectStore = useProjectStore()
 const statusCache = useStatusCache()
 const searchQuery = ref('')
 const draggedItem = ref<{ project: GitProject; index: number } | null>(null)
+// 响应式刷新触发器，用于强制组件在 StatusCache 更新时重新渲染
+const refreshTrigger = ref(0)
 
 const filteredProjects = computed(() => {
   if (!searchQuery.value) {
@@ -261,6 +263,9 @@ const getProjectStatus = (project: GitProject): {
   behindCount: number        // 新增：本地落后远程的提交数
   canPush: boolean           // 新增：是否可推送
 } => {
+  // 访问 refreshTrigger 以建立响应式依赖
+  refreshTrigger.value // eslint-disable-line no-unused-expressions
+
   const cached = statusCache.getStatus(project.path)
   const pushStatus = cached ? statusCache.getPushStatus(project.path) : null
 
@@ -342,6 +347,8 @@ onMounted(() => {
         console.warn(`[ProjectList] 刷新项目状态失败: ${project.name}`, error)
       }
     }
+    // 触发响应式更新，强制组件重新渲染
+    refreshTrigger.value++
     console.log('[ProjectList] 定期刷新完成，已刷新所有项目状态')
   }, REFRESH_INTERVAL)
 
