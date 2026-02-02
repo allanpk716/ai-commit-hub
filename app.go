@@ -312,6 +312,17 @@ func (a *App) showWindow() {
 	runtime.EventsEmit(a.ctx, "window-shown", map[string]interface{}{
 		"timestamp": time.Now(),
 	})
+
+	// === 健康检查和自动重启 ===
+	// 检查 systray 是否还在运行
+	if !a.systrayRunning.Load() {
+		logger.Warn("检测到 systray 已停止,重新启动...")
+		go a.runSystray()
+
+		// 等待 systray 重新初始化完成
+		time.Sleep(1 * time.Second)
+		logger.Info("systray 重新启动完成")
+	}
 }
 
 // hideWindow 隐藏窗口
