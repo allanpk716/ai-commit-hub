@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	stdruntime "runtime"
+	"sync"
 	"time"
 
 	"github.com/WQGroup/logger"
@@ -15,6 +16,7 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/pushover"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
+	"github.com/getlantern/systray"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
 	"gorm.io/gorm"
@@ -55,11 +57,20 @@ type App struct {
 	pushoverService      *pushover.Service
 	errorService         *service.ErrorService
 	initError            error
+	// 系统托盘相关字段
+	systrayReady    chan struct{} // systray 就绪信号
+	systrayExit     *sync.Once    // 确保只退出一次
+	windowVisible   bool          // 窗口可见状态
+	windowMutex     sync.RWMutex  // 保护 windowVisible
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{}
+	return &App{
+		systrayReady:  make(chan struct{}),
+		systrayExit:   &sync.Once{},
+		windowVisible: true, // 启动时窗口可见
+	}
 }
 
 // startup is called when the app starts. The context is saved
