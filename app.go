@@ -266,7 +266,7 @@ func (a *App) onSystrayReady() {
 	logger.Info("系统托盘初始化成功")
 
 	// 设置托盘图标
-	systray.SetIcon(appIcon)
+	systray.SetIcon(a.getTrayIcon())
 	systray.SetTitle("AI Commit Hub")
 	systray.SetTooltip("AI Commit Hub - 点击显示窗口")
 
