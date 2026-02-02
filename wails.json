@@ -16,5 +16,6 @@
     "productVersion": "1.0.0",
     "copyright": "Copyright........",
     "comments": "AI-powered Git commit message generator"
-  }
+  },
+  "build:ldflags": "-X 'github.com/allanpk716/ai-commit-hub/pkg/version.Version={{.Version}}' -X 'github.com/allanpk716/ai-commit-hub/pkg/version.CommitSHA={{.Commit}}' -X 'github.com/allanpk716/ai-commit-hub/pkg/version.BuildTime={{.Date}}'"
 }

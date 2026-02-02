@@ -17,6 +17,7 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/pushover"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
+	"github.com/allanpk716/ai-commit-hub/pkg/update"
 	"github.com/getlantern/systray"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
@@ -57,6 +58,8 @@ type App struct {
 	projectConfigService *service.ProjectConfigService
 	pushoverService      *pushover.Service
 	errorService         *service.ErrorService
+	updateService        *service.UpdateService
+	installer            *update.Installer
 	initError            error
 	// 系统托盘相关字段
 	systrayReady   chan struct{} // systray 就绪信号
@@ -160,6 +163,12 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize error service
 	a.errorService = service.NewErrorService()
 
+	// Initialize update service
+	a.updateService = service.NewUpdateService("allanpk716/ai-commit-hub")
+
+	// Initialize installer
+	a.installer = update.NewInstaller()
+
 	// 同步所有项目的 Hook 状态（阻塞执行，确保前端获取到最新状态）
 	if a.pushoverService != nil {
 		logger.Info("准备启动 Hook 状态同步...")
@@ -222,6 +231,22 @@ func (a *App) startup(ctx context.Context) {
 		// 无需预加载，直接完成（不带数据）
 		runtime.EventsEmit(ctx, "startup-complete", nil)
 	}
+
+	// 异步检查更新（不阻塞启动流程）
+	go func() {
+		updateInfo, err := a.updateService.CheckForUpdates()
+		if err != nil {
+			logger.Warnf("检查更新失败: %v", err)
+			return
+		}
+
+		if updateInfo.HasUpdate {
+			logger.Info("发现新版本", "version", updateInfo.LatestVersion)
+			runtime.EventsEmit(ctx, "update-available", updateInfo)
+		} else {
+			logger.Info("已是最新版本")
+		}
+	}()
 }
 
 // shutdown is called when the app is closing
@@ -578,6 +603,62 @@ func (a *App) GetAvailableTerminals() []Terminal {
 	default:
 		return []Terminal{}
 	}
+}
+
+// CheckForUpdates 手动检查更新
+func (a *App) CheckForUpdates() (*models.UpdateInfo, error) {
+	if a.initError != nil {
+		return nil, fmt.Errorf("app not initialized: %w", a.initError)
+	}
+	return a.updateService.CheckForUpdates()
+}
+
+// InstallUpdate 安装更新
+func (a *App) InstallUpdate(downloadURL, assetName string) error {
+	if a.initError != nil {
+		return fmt.Errorf("app not initialized: %w", a.initError)
+	}
+
+	logger.Info("开始安装更新", "url", downloadURL, "asset", assetName)
+
+	// 创建临时目录用于下载
+	tempDir := filepath.Join(os.TempDir(), "ai-commit-hub-update")
+
+	// 创建下载器
+	downloader := update.NewDownloader(tempDir)
+
+	// 设置进度回调
+	downloader.SetProgressFunc(func(downloaded, total int64) {
+		// 发送进度事件到前端
+		runtime.EventsEmit(a.ctx, "download-progress", map[string]interface{}{
+			"downloaded": downloaded,
+			"total":      total,
+			"percentage": float64(downloaded) / float64(total) * 100,
+		})
+	})
+
+	// 下载更新包
+	zipPath, err := downloader.Download(downloadURL, assetName)
+	if err != nil {
+		logger.Errorf("下载更新失败: %v", err)
+		return fmt.Errorf("下载更新失败: %w", err)
+	}
+
+	logger.Info("更新包下载完成", "path", zipPath)
+
+	// 发送下载完成事件
+	runtime.EventsEmit(a.ctx, "download-complete", map[string]interface{}{
+		"path": zipPath,
+	})
+
+	// 调用安装器安装更新
+	if err := a.installer.Install(zipPath); err != nil {
+		logger.Errorf("安装更新失败: %v", err)
+		return fmt.Errorf("安装更新失败: %w", err)
+	}
+
+	logger.Info("更新安装流程已启动")
+	return nil
 }
 
 // GetAllProjects retrieves all projects

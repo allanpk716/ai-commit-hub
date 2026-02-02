@@ -1,0 +1,146 @@
+package version
+
+import (
+	"testing"
+)
+
+func TestParseVersion(t *testing.T) {
+	tests := []struct {
+		name      string
+		version   string
+		wantMajor int
+		wantMinor int
+		wantPatch int
+		wantErr   bool
+	}{
+		{
+			name:      "标准版本号带v前缀",
+			version:   "v1.2.3",
+			wantMajor: 1,
+			wantMinor: 2,
+			wantPatch: 3,
+			wantErr:   false,
+		},
+		{
+			name:      "标准版本号不带v前缀",
+			version:   "1.2.3",
+			wantMajor: 1,
+			wantMinor: 2,
+			wantPatch: 3,
+			wantErr:   false,
+		},
+		{
+			name:      "空字符串",
+			version:   "",
+			wantMajor: 0,
+			wantMinor: 0,
+			wantPatch: 0,
+			wantErr:   true,
+		},
+		{
+			name:      "格式错误",
+			version:   "invalid",
+			wantMajor: 0,
+			wantMinor: 0,
+			wantPatch: 0,
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			major, minor, patch, err := ParseVersion(tt.version)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseVersion() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if major != tt.wantMajor || minor != tt.wantMinor || patch != tt.wantPatch {
+				t.Errorf("ParseVersion() = %v.%v.%v, want %v.%v.%v",
+					major, minor, patch, tt.wantMajor, tt.wantMinor, tt.wantPatch)
+			}
+		})
+	}
+}
+
+func TestCompareVersions(t *testing.T) {
+	tests := []struct {
+		name     string
+		v1       string
+		v2       string
+		expected int
+	}{
+		{"v1大于v2_修订版本不同", "v1.2.3", "v1.2.2", 1},
+		{"v1小于v2_修订版本不同", "v1.2.2", "v1.2.3", -1},
+		{"v1等于v2", "v1.2.3", "v1.2.3", 0},
+		{"主版本不同_v1大于v2", "v2.0.0", "v1.9.9", 1},
+		{"主版本不同_v1小于v2", "v1.9.9", "v2.0.0", -1},
+		{"次版本不同_v1大于v2", "v1.3.0", "v1.2.9", 1},
+		{"次版本不同_v1小于v2", "v1.2.9", "v1.3.0", -1},
+		{"修订版本不同_v1大于v2", "v1.2.4", "v1.2.3", 1},
+		{"修订版本不同_v1小于v2", "v1.2.3", "v1.2.4", -1},
+		{"不带v前缀_v1大于v2", "1.2.3", "1.2.2", 1},
+		{"混合前缀_v1带v前缀_v2不带", "v1.2.3", "1.2.2", 1},
+		{"混合前缀_v1不带v前缀_v2带", "1.2.3", "v1.2.2", 1},
+		{"v1格式错误_视为相等", "invalid", "v1.2.3", 0},
+		{"v2格式错误_视为相等", "v1.2.3", "invalid", 0},
+		{"两者都格式错误_视为相等", "invalid1", "invalid2", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := CompareVersions(tt.v1, tt.v2); result != tt.expected {
+				t.Errorf("CompareVersions(%q, %q) = %d, want %d", tt.v1, tt.v2, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGetVersion(t *testing.T) {
+	// 保存原始值
+	originalVersion := Version
+	defer func() { Version = originalVersion }()
+
+	tests := []struct {
+		name     string
+		version  string
+		expected string
+	}{
+		{"开发版本", "dev", "dev-uncommitted"},
+		{"生产版本", "1.0.0", "v1.0.0"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			Version = tt.version
+			result := GetVersion()
+			if result != tt.expected {
+				t.Errorf("GetVersion() = %s, want %s", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestIsDevVersion(t *testing.T) {
+	// 保存原始值
+	originalVersion := Version
+	defer func() { Version = originalVersion }()
+
+	tests := []struct {
+		name     string
+		version  string
+		expected bool
+	}{
+		{"开发版本", "dev", true},
+		{"生产版本", "1.0.0", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			Version = tt.version
+			result := IsDevVersion()
+			if result != tt.expected {
+				t.Errorf("IsDevVersion() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
