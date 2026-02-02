@@ -2,6 +2,7 @@
   <div class="commit-panel">
     <!-- Update Notification -->
     <UpdateNotification @show-update-dialog="showUpdateDialog = true" />
+    <UpdateDialog :visible="showUpdateDialog" @close="showUpdateDialog = false" />
 
     <!-- Project Info Section -->
     <section class="panel-section staging-section" v-if="commitStore.projectStatus">
@@ -188,6 +189,7 @@ import { usePushoverStore } from '../stores/pushoverStore'
 import { useStatusCache } from '../stores/statusCache'
 import { useErrorStore } from '../stores/errorStore'
 import UpdateNotification from './UpdateNotification.vue'
+import UpdateDialog from './UpdateDialog.vue'
 import ProjectStatusHeader from './ProjectStatusHeader.vue'
 import StagingArea from './StagingArea.vue'
 
