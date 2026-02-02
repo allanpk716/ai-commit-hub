@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	stdruntime "runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/WQGroup/logger"
@@ -62,6 +63,7 @@ type App struct {
 	systrayExit     *sync.Once    // 确保只退出一次
 	windowVisible   bool          // 窗口可见状态
 	windowMutex     sync.RWMutex  // 保护 windowVisible
+	systrayRunning  atomic.Bool   // systray 运行状态
 }
 
 // NewApp creates a new App application struct
