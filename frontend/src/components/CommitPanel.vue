@@ -1,5 +1,8 @@
 <template>
   <div class="commit-panel">
+    <!-- Update Notification -->
+    <UpdateNotification @show-update-dialog="showUpdateDialog = true" />
+
     <!-- Project Info Section -->
     <section class="panel-section staging-section" v-if="commitStore.projectStatus">
       <!-- Project Status Header -->
@@ -184,6 +187,7 @@ import { useProjectStore } from '../stores/projectStore'
 import { usePushoverStore } from '../stores/pushoverStore'
 import { useStatusCache } from '../stores/statusCache'
 import { useErrorStore } from '../stores/errorStore'
+import UpdateNotification from './UpdateNotification.vue'
 import ProjectStatusHeader from './ProjectStatusHeader.vue'
 import StagingArea from './StagingArea.vue'
 
@@ -200,6 +204,7 @@ const pushoverStore = usePushoverStore()
 const statusCache = useStatusCache()
 const errorStore = useErrorStore()
 const isPushing = ref(false) // 是否正在推送
+const showUpdateDialog = ref(false) // 更新对话框显示状态
 
 // Toast 通知状态
 const toast = ref<{
