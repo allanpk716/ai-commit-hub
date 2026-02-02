@@ -48,7 +48,7 @@ func GetProjectStatus(ctx context.Context, projectPath string) (*ProjectStatus, 
 }
 
 func getCurrentBranch(projectPath string) (string, error) {
-	cmd := Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd := Command("git", "-c", "core.quotepath=false", "rev-parse", "--abbrev-ref", "HEAD")
 	cmd.Dir = projectPath
 	output, err := cmd.Output()
 	if err != nil {
@@ -58,7 +58,7 @@ func getCurrentBranch(projectPath string) (string, error) {
 }
 
 func getStagedFiles(projectPath string) ([]StagedFile, error) {
-	cmd := Command("git", "diff", "--cached", "--name-status")
+	cmd := Command("git", "-c", "core.quotepath=false", "diff", "--cached", "--name-status")
 	cmd.Dir = projectPath
 	output, err := cmd.Output()
 	if err != nil {
@@ -107,7 +107,7 @@ func getStagedFiles(projectPath string) ([]StagedFile, error) {
 
 func GetUntrackedFiles(projectPath string) ([]UntrackedFile, error) {
 	// 使用 Command() 而不是 exec.Command() 以避免控制台弹窗
-	cmd := Command("git", "ls-files", "--others", "--exclude-standard")
+	cmd := Command("git", "-c", "core.quotepath=false", "ls-files", "--others", "--exclude-standard")
 	cmd.Dir = projectPath
 
 	output, err := cmd.Output()

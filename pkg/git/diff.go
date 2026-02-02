@@ -6,7 +6,7 @@ import (
 
 // GetFileDiff 获取文件的 diff 内容
 func GetFileDiff(repoPath, filePath string, staged bool) (string, error) {
-	args := []string{"-C", repoPath, "diff"}
+	args := []string{"-c", "core.quotepath=false", "-C", repoPath, "diff"}
 
 	if staged {
 		args = append(args, "--cached")

@@ -45,7 +45,7 @@ func GetStagingStatus(repoPath string) (*StagingStatus, error) {
 
 // getUnstagedFiles 获取未暂存文件列表
 func getUnstagedFiles(repoPath string) ([]StagedFile, error) {
-	cmd := Command("git", "-C", repoPath,
+	cmd := Command("git", "-c", "core.quotepath=false", "-C", repoPath,
 		"diff", "--name-status", "--diff-filter=ADM")
 	output, err := cmd.Output()
 	if err != nil {
