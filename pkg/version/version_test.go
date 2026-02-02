@@ -94,3 +94,53 @@ func TestCompareVersions(t *testing.T) {
 		})
 	}
 }
+
+func TestGetVersion(t *testing.T) {
+	// 保存原始值
+	originalVersion := Version
+	defer func() { Version = originalVersion }()
+
+	tests := []struct {
+		name     string
+		version  string
+		expected string
+	}{
+		{"开发版本", "dev", "dev-uncommitted"},
+		{"生产版本", "1.0.0", "v1.0.0"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			Version = tt.version
+			result := GetVersion()
+			if result != tt.expected {
+				t.Errorf("GetVersion() = %s, want %s", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestIsDevVersion(t *testing.T) {
+	// 保存原始值
+	originalVersion := Version
+	defer func() { Version = originalVersion }()
+
+	tests := []struct {
+		name     string
+		version  string
+		expected bool
+	}{
+		{"开发版本", "dev", true},
+		{"生产版本", "1.0.0", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			Version = tt.version
+			result := IsDevVersion()
+			if result != tt.expected {
+				t.Errorf("IsDevVersion() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}

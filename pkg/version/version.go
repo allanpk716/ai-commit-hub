@@ -88,3 +88,28 @@ func CompareVersions(v1, v2 string) int {
 
 	return 0
 }
+
+// GetVersion 获取当前版本号
+// 开发模式返回 "dev-uncommitted"
+// 生产模式返回 "v{major}.{minor}.{patch}"
+func GetVersion() string {
+	if Version == "dev" {
+		return "dev-uncommitted"
+	}
+	return "v" + Version
+}
+
+// GetFullVersion 获取完整版本信息
+// 格式: "v1.0.0 (abc1234 2024-01-15)"
+// 开发模式返回 "dev-uncommitted"
+func GetFullVersion() string {
+	if Version == "dev" {
+		return "dev-uncommitted"
+	}
+	return fmt.Sprintf("v%s (%s %s)", Version, CommitSHA, BuildTime)
+}
+
+// IsDevVersion 判断是否为开发版本
+func IsDevVersion() bool {
+	return Version == "dev"
+}
