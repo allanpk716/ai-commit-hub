@@ -225,6 +225,43 @@ func (a *App) startup(ctx context.Context) {
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
 	logger.Info("AI Commit Hub shutting down...")
+
+	// 退出系统托盘
+	systray.Quit()
+}
+
+// runSystray 启动系统托盘 (在单独的 goroutine 中运行)
+func (a *App) runSystray() {
+	// 延迟初始化,避免与 Wails 启动冲突
+	time.Sleep(500 * time.Millisecond)
+
+	logger.Info("正在初始化系统托盘...")
+
+	systray.Run(
+		a.onSystrayReady,
+		a.onSystrayExit,
+	)
+}
+
+// onSystrayReady 在 systray 就绪时调用
+func (a *App) onSystrayReady() {
+	logger.Info("系统托盘初始化成功")
+
+	// 设置托盘图标
+	systray.SetIcon(appIcon)
+	systray.SetTitle("AI Commit Hub")
+	systray.SetTooltip("AI Commit Hub - 点击显示窗口")
+
+	// 创建托盘菜单
+	// 菜单项将在下一个 task 中实现
+
+	// 通知 systray 已就绪
+	close(a.systrayReady)
+}
+
+// onSystrayExit 在 systray 退出时调用
+func (a *App) onSystrayExit() {
+	logger.Info("系统托盘已退出")
 }
 
 // Greet returns a greeting
