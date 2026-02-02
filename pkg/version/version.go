@@ -15,16 +15,22 @@ var (
 	BuildTime = "unknown"
 )
 
+// 预编译正则表达式以提高性能
+var (
+	vPrefixRegex = regexp.MustCompile(`^v`)
+	versionRegex = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
+)
+
 // ParseVersion 解析版本字符串，返回主版本、次版本、修订号
 // 支持格式："v1.2.3" 或 "1.2.3"
+// 注意：不支持预发布版本号（如 v1.2.3-beta）或构建元数据（如 v1.2.3+build123）
 // 格式错误时返回错误
 func ParseVersion(version string) (major, minor, patch int, err error) {
 	// 移除 v 前缀
-	version = regexp.MustCompile(`^v`).ReplaceAllString(version, "")
+	version = vPrefixRegex.ReplaceAllString(version, "")
 
-	// 使用正则表达式匹配版本号格式
-	re := regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
-	matches := re.FindStringSubmatch(version)
+	// 使用预编译的正则表达式匹配版本号格式
+	matches := versionRegex.FindStringSubmatch(version)
 
 	if matches == nil {
 		return 0, 0, 0, fmt.Errorf("invalid version format: %s", version)
