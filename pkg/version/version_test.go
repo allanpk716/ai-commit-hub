@@ -61,3 +61,36 @@ func TestParseVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestCompareVersions(t *testing.T) {
+	tests := []struct {
+		name     string
+		v1       string
+		v2       string
+		expected int
+	}{
+		{"v1大于v2_修订版本不同", "v1.2.3", "v1.2.2", 1},
+		{"v1小于v2_修订版本不同", "v1.2.2", "v1.2.3", -1},
+		{"v1等于v2", "v1.2.3", "v1.2.3", 0},
+		{"主版本不同_v1大于v2", "v2.0.0", "v1.9.9", 1},
+		{"主版本不同_v1小于v2", "v1.9.9", "v2.0.0", -1},
+		{"次版本不同_v1大于v2", "v1.3.0", "v1.2.9", 1},
+		{"次版本不同_v1小于v2", "v1.2.9", "v1.3.0", -1},
+		{"修订版本不同_v1大于v2", "v1.2.4", "v1.2.3", 1},
+		{"修订版本不同_v1小于v2", "v1.2.3", "v1.2.4", -1},
+		{"不带v前缀_v1大于v2", "1.2.3", "1.2.2", 1},
+		{"混合前缀_v1带v前缀_v2不带", "v1.2.3", "1.2.2", 1},
+		{"混合前缀_v1不带v前缀_v2带", "1.2.3", "v1.2.2", 1},
+		{"v1格式错误_视为相等", "invalid", "v1.2.3", 0},
+		{"v2格式错误_视为相等", "v1.2.3", "invalid", 0},
+		{"两者都格式错误_视为相等", "invalid1", "invalid2", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := CompareVersions(tt.v1, tt.v2); result != tt.expected {
+				t.Errorf("CompareVersions(%q, %q) = %d, want %d", tt.v1, tt.v2, result, tt.expected)
+			}
+		})
+	}
+}

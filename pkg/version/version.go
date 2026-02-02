@@ -53,3 +53,38 @@ func ParseVersion(version string) (major, minor, patch int, err error) {
 
 	return major, minor, patch, nil
 }
+
+// CompareVersions 比较两个版本号
+// 返回: 1 if v1 > v2, 0 if v1 == v2, -1 if v1 < v2
+func CompareVersions(v1, v2 string) int {
+	major1, minor1, patch1, err1 := ParseVersion(v1)
+	major2, minor2, patch2, err2 := ParseVersion(v2)
+
+	// 如果解析失败，视为相等
+	if err1 != nil || err2 != nil {
+		return 0
+	}
+
+	if major1 != major2 {
+		if major1 > major2 {
+			return 1
+		}
+		return -1
+	}
+
+	if minor1 != minor2 {
+		if minor1 > minor2 {
+			return 1
+		}
+		return -1
+	}
+
+	if patch1 != patch2 {
+		if patch1 > patch2 {
+			return 1
+		}
+		return -1
+	}
+
+	return 0
+}
