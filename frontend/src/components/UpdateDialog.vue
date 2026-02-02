@@ -94,8 +94,13 @@ function skip() {
 }
 
 async function download() {
-  // TODO: 实现下载逻辑
-  console.log('开始下载更新')
+  try {
+    await updateStore.installUpdate()
+    // 注意：成功后程序会自动退出并重启
+  } catch (error) {
+    console.error('下载更新失败:', error)
+    alert('下载更新失败，请稍后重试')
+  }
 }
 </script>
 

@@ -50,6 +50,25 @@ export const useUpdateStore = defineStore('update', () => {
     }
   }
 
+  async function installUpdate() {
+    if (!updateInfo.value) {
+      throw new Error('没有可用的更新信息')
+    }
+
+    isDownloading.value = true
+    downloadProgress.value = 0
+
+    try {
+      const { InstallUpdate } = await import('../../wailsjs/go/main/App')
+      await InstallUpdate(updateInfo.value.downloadURL, updateInfo.value.assetName)
+    } catch (error) {
+      console.error('安装更新失败:', error)
+      isDownloading.value = false
+      throw error
+    }
+    // 注意：成功后程序会退出，不需要重置状态
+  }
+
   function skipVersion(version: string) {
     skippedVersion.value = version
     hasUpdate.value = false
@@ -94,6 +113,7 @@ export const useUpdateStore = defineStore('update', () => {
     releaseNotes,
     formattedSize,
     checkForUpdates,
+    installUpdate,
     skipVersion,
     resetUpdateState
   }
