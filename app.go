@@ -59,11 +59,11 @@ type App struct {
 	errorService         *service.ErrorService
 	initError            error
 	// 系统托盘相关字段
-	systrayReady    chan struct{} // systray 就绪信号
-	systrayExit     *sync.Once    // 确保只退出一次
-	windowVisible   bool          // 窗口可见状态
-	windowMutex     sync.RWMutex  // 保护 windowVisible
-	systrayRunning  atomic.Bool   // systray 运行状态
+	systrayReady   chan struct{} // systray 就绪信号
+	systrayExit    *sync.Once    // 确保只退出一次
+	windowVisible  bool          // 窗口可见状态
+	windowMutex    sync.RWMutex  // 保护 windowVisible
+	systrayRunning atomic.Bool   // systray 运行状态
 }
 
 // NewApp creates a new App application struct
@@ -214,7 +214,7 @@ func (a *App) startup(ctx context.Context) {
 
 			// 发送完成事件（包含预加载的状态数据）
 			runtime.EventsEmit(ctx, "startup-complete", map[string]interface{}{
-				"success": true,
+				"success":  true,
 				"statuses": statuses,
 			})
 		}()
@@ -239,9 +239,16 @@ func (a *App) runSystray() {
 
 	logger.Info("正在初始化系统托盘...")
 
+	// 标记 systray 开始运行
+	a.systrayRunning.Store(true)
+
 	systray.Run(
 		a.onSystrayReady,
-		a.onSystrayExit,
+		func() {
+			// systray 退出时的清理
+			a.systrayRunning.Store(false)
+			a.onSystrayExit()
+		},
 	)
 }
 
@@ -1676,12 +1683,12 @@ func (a *App) GetDirectoryOptions(filePath string) ([]git.DirectoryOption, error
 
 // ProjectFullStatus 项目完整状态
 type ProjectFullStatus struct {
-	GitStatus      *git.ProjectStatus  `json:"gitStatus"`
-	StagingStatus  *git.StagingStatus  `json:"stagingStatus"`
-	UntrackedCount int                 `json:"untrackedCount"`
+	GitStatus      *git.ProjectStatus   `json:"gitStatus"`
+	StagingStatus  *git.StagingStatus   `json:"stagingStatus"`
+	UntrackedCount int                  `json:"untrackedCount"`
 	PushoverStatus *pushover.HookStatus `json:"pushoverStatus"`
-	PushStatus     *git.PushStatus     `json:"pushStatus"`
-	LastUpdated    time.Time           `json:"lastUpdated"`
+	PushStatus     *git.PushStatus      `json:"pushStatus"`
+	LastUpdated    time.Time            `json:"lastUpdated"`
 }
 
 // GetAllProjectStatuses 批量获取多个项目的完整状态
