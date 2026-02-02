@@ -346,6 +346,17 @@ func (a *App) quitApplication() {
 	})
 }
 
+// onBeforeClose 拦截窗口关闭事件,隐藏到托盘而非退出
+func (a *App) onBeforeClose(ctx context.Context) (prevent bool) {
+	logger.Info("窗口关闭事件被触发,将隐藏到托盘")
+
+	// 隐藏窗口而非退出
+	a.hideWindow()
+
+	// 返回 true 阻止窗口关闭
+	return true
+}
+
 // Greet returns a greeting
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, AI Commit Hub is ready!", name)
