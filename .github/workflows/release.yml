@@ -8,10 +8,7 @@ on:
 
 jobs:
   release:
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -49,17 +46,10 @@ jobs:
         env:
           CGO_ENABLED: '1'
 
-      - name: Package (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Package
         run: |
           cd build/bin
           7z a ../ai-commit-hub-${{ steps.get_version.outputs.VERSION }}-windows.zip ai-commit-hub.exe
-
-      - name: Package (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          cd build/bin
-          zip -r ../ai-commit-hub-${{ steps.get_version.outputs.VERSION }}-darwin.zip "AI Commit Hub.app"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1

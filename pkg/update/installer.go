@@ -28,9 +28,6 @@ func NewInstaller() *Installer {
 
 	updaterDir := filepath.Dir(execPath)
 	updaterName := "updater.exe"
-	if runtime.GOOS == "darwin" {
-		updaterName = "updater"
-	}
 
 	return &Installer{
 		updaterPath: filepath.Join(updaterDir, updaterName),

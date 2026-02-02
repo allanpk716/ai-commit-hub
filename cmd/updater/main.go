@@ -89,12 +89,8 @@ func extractUpdate(zipPath, targetDir string) error {
 	backupDir := filepath.Join(targetDir, ".backup")
 	os.MkdirAll(backupDir, 0755)
 
-	// 备份当前可执行文件
+	// 备份当前可执行文件（仅支持 Windows）
 	exeName := "ai-commit-hub.exe"
-	if runtime.GOOS == "darwin" {
-		exeName = "AI Commit Hub"
-	}
-
 	oldExePath := filepath.Join(targetDir, exeName)
 	backupPath := filepath.Join(backupDir, exeName)
 
@@ -147,13 +143,9 @@ func extractUpdate(zipPath, targetDir string) error {
 	return nil
 }
 
-// launchNewVersion 启动新版本
+// launchNewVersion 启动新版本（仅支持 Windows）
 func launchNewVersion(targetDir string) error {
 	exeName := "ai-commit-hub.exe"
-	if runtime.GOOS == "darwin" {
-		exeName = "AI Commit Hub"
-	}
-
 	exePath := filepath.Join(targetDir, exeName)
 
 	fmt.Printf("启动新版本: %s\n", exePath)

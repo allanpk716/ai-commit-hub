@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime"
 	"strings"
 	"time"
 
@@ -114,16 +113,8 @@ func (s *UpdateService) compareVersions(latest, current string) bool {
 
 // findPlatformAsset 找到对应平台的资源
 func (s *UpdateService) findPlatformAsset(assets []Asset) (name, url string) {
-	os := runtime.GOOS
-
-	var targetOS string
-	if os == "windows" {
-		targetOS = "windows"
-	} else if os == "darwin" {
-		targetOS = "darwin"
-	} else {
-		targetOS = os
-	}
+	// 仅支持 Windows 平台
+	const targetOS = "windows"
 
 	for _, asset := range assets {
 		if strings.Contains(asset.Name, targetOS) {
