@@ -86,6 +86,11 @@ func (d *Downloader) Download(url, filename string) (string, error) {
 		return "", fmt.Errorf("文件大小不匹配: 期望 %d, 实际 %d", totalSize, written)
 	}
 
+	// 下载完成时强制触发一次进度回调（100%）
+	if d.onProgress != nil && totalSize > 0 {
+		d.onProgress(written, totalSize)
+	}
+
 	logger.Infof("下载完成: %s (%d bytes)", destPath, written)
 	return destPath, nil
 }
