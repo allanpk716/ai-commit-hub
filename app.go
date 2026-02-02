@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	stdruntime "runtime"
+	"sync"
 	"time"
 
 	"github.com/WQGroup/logger"
@@ -15,6 +16,7 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/pushover"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
+	"github.com/getlantern/systray"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
 	"gorm.io/gorm"
@@ -55,11 +57,20 @@ type App struct {
 	pushoverService      *pushover.Service
 	errorService         *service.ErrorService
 	initError            error
+	// 系统托盘相关字段
+	systrayReady    chan struct{} // systray 就绪信号
+	systrayExit     *sync.Once    // 确保只退出一次
+	windowVisible   bool          // 窗口可见状态
+	windowMutex     sync.RWMutex  // 保护 windowVisible
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{}
+	return &App{
+		systrayReady:  make(chan struct{}),
+		systrayExit:   &sync.Once{},
+		windowVisible: true, // 启动时窗口可见
+	}
 }
 
 // startup is called when the app starts. The context is saved
@@ -214,6 +225,136 @@ func (a *App) startup(ctx context.Context) {
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
 	logger.Info("AI Commit Hub shutting down...")
+
+	// 退出系统托盘
+	systray.Quit()
+}
+
+// runSystray 启动系统托盘 (在单独的 goroutine 中运行)
+func (a *App) runSystray() {
+	// 延迟初始化,避免与 Wails 启动冲突
+	time.Sleep(500 * time.Millisecond)
+
+	logger.Info("正在初始化系统托盘...")
+
+	systray.Run(
+		a.onSystrayReady,
+		a.onSystrayExit,
+	)
+}
+
+// onSystrayReady 在 systray 就绪时调用
+func (a *App) onSystrayReady() {
+	logger.Info("系统托盘初始化成功")
+
+	// 设置托盘图标
+	systray.SetIcon(appIcon)
+	systray.SetTitle("AI Commit Hub")
+	systray.SetTooltip("AI Commit Hub - 点击显示窗口")
+
+	// 创建菜单
+	menu := systray.AddMenuItem("显示窗口", "显示主窗口")
+	go func() {
+		for range menu.ClickedCh {
+			a.showWindow()
+		}
+	}()
+
+	// 添加分隔线
+	systray.AddSeparator()
+
+	// 退出菜单项
+	quitMenu := systray.AddMenuItem("退出应用", "完全退出应用")
+	go func() {
+		for range quitMenu.ClickedCh {
+			a.quitApplication()
+		}
+	}()
+
+	// 通知 systray 已就绪
+	close(a.systrayReady)
+}
+
+// onSystrayExit 在 systray 退出时调用
+func (a *App) onSystrayExit() {
+	logger.Info("系统托盘已退出")
+}
+
+// showWindow 显示窗口
+func (a *App) showWindow() {
+	if a.ctx == nil {
+		logger.Warn("showWindow: context 未初始化")
+		return
+	}
+
+	a.windowMutex.Lock()
+	defer a.windowMutex.Unlock()
+
+	if a.windowVisible {
+		logger.Debug("窗口已可见,跳过显示")
+		return
+	}
+
+	logger.Info("显示窗口")
+	runtime.WindowShow(a.ctx)
+	a.windowVisible = true
+
+	// 发送事件到前端
+	runtime.EventsEmit(a.ctx, "window-shown", map[string]interface{}{
+		"timestamp": time.Now(),
+	})
+}
+
+// hideWindow 隐藏窗口
+func (a *App) hideWindow() {
+	if a.ctx == nil {
+		logger.Warn("hideWindow: context 未初始化")
+		return
+	}
+
+	a.windowMutex.Lock()
+	defer a.windowMutex.Unlock()
+
+	if !a.windowVisible {
+		logger.Debug("窗口已隐藏,跳过隐藏")
+		return
+	}
+
+	logger.Info("隐藏窗口到托盘")
+	runtime.WindowHide(a.ctx)
+	a.windowVisible = false
+
+	// 发送事件到前端
+	runtime.EventsEmit(a.ctx, "window-hidden", map[string]interface{}{
+		"timestamp": time.Now(),
+	})
+}
+
+// quitApplication 完全退出应用
+func (a *App) quitApplication() {
+	// 使用 sync.Once 确保只执行一次
+	a.systrayExit.Do(func() {
+		logger.Info("应用正在退出...")
+
+		if a.ctx != nil {
+			runtime.Quit(a.ctx)
+		} else {
+			// 如果 context 未初始化,强制退出
+			logger.Warn("context 未初始化,使用 os.Exit")
+			os.Exit(0)
+		}
+	})
+}
+
+// onBeforeClose 拦截窗口关闭事件,隐藏到托盘而非退出
+func (a *App) onBeforeClose(ctx context.Context) (prevent bool) {
+	logger.Info("窗口关闭事件被触发,将隐藏到托盘")
+
+	// 隐藏窗口而非退出
+	a.hideWindow()
+
+	// 返回 true 阻止窗口关闭
+	return true
 }
 
 // Greet returns a greeting

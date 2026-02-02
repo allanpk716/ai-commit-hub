@@ -194,6 +194,15 @@ onMounted(async () => {
     showSplash.value = false
   })
 
+  // 监听窗口可见性事件 (系统托盘相关)
+  EventsOn('window-shown', (data: { timestamp: string }) => {
+    console.log('[App] 窗口已从托盘恢复', data.timestamp)
+  })
+
+  EventsOn('window-hidden', (data: { timestamp: string }) => {
+    console.log('[App] 窗口已隐藏到托盘', data.timestamp)
+  })
+
   // 3. 超时保护（30秒后强制进入主界面）
   const timeoutId = setTimeout(() => {
     if (showSplash.value) {
@@ -205,6 +214,8 @@ onMounted(async () => {
   // 4. 组件卸载时清理
   onUnmounted(() => {
     EventsOff('startup-complete')
+    EventsOff('window-shown')
+    EventsOff('window-hidden')
     clearTimeout(timeoutId)
   })
 
