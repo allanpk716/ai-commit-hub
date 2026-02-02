@@ -16,7 +16,10 @@ import (
 var assets embed.FS
 
 //go:embed frontend/src/assets/app-icon.png
-var appIcon []byte
+var appIconPNG []byte
+
+//go:embed frontend/src/assets/app-icon.ico
+var appIconICO []byte
 
 func initLogger() {
 	// 获取用户主目录
@@ -36,10 +39,10 @@ func initLogger() {
 	// 配置 logger 输出到文件
 	logger.SetLoggerSettings(
 		&logger.Settings{
-			LogRootFPath: logDir,
-			LogNameBase:  "app.log",
-			MaxSizeMB:    100,
-			MaxAgeDays:   30,
+			LogRootFPath:  logDir,
+			LogNameBase:   "app.log",
+			MaxSizeMB:     100,
+			MaxAgeDays:    30,
 			FormatterType: "text",
 		},
 	)
