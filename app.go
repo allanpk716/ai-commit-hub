@@ -232,6 +232,15 @@ func (a *App) shutdown(ctx context.Context) {
 	systray.Quit()
 }
 
+// getTrayIcon 根据平台返回合适的图标
+func (a *App) getTrayIcon() []byte {
+	if stdruntime.GOOS == "windows" {
+		return appIconICO
+	}
+	// macOS 和 Linux 可以使用 PNG
+	return appIconPNG
+}
+
 // runSystray 启动系统托盘 (在单独的 goroutine 中运行)
 func (a *App) runSystray() {
 	// 延迟初始化,避免与 Wails 启动冲突
