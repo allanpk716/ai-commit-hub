@@ -280,6 +280,72 @@ func (a *App) onSystrayExit() {
 	logger.Info("系统托盘已退出")
 }
 
+// showWindow 显示窗口
+func (a *App) showWindow() {
+	if a.ctx == nil {
+		logger.Warn("showWindow: context 未初始化")
+		return
+	}
+
+	a.windowMutex.Lock()
+	defer a.windowMutex.Unlock()
+
+	if a.windowVisible {
+		logger.Debug("窗口已可见,跳过显示")
+		return
+	}
+
+	logger.Info("显示窗口")
+	runtime.WindowShow(a.ctx)
+	a.windowVisible = true
+
+	// 发送事件到前端
+	runtime.EventsEmit(a.ctx, "window-shown", map[string]interface{}{
+		"timestamp": time.Now(),
+	})
+}
+
+// hideWindow 隐藏窗口
+func (a *App) hideWindow() {
+	if a.ctx == nil {
+		logger.Warn("hideWindow: context 未初始化")
+		return
+	}
+
+	a.windowMutex.Lock()
+	defer a.windowMutex.Unlock()
+
+	if !a.windowVisible {
+		logger.Debug("窗口已隐藏,跳过隐藏")
+		return
+	}
+
+	logger.Info("隐藏窗口到托盘")
+	runtime.WindowHide(a.ctx)
+	a.windowVisible = false
+
+	// 发送事件到前端
+	runtime.EventsEmit(a.ctx, "window-hidden", map[string]interface{}{
+		"timestamp": time.Now(),
+	})
+}
+
+// quitApplication 完全退出应用
+func (a *App) quitApplication() {
+	// 使用 sync.Once 确保只执行一次
+	a.systrayExit.Do(func() {
+		logger.Info("应用正在退出...")
+
+		if a.ctx != nil {
+			runtime.Quit(a.ctx)
+		} else {
+			// 如果 context 未初始化,强制退出
+			logger.Warn("context 未初始化,使用 os.Exit")
+			os.Exit(0)
+		}
+	})
+}
+
 // Greet returns a greeting
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, AI Commit Hub is ready!", name)
