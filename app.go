@@ -252,8 +252,24 @@ func (a *App) onSystrayReady() {
 	systray.SetTitle("AI Commit Hub")
 	systray.SetTooltip("AI Commit Hub - 点击显示窗口")
 
-	// 创建托盘菜单
-	// 菜单项将在下一个 task 中实现
+	// 创建菜单
+	menu := systray.AddMenuItem("显示窗口", "显示主窗口")
+	go func() {
+		for range menu.ClickedCh {
+			a.showWindow()
+		}
+	}()
+
+	// 添加分隔线
+	systray.AddSeparator()
+
+	// 退出菜单项
+	quitMenu := systray.AddMenuItem("退出应用", "完全退出应用")
+	go func() {
+		for range quitMenu.ClickedCh {
+			a.quitApplication()
+		}
+	}()
 
 	// 通知 systray 已就绪
 	close(a.systrayReady)
