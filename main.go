@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/WQGroup/logger"
+	"github.com/allanpk716/ai-commit-hub/pkg/version"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -47,6 +48,10 @@ func initLogger() {
 func main() {
 	// 初始化 logger
 	initLogger()
+
+	// 输出版本信息
+	logger.Info("AI Commit Hub starting up...", "version", version.GetVersion())
+	logger.Debug("Full version info", "info", version.GetFullVersion())
 
 	// Create an instance of the app structure
 	app := NewApp()
