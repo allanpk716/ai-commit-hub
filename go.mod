@@ -7,6 +7,7 @@ toolchain go1.24.11
 require (
 	github.com/WQGroup/logger v0.0.16
 	github.com/anthropics/anthropic-sdk-go v1.19.0
+	github.com/getlantern/systray v1.2.2
 	github.com/go-git/go-git/v5 v5.16.4
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/google/generative-ai-go v0.20.1
@@ -47,7 +48,6 @@ require (
 	github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7 // indirect
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55 // indirect
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f // indirect
-	github.com/getlantern/systray v1.2.2 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
