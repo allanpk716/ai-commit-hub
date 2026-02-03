@@ -67,6 +67,7 @@ type App struct {
 	windowVisible  bool          // 窗口可见状态
 	windowMutex    sync.RWMutex  // 保护 windowVisible
 	systrayRunning atomic.Bool   // systray 运行状态
+	quitting       atomic.Bool   // 应用是否正在退出
 }
 
 // NewApp creates a new App application struct
@@ -253,16 +254,14 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) shutdown(ctx context.Context) {
 	logger.Info("AI Commit Hub shutting down...")
 
-	// 退出系统托盘
-	systray.Quit()
+	// systray.Quit() 已在 quitApplication() 中调用
+	// 这里不再重复调用，避免循环
 }
 
 // getTrayIcon 根据平台返回合适的图标
+// Windows Vista+ 系统托盘原生支持 PNG，PNG 在缩放和透明度处理上更好
 func (a *App) getTrayIcon() []byte {
-	if stdruntime.GOOS == "windows" {
-		return appIconICO
-	}
-	// macOS 和 Linux 可以使用 PNG
+	// 所有平台统一使用 PNG 格式
 	return appIconPNG
 }
 
@@ -321,6 +320,15 @@ func (a *App) onSystrayReady() {
 // onSystrayExit 在 systray 退出时调用
 func (a *App) onSystrayExit() {
 	logger.Info("系统托盘已退出")
+
+	// 如果应用正在退出（用户点击"退出应用"），触发 Wails 退出
+	// 这样可以确保应用完全退出，而不是停留在后台
+	if a.quitting.Load() {
+		logger.Info("触发 Wails 应用退出...")
+		if a.ctx != nil {
+			runtime.Quit(a.ctx)
+		}
+	}
 }
 
 // showWindow 显示窗口
@@ -390,18 +398,26 @@ func (a *App) quitApplication() {
 	a.systrayExit.Do(func() {
 		logger.Info("应用正在退出...")
 
-		if a.ctx != nil {
-			runtime.Quit(a.ctx)
-		} else {
-			// 如果 context 未初始化,强制退出
-			logger.Warn("context 未初始化,使用 os.Exit")
-			os.Exit(0)
-		}
+		// 设置退出标志，防止 onBeforeClose 拦截关闭事件
+		a.quitting.Store(true)
+
+		// 先显示窗口（如果当前隐藏），避免用户看到应用"卡住"
+		a.showWindow()
+
+		// 调用 systray.Quit() 触发退出流程
+		// 这会导致 onSystrayExit 被调用，然后 Wails 会调用 shutdown
+		systray.Quit()
 	})
 }
 
 // onBeforeClose 拦截窗口关闭事件,隐藏到托盘而非退出
 func (a *App) onBeforeClose(ctx context.Context) (prevent bool) {
+	// 如果应用正在退出，不拦截关闭事件
+	if a.quitting.Load() {
+		logger.Info("应用正在退出,允许窗口关闭")
+		return false
+	}
+
 	logger.Info("窗口关闭事件被触发,将隐藏到托盘")
 
 	// 隐藏窗口而非退出
