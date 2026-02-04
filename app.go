@@ -264,36 +264,29 @@ func (a *App) shutdown(ctx context.Context) {
 }
 
 // getTrayIcon 根据平台返回合适的图标
-// Windows 使用 ICO 格式（包含多尺寸），避免 PNG 缩放到小尺寸时的质量问题
+// Windows 使用 ICO 格式（Wails 从 build/appicon.png 自动生成），其他平台使用 PNG
 func (a *App) getTrayIcon() []byte {
 	if stdruntime.GOOS == "windows" {
-		// 优先尝试使用 to_icalendar 的已知可用 ICO (若存在)
-		icalIconPath := `C:\WorkSpace\Go2Hell\src\github.com\allanpk716\to_icalendar\cmd\to_icalendar_tray\build\windows\icon.ico`
-		if data, err := os.ReadFile(icalIconPath); err == nil && len(data) > 0 {
-			if sizes, err := icoSquareSizes(data); err == nil && hasSize(sizes, 16) && hasSize(sizes, 32) {
-				logger.Info("使用 to_icalendar 的 ICO 作为托盘图标")
-				return data
-			}
-			logger.Warnf("to_icalendar ICO 自检失败，继续使用内置图标: %v", err)
-		}
-
 		if len(appIconICO) > 0 {
-			if sizes, err := icoSquareSizes(appIconICO); err == nil && hasSize(sizes, 16) && hasSize(sizes, 32) {
+			// 验证 ICO 格式（仅在启动时记录日志）
+			if sizes, err := icoSquareSizes(appIconICO); err == nil {
+				logger.Info("使用 Wails 生成的托盘图标 ICO", "sizes", sizes, "bytes", len(appIconICO))
 				return appIconICO
-			} else if err == nil {
-				logger.Warn("嵌入 ICO 尺寸不理想", "sizes", sizes)
 			} else {
-				logger.Warnf("嵌入 ICO 自检失败: %v", err)
+				logger.Warnf("嵌入 ICO 格式验证失败: %v", err)
 			}
 		}
+		// 如果 ICO 不可用，尝试从 PNG 生成
 		if len(appIconPNG) > 0 {
 			if generated, err := windowsICOFromPNGOnce(appIconPNG); err == nil && len(generated) > 0 {
+				logger.Info("从 PNG 生成的托盘图标", "bytes", len(generated))
 				return generated
 			} else if err != nil {
 				logger.Errorf("从 PNG 生成 ICO 失败: %v", err)
 			}
 		}
-		return nil
+		logger.Warn("无法获取托盘图标，使用红色占位图标")
+		return generateRedBoxICO()
 	}
 	return appIconPNG
 }
