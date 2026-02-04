@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/WQGroup/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -111,28 +110,4 @@ func TestFrontendError_JSON(t *testing.T) {
 	assert.Equal(t, fe.Message, decoded.Message)
 	assert.Equal(t, fe.Source, decoded.Source)
 	assert.Equal(t, fe.Type, decoded.Type)
-}
-
-func TestFrontendError_JSON(t *testing.T) {
-	err := FrontendError{
-		Type:      "error",
-		Message:   "测试错误",
-		Details:   "这是错误详情",
-		Source:    "TestComponent",
-		Timestamp: time.Date(2025, 2, 1, 12, 0, 0, 0, time.UTC),
-	}
-
-	// 测试序列化
-	data, err := json.Marshal(err)
-	assert.NoError(t, err)
-	assert.Contains(t, string(data), "测试错误")
-	assert.Contains(t, string(data), "TestComponent")
-
-	// 测试反序列化
-	var decoded FrontendError
-	err = json.Unmarshal(data, &decoded)
-	assert.NoError(t, err)
-	assert.Equal(t, err.Message, decoded.Message)
-	assert.Equal(t, err.Source, decoded.Source)
-	assert.Equal(t, err.Type, decoded.Type)
 }

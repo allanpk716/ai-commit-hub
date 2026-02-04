@@ -19,7 +19,7 @@ var assets embed.FS
 //go:embed frontend/src/assets/app-icon.png
 var appIconPNG []byte
 
-//go:embed build/windows/icon.ico
+//go:embed assets/build/windows/icon.ico
 var appIconICO []byte
 
 func initLogger() {
