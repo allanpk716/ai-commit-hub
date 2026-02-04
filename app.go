@@ -248,6 +248,11 @@ func (a *App) startup(ctx context.Context) {
 			logger.Info("已是最新版本")
 		}
 	}()
+
+	go func() {
+		time.Sleep(300 * time.Millisecond)
+		a.runSystray()
+	}()
 }
 
 // shutdown is called when the app is closing
@@ -259,17 +264,43 @@ func (a *App) shutdown(ctx context.Context) {
 }
 
 // getTrayIcon 根据平台返回合适的图标
-// Windows Vista+ 系统托盘原生支持 PNG，PNG 在缩放和透明度处理上更好
+// Windows 使用 ICO 格式（包含多尺寸），避免 PNG 缩放到小尺寸时的质量问题
 func (a *App) getTrayIcon() []byte {
-	// 所有平台统一使用 PNG 格式
+	if stdruntime.GOOS == "windows" {
+		// 优先尝试使用 to_icalendar 的已知可用 ICO (若存在)
+		icalIconPath := `C:\WorkSpace\Go2Hell\src\github.com\allanpk716\to_icalendar\cmd\to_icalendar_tray\build\windows\icon.ico`
+		if data, err := os.ReadFile(icalIconPath); err == nil && len(data) > 0 {
+			if sizes, err := icoSquareSizes(data); err == nil && hasSize(sizes, 16) && hasSize(sizes, 32) {
+				logger.Info("使用 to_icalendar 的 ICO 作为托盘图标")
+				return data
+			}
+			logger.Warnf("to_icalendar ICO 自检失败，继续使用内置图标: %v", err)
+		}
+
+		if len(appIconICO) > 0 {
+			if sizes, err := icoSquareSizes(appIconICO); err == nil && hasSize(sizes, 16) && hasSize(sizes, 32) {
+				return appIconICO
+			} else if err == nil {
+				logger.Warn("嵌入 ICO 尺寸不理想", "sizes", sizes)
+			} else {
+				logger.Warnf("嵌入 ICO 自检失败: %v", err)
+			}
+		}
+		if len(appIconPNG) > 0 {
+			if generated, err := windowsICOFromPNGOnce(appIconPNG); err == nil && len(generated) > 0 {
+				return generated
+			} else if err != nil {
+				logger.Errorf("从 PNG 生成 ICO 失败: %v", err)
+			}
+		}
+		return nil
+	}
 	return appIconPNG
 }
 
 // runSystray 启动系统托盘 (在单独的 goroutine 中运行)
 func (a *App) runSystray() {
-	// 延迟初始化,避免与 Wails 启动冲突
-	time.Sleep(500 * time.Millisecond)
-
+	stdruntime.LockOSThread()
 	logger.Info("正在初始化系统托盘...")
 
 	// 标记 systray 开始运行
@@ -290,9 +321,36 @@ func (a *App) onSystrayReady() {
 	logger.Info("系统托盘初始化成功")
 
 	// 设置托盘图标
-	systray.SetIcon(a.getTrayIcon())
+	iconBytes := a.getTrayIcon()
+	if len(iconBytes) == 0 {
+		logger.Error("托盘图标资源为空，跳过设置图标")
+		if stdruntime.GOOS == "windows" {
+			logger.Warn("使用 RedBox 兜底图标")
+			iconBytes = generateRedBoxPNG()
+		}
+	} else {
+		if stdruntime.GOOS == "windows" {
+			isICO := looksLikeICO(iconBytes)
+			if isICO {
+				if sizes, err := icoSquareSizes(iconBytes); err != nil {
+					logger.Warnf("托盘图标 ICO 自检失败: %v", err)
+				} else {
+					logger.Info("托盘图标 ICO 自检通过", "sizes", sizes, "bytes", len(iconBytes))
+				}
+			} else {
+				logger.Warn("托盘图标格式未知", "bytes", len(iconBytes))
+			}
+
+		} else if looksLikeICO(iconBytes) {
+			logger.Warn("非 Windows 平台检测到 ICO 图标资源", "bytes", len(iconBytes))
+		}
+	}
+	if stdruntime.GOOS == "windows" {
+		time.Sleep(150 * time.Millisecond)
+	}
+	systray.SetIcon(iconBytes)
 	systray.SetTitle("AI Commit Hub")
-	systray.SetTooltip("AI Commit Hub - 点击显示窗口")
+	systray.SetTooltip("AI Commit Hub - 双击打开主窗口")
 
 	// 创建菜单
 	menu := systray.AddMenuItem("显示窗口", "显示主窗口")

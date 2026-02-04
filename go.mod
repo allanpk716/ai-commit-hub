@@ -11,6 +11,7 @@ require (
 	github.com/go-git/go-git/v5 v5.16.4
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/google/generative-ai-go v0.20.1
+	github.com/lutischan-ferenc/systray v1.3.0
 	github.com/ollama/ollama v0.14.3
 	github.com/openai/openai-go/v2 v2.7.1
 	github.com/sergi/go-diff v1.4.0
@@ -40,6 +41,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/energye/systray v1.0.3 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520 // indirect
@@ -91,6 +93,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816 // indirect
+	github.com/tevino/abool v0.0.0-20220530134649-2bfc934cb23c // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect

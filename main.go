@@ -62,9 +62,6 @@ func main() {
 	// Create an instance of the app structure
 	app := NewApp()
 
-	// 启动系统托盘 (在 Wails 启动前)
-	go app.runSystray()
-
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "AI Commit Hub",
