@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/WQGroup/logger"
+	"github.com/allanpk716/ai-commit-hub/pkg/constants"
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 	"github.com/allanpk716/ai-commit-hub/pkg/pushover"
@@ -250,7 +251,7 @@ func (a *App) startup(ctx context.Context) {
 	}()
 
 	go func() {
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(constants.SystrayInitDelay)
 		a.runSystray()
 	}()
 }
@@ -339,7 +340,7 @@ func (a *App) onSystrayReady() {
 		}
 	}
 	if stdruntime.GOOS == "windows" {
-		time.Sleep(150 * time.Millisecond)
+		time.Sleep(constants.IconSettleDelay)
 	}
 	systray.SetIcon(iconBytes)
 	systray.SetTitle("AI Commit Hub")
@@ -1866,7 +1867,10 @@ func (a *App) GetAllProjectStatuses(projectPaths []string) (map[string]*ProjectF
 		return nil, a.initError
 	}
 
-	const maxConcurrent = 10
+	maxConcurrent := constants.DefaultMaxConcurrentOps
+	if stdruntime.NumCPU() < 4 {
+		maxConcurrent = constants.LowCPUMaxConcurrentOps
+	}
 
 	type result struct {
 		path   string
