@@ -26,7 +26,7 @@ type StartupProgress struct {
 // StartupService 启动服务
 type StartupService struct {
 	ctx             context.Context
-	gitProjectRepo  *repository.GitProjectRepository
+	gitProjectRepo  repository.GitProjectRepository
 	pushoverService *pushover.Service
 	db              *gorm.DB
 }
@@ -34,7 +34,7 @@ type StartupService struct {
 // NewStartupService 创建启动服务
 func NewStartupService(
 	ctx context.Context,
-	gitProjectRepo *repository.GitProjectRepository,
+	gitProjectRepo repository.GitProjectRepository,
 	pushoverService *pushover.Service,
 ) *StartupService {
 	return &StartupService{

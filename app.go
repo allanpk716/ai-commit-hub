@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/WQGroup/logger"
-	apperrors "github.com/allanpk716/ai-commit-hub/pkg/errors"
 	"github.com/allanpk716/ai-commit-hub/pkg/constants"
+	apperrors "github.com/allanpk716/ai-commit-hub/pkg/errors"
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 	"github.com/allanpk716/ai-commit-hub/pkg/pushover"
@@ -54,8 +54,8 @@ func Command(name string, args ...string) *exec.Cmd {
 type App struct {
 	ctx                  context.Context
 	dbPath               string
-	gitProjectRepo       *repository.GitProjectRepository
-	commitHistoryRepo    *repository.CommitHistoryRepository
+	gitProjectRepo       repository.GitProjectRepository
+	commitHistoryRepo    repository.CommitHistoryRepository
 	configService        *service.ConfigService
 	projectConfigService *service.ProjectConfigService
 	pushoverService      *pushover.Service
