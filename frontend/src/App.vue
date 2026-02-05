@@ -20,7 +20,11 @@
     <header class="toolbar">
       <div class="toolbar-left">
         <div class="logo">
-          <img src="./assets/app-icon.png" alt="AI Commit Hub" class="logo-icon" />
+          <img
+            src="./assets/app-icon.png"
+            alt="AI Commit Hub"
+            class="logo-icon"
+          />
           <h1>AI Commit Hub</h1>
         </div>
         <div class="toolbar-divider"></div>
@@ -44,7 +48,10 @@
     <SettingsDialog v-model="settingsOpen" />
 
     <!-- Extension Info Dialog -->
-    <ExtensionInfoDialog :open="extensionDialogOpen" @close="extensionDialogOpen = false" />
+    <ExtensionInfoDialog
+      :open="extensionDialogOpen"
+      @close="extensionDialogOpen = false"
+    />
 
     <!-- Error Toast (全局错误提示) -->
     <ErrorToast />
@@ -89,205 +96,226 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useProjectStore } from './stores/projectStore'
-import { useCommitStore } from './stores/commitStore'
-import { usePushoverStore } from './stores/pushoverStore'
-import { SelectProjectFolder } from '../wailsjs/go/main/App'
-import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
-import ProjectList from './components/ProjectList.vue'
-import CommitPanel from './components/CommitPanel.vue'
-import SettingsDialog from './components/SettingsDialog.vue'
-import ExtensionStatusButton from './components/ExtensionStatusButton.vue'
-import ExtensionInfoDialog from './components/ExtensionInfoDialog.vue'
-import ConfirmDialog from './components/ConfirmDialog.vue'
-import SplashScreen from './components/SplashScreen.vue'
-import ErrorToast from './components/ErrorToast.vue'
-import type { GitProject } from './types'
+import { ref, onMounted, onUnmounted } from "vue";
+import { useProjectStore } from "./stores/projectStore";
+import { useCommitStore } from "./stores/commitStore";
+import { usePushoverStore } from "./stores/pushoverStore";
+import { APP_EVENTS } from "./constants/events";
+import { SelectProjectFolder } from "../wailsjs/go/main/App";
+import { EventsOn, EventsOff } from "../wailsjs/runtime/runtime";
+import ProjectList from "./components/ProjectList.vue";
+import CommitPanel from "./components/CommitPanel.vue";
+import SettingsDialog from "./components/SettingsDialog.vue";
+import ExtensionStatusButton from "./components/ExtensionStatusButton.vue";
+import ExtensionInfoDialog from "./components/ExtensionInfoDialog.vue";
+import ConfirmDialog from "./components/ConfirmDialog.vue";
+import SplashScreen from "./components/SplashScreen.vue";
+import ErrorToast from "./components/ErrorToast.vue";
+import type { GitProject } from "./types";
 
-const projectStore = useProjectStore()
-const commitStore = useCommitStore()
-const pushoverStore = usePushoverStore()
-const selectedProjectId = ref<number>()
-const settingsOpen = ref(false)
-const extensionDialogOpen = ref(false)
-const showSplash = ref(true)
-const initErrors = ref<Array<{ error: string; message: string }>>([])
+const projectStore = useProjectStore();
+const commitStore = useCommitStore();
+const pushoverStore = usePushoverStore();
+const selectedProjectId = ref<number>();
+const settingsOpen = ref(false);
+const extensionDialogOpen = ref(false);
+const showSplash = ref(true);
+const initErrors = ref<Array<{ error: string; message: string }>>([]);
 
 // 删除对话框状态
-const showDeleteDialog = ref(false)
-const deleteDialogTitle = ref('')
-const deleteDialogMessage = ref('')
-const deleteDialogDetails = ref<Array<{label: string; value: string}>>([])
-const deleteDialogNote = ref('')
-const deleteDialogConfirmText = ref('删除')
-const deleteDialogCancelText = ref('取消')
-const deleteDialogType = ref<'warning' | 'danger'>('danger')
-const deleteDialogCallback = ref<(() => Promise<void>) | null>(null)
+const showDeleteDialog = ref(false);
+const deleteDialogTitle = ref("");
+const deleteDialogMessage = ref("");
+const deleteDialogDetails = ref<Array<{ label: string; value: string }>>([]);
+const deleteDialogNote = ref("");
+const deleteDialogConfirmText = ref("删除");
+const deleteDialogCancelText = ref("取消");
+const deleteDialogType = ref<"warning" | "danger">("danger");
+const deleteDialogCallback = ref<(() => Promise<void>) | null>(null);
 
 async function initializeApp() {
-  console.log('[App] 开始初始化前端应用')
+  console.log("[App] 开始初始化前端应用");
 
   // 只执行不阻塞启动的基础初始化
   const tasks = [
-    projectStore.loadProjects()
-      .catch(err => ({ error: 'loadProjects', message: err?.message || '未知错误' })),
-    pushoverStore.checkExtensionStatus()
-      .catch(err => ({ error: 'extensionStatus', message: err?.message || '未知错误' })),
-    pushoverStore.checkPushoverConfig()
-      .catch(err => ({ error: 'pushoverConfig', message: err?.message || '未知错误' }))
-  ]
+    projectStore
+      .loadProjects()
+      .catch((err) => ({
+        error: "loadProjects",
+        message: err?.message || "未知错误",
+      })),
+    pushoverStore
+      .checkExtensionStatus()
+      .catch((err) => ({
+        error: "extensionStatus",
+        message: err?.message || "未知错误",
+      })),
+    pushoverStore
+      .checkPushoverConfig()
+      .catch((err) => ({
+        error: "pushoverConfig",
+        message: err?.message || "未知错误",
+      })),
+  ];
 
-  const results = await Promise.all(tasks)
-  const errors = results.filter((r): r is { error: string; message: string } => r !== null && typeof r === 'object' && 'error' in r && 'message' in r)
+  const results = await Promise.all(tasks);
+  const errors = results.filter(
+    (r): r is { error: string; message: string } =>
+      r !== null && typeof r === "object" && "error" in r && "message" in r,
+  );
   if (errors.length > 0) {
-    console.warn('[App] 部分初始化任务失败:', errors)
-    initErrors.value = errors
+    console.warn("[App] 部分初始化任务失败:", errors);
+    initErrors.value = errors;
   }
 
-  console.log('[App] 前端应用初始化完成')
+  console.log("[App] 前端应用初始化完成");
 }
 
 onMounted(async () => {
-  console.log('[App] onMounted 开始')
+  console.log("[App] onMounted 开始");
 
   // 1. 立即执行前端基础初始化
-  await initializeApp()
+  await initializeApp();
 
   // 2. 监听后端启动完成事件
-  EventsOn('startup-complete', async (data: { success?: boolean; statuses?: Record<string, any> } | null) => {
-    console.log('[App] 收到 startup-complete 事件', { data })
+  EventsOn(
+    APP_EVENTS.STARTUP_COMPLETE,
+    async (
+      data: { success?: boolean; statuses?: Record<string, any> } | null,
+    ) => {
+      console.log("[App] 收到 startup-complete 事件", { data });
 
-    // 如果后端发送了预加载的状态数据，填充到 StatusCache
-    if (data?.success && data?.statuses) {
-      try {
-        const { useStatusCache } = await import('./stores/statusCache')
-        const statusCache = useStatusCache()
+      // 如果后端发送了预加载的状态数据，填充到 StatusCache
+      if (data?.success && data?.statuses) {
+        try {
+          const { useStatusCache } = await import("./stores/statusCache");
+          const statusCache = useStatusCache();
 
-        // 将后端预加载的状态数据填充到缓存
-        for (const [path, status] of Object.entries(data.statuses)) {
-          statusCache.updateCache(path, {
-            gitStatus: status.gitStatus,
-            stagingStatus: status.stagingStatus,
-            untrackedCount: status.untrackedCount,
-            pushoverStatus: status.pushoverStatus,
-            pushStatus: status.pushStatus,
-            lastUpdated: new Date(status.lastUpdated).getTime(),
-            loading: false,
-            error: null,
-            stale: false
-          })
+          // 将后端预加载的状态数据填充到缓存
+          for (const [path, status] of Object.entries(data.statuses)) {
+            statusCache.updateCache(path, {
+              gitStatus: status.gitStatus,
+              stagingStatus: status.stagingStatus,
+              untrackedCount: status.untrackedCount,
+              pushoverStatus: status.pushoverStatus,
+              pushStatus: status.pushStatus,
+              lastUpdated: new Date(status.lastUpdated).getTime(),
+              loading: false,
+              error: null,
+              stale: false,
+            });
+          }
+
+          console.log("[App] StatusCache 已填充预加载数据", {
+            count: Object.keys(data.statuses).length,
+          });
+        } catch (error) {
+          console.error("[App] 填充 StatusCache 失败:", error);
+          // 失败不影响进入主界面，StatusCache 会按需加载
         }
-
-        console.log('[App] StatusCache 已填充预加载数据', {
-          count: Object.keys(data.statuses).length
-        })
-      } catch (error) {
-        console.error('[App] 填充 StatusCache 失败:', error)
-        // 失败不影响进入主界面，StatusCache 会按需加载
+      } else {
+        console.log("[App] 后端未发送预加载数据，StatusCache 将按需加载");
       }
-    } else {
-      console.log('[App] 后端未发送预加载数据，StatusCache 将按需加载')
-    }
 
-    // 隐藏 SplashScreen
-    showSplash.value = false
-  })
+      // 隐藏 SplashScreen
+      showSplash.value = false;
+    },
+  );
 
   // 监听窗口可见性事件 (系统托盘相关)
-  EventsOn('window-shown', (data: { timestamp: string }) => {
-    console.log('[App] 窗口已从托盘恢复', data.timestamp)
-  })
+  EventsOn(APP_EVENTS.WINDOW_SHOWN, (data: { timestamp: string }) => {
+    console.log("[App] 窗口已从托盘恢复", data.timestamp);
+  });
 
-  EventsOn('window-hidden', (data: { timestamp: string }) => {
-    console.log('[App] 窗口已隐藏到托盘', data.timestamp)
-  })
+  EventsOn(APP_EVENTS.WINDOW_HIDDEN, (data: { timestamp: string }) => {
+    console.log("[App] 窗口已隐藏到托盘", data.timestamp);
+  });
 
   // 3. 超时保护（30秒后强制进入主界面）
   const timeoutId = setTimeout(() => {
     if (showSplash.value) {
-      console.warn('[App] 启动超时（30秒），强制进入主界面')
-      showSplash.value = false
+      console.warn("[App] 启动超时（30秒），强制进入主界面");
+      showSplash.value = false;
     }
-  }, 30000)
+  }, 30000);
 
   // 4. 组件卸载时清理
   onUnmounted(() => {
-    EventsOff('startup-complete')
-    EventsOff('window-shown')
-    EventsOff('window-hidden')
-    clearTimeout(timeoutId)
-  })
+    EventsOff("startup-complete");
+    EventsOff("window-shown");
+    EventsOff("window-hidden");
+    clearTimeout(timeoutId);
+  });
 
-  console.log('[App] onMounted 完成')
-})
+  console.log("[App] onMounted 完成");
+});
 
 async function openAddProject() {
   try {
-    const path = await SelectProjectFolder()
+    const path = await SelectProjectFolder();
     if (path) {
-      await projectStore.addProject(path)
-      alert('项目添加成功!')
+      await projectStore.addProject(path);
+      alert("项目添加成功!");
     }
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : '未知错误'
-    alert('添加项目失败: ' + message)
+    const message = e instanceof Error ? e.message : "未知错误";
+    alert("添加项目失败: " + message);
   }
 }
 
 function handleSelectProject(project: GitProject) {
-  selectedProjectId.value = project.id
-  projectStore.selectProject(project.path)  // 同步到 projectStore
-  commitStore.loadProjectStatus(project.path)
+  selectedProjectId.value = project.id;
+  projectStore.selectProject(project.path); // 同步到 projectStore
+  commitStore.loadProjectStatus(project.path);
 }
 
 function openSettings() {
-  settingsOpen.value = true
+  settingsOpen.value = true;
 }
 
 // 处理删除对话框显示请求
 function handleShowDeleteDialog(config: {
-  title: string
-  message: string
-  details: Array<{label: string; value: string}>
-  note?: string
-  confirmText: string
-  cancelText: string
-  type: 'warning' | 'danger'
-  onConfirm: () => Promise<void>
+  title: string;
+  message: string;
+  details: Array<{ label: string; value: string }>;
+  note?: string;
+  confirmText: string;
+  cancelText: string;
+  type: "warning" | "danger";
+  onConfirm: () => Promise<void>;
 }) {
-  openDeleteDialog(config)
+  openDeleteDialog(config);
 }
 
 function openDeleteDialog(config: {
-  title: string
-  message: string
-  details: Array<{label: string; value: string}>
-  note?: string
-  confirmText: string
-  cancelText: string
-  type: 'warning' | 'danger'
-  onConfirm: () => Promise<void>
+  title: string;
+  message: string;
+  details: Array<{ label: string; value: string }>;
+  note?: string;
+  confirmText: string;
+  cancelText: string;
+  type: "warning" | "danger";
+  onConfirm: () => Promise<void>;
 }) {
-  deleteDialogTitle.value = config.title
-  deleteDialogMessage.value = config.message
-  deleteDialogDetails.value = config.details
-  deleteDialogNote.value = config.note || ''
-  deleteDialogConfirmText.value = config.confirmText
-  deleteDialogCancelText.value = config.cancelText
-  deleteDialogType.value = config.type
-  deleteDialogCallback.value = config.onConfirm
-  showDeleteDialog.value = true
+  deleteDialogTitle.value = config.title;
+  deleteDialogMessage.value = config.message;
+  deleteDialogDetails.value = config.details;
+  deleteDialogNote.value = config.note || "";
+  deleteDialogConfirmText.value = config.confirmText;
+  deleteDialogCancelText.value = config.cancelText;
+  deleteDialogType.value = config.type;
+  deleteDialogCallback.value = config.onConfirm;
+  showDeleteDialog.value = true;
 }
 
 async function handleDeleteConfirm() {
   if (deleteDialogCallback.value) {
     try {
-      await deleteDialogCallback.value()
-      showDeleteDialog.value = false
+      await deleteDialogCallback.value();
+      showDeleteDialog.value = false;
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '操作失败'
-      console.error('操作失败:', message)
+      const message = e instanceof Error ? e.message : "操作失败";
+      console.error("操作失败:", message);
     }
   }
 }
@@ -311,8 +339,16 @@ async function handleDeleteConfirm() {
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(6, 182, 212, 0.15), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 92, 246, 0.1), transparent);
+    radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(6, 182, 212, 0.15),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 100% 100%,
+      rgba(139, 92, 246, 0.1),
+      transparent
+    );
   pointer-events: none;
   z-index: 0;
 }
@@ -357,7 +393,11 @@ async function handleDeleteConfirm() {
   font-family: var(--font-display);
   font-size: 20px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
+  background: linear-gradient(
+    135deg,
+    var(--text-primary),
+    var(--accent-primary)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -396,13 +436,18 @@ async function handleDeleteConfirm() {
 }
 
 .btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, transparent, rgba(255,255,255,0.05), transparent);
+  background: linear-gradient(
+    135deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
   transform: translateX(-100%);
   transition: transform var(--transition-slow);
 }
@@ -412,7 +457,11 @@ async function handleDeleteConfirm() {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary)
+  );
   color: white;
   border-color: transparent;
   box-shadow: var(--glow-primary);
