@@ -134,18 +134,21 @@ ai-commit-hub/
 - `wails.json`: Wails 构建和运行配置
 
 **构建相关：**
-- `BUILD.md`: 构建说明文档
 - `Makefile`: 构建脚本
 - `rsrc_windows_*.syso`: Windows 资源文件（图标、版本信息）
 - `dev-*.bat`: Windows 开发启动脚本
 
 **文档：**
-- `README.md`: 项目说明
+- `README.md`: 项目说明（GitHub 首页展示）
 - `CLAUDE.md`: Claude Code 工作指导
 - `docs/`: 文档目录
+  - `build/`: 构建说明文档
+  - `development/`: 开发规范（Wails、日志等）
+  - `history/`: 历史文档（实现总结、最终报告）
   - `lessons-learned/`: 技术经验总结
   - `fixes/`: 问题修复记录
   - `plans/`: 项目开发计划
+  - `archive/`: 归档文档（过时设计、安装文档等）
 
 ### 后端核心 (`pkg/`)
 
@@ -332,10 +335,11 @@ import { ref } from 'vue'
 - 退出问题修复
 
 ### `tmp/`
-临时测试文件目录：
-- 临时测试数据
+临时测试文件目录（应在 .gitignore 中忽略）：
+- 临时测试数据和脚本
 - 快速原型验证
-- 调试信息
+- 调试信息和日志
+- **注意**: 此目录内容会被 git ignore，不应提交到仓库
 
 ---
 

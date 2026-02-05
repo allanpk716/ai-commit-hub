@@ -44,6 +44,19 @@ nul
 tmp/
 .playwright-mcp/
 
+# Debug and backup files
+debug_*.ico
+debug_*.png
+*.backup
+*.bak
+
+# Test output and artifacts
+tmp/*.exe
+tmp/test*.exe
+tmp/*.db
+tmp/*.log
+tmp/*.tmp
+
 # Git worktrees
 .worktrees/
 worktrees/
