@@ -1,5 +1,6 @@
 import { ref, computed, onUnmounted } from "vue";
 import { useStatusCache } from "@/stores/statusCache";
+import { APP_EVENTS } from "@/constants/events";
 import { CommitProject, GenerateCommit } from "@/wailsjs/go/main/App";
 import { EventsOn, EventsOff } from "@/wailsjs/runtime/runtime";
 
@@ -27,13 +28,13 @@ export function useCommit() {
   };
 
   // 注册事件监听
-  EventsOn("commit-delta", handleCommitDelta);
-  EventsOn("commit-complete", handleCommitComplete);
+  EventsOn(APP_EVENTS.COMMIT_DELTA, handleCommitDelta);
+  EventsOn(APP_EVENTS.COMMIT_COMPLETE, handleCommitComplete);
 
   // 清理事件监听
   onUnmounted(() => {
-    EventsOff("commit-delta", handleCommitDelta);
-    EventsOff("commit-complete", handleCommitComplete);
+    EventsOff(APP_EVENTS.COMMIT_DELTA, handleCommitDelta);
+    EventsOff(APP_EVENTS.COMMIT_COMPLETE, handleCommitComplete);
   });
 
   /**
