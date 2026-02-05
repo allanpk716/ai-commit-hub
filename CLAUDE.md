@@ -80,21 +80,34 @@ AI Commit Hub 支持完整的 Git 工作流：
 - 支持将应用最小化到系统托盘，后台运行
 - 关闭窗口时应用不退出，继续驻留在托盘
 - 通过托盘菜单可以恢复窗口或完全退出应用
+- 支持双击托盘图标快速打开主窗口
 
 **使用方式：**
 1. **隐藏到托盘**: 点击窗口关闭按钮 (X)
-2. **恢复窗口**: 右键点击托盘图标 → "显示窗口"
+2. **恢复窗口**:
+   - 方式1：双击托盘图标
+   - 方式2：右键点击托盘图标 → "显示窗口"
 3. **退出应用**: 右键点击托盘图标 → "退出应用"
 
 **注意事项：**
 - 首次使用时会在关闭窗口后显示提示信息
 - 应用启动时默认显示主窗口
-- 托盘图标使用应用图标 (app-icon.png)
+- Windows 平台托盘图标使用 ICO 格式（多尺寸）
 
 **技术实现：**
-- 使用 `github.com/getlantern/systray` 库
+- 使用 `github.com/lutischan-ferenc/systray` 库（v1.3.0，支持双击/右键事件）
 - Wails `OnBeforeClose` 钩子拦截窗口关闭
-- `sync.Once` 确保安全退出
+- `sync.Once` 和 `atomic.Bool` 确保安全退出
+- 多级回退策略确保托盘图标可用：
+  1. 优先：Wails 生成的嵌入 ICO (`build/windows/icon.ico`)
+  2. 回退1：从 PNG 动态生成 ICO
+  3. 回退2：红色占位 ICO
+
+**经验总结：**
+Windows 托盘图标实现的完整经验总结请参考：
+- `docs/lessons-learned/windows-tray-icon-implementation-guide.md` - 完整实现指南
+- `docs/fixes/tray-icon-doubleclick-fix.md` - 双击功能和图标显示修复
+- `docs/fixes/systray-exit-fix.md` - 退出应用问题修复
 
 ### 测试命令
 ```bash
