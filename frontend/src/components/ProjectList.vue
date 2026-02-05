@@ -1,7 +1,7 @@
 <template>
   <div class="project-list">
     <!-- Header -->
-    <div class="list-header">
+    <div v-once class="list-header">
       <div class="header-title">
         <span class="icon">📁</span>
         <h3>项目列表</h3>
@@ -47,7 +47,7 @@
     <!-- Project list -->
     <transition-group v-else tag="div" name="list-item" class="projects">
       <div
-        v-for="(project, index) in filteredProjects"
+        v-for="({ project, status }, index) in projectsWithStatus"
         :key="project.id"
         class="project-item"
         :class="{ selected: selectedId === project.id }"
@@ -63,10 +63,10 @@
           <span class="project-name">{{ project.name }}</span>
           <span class="project-path">{{ project.path }}</span>
 
-          <!-- 状态指示器行（从 StatusCache 获取） -->
+          <!-- 状态指示器行（使用预先计算的 status） -->
           <div class="project-status-row">
             <!-- 加载中且无旧数据时显示骨架屏 -->
-            <template v-if="getProjectStatus(project).loading && getProjectStatus(project).stagedCount === 0 && getProjectStatus(project).unstagedCount === 0 && getProjectStatus(project).untrackedCount === 0 && getProjectStatus(project).aheadCount === 0 && getProjectStatus(project).behindCount === 0">
+            <template v-if="status.loading && status.stagedCount === 0 && status.unstagedCount === 0 && status.untrackedCount === 0 && status.aheadCount === 0 && status.behindCount === 0">
               <StatusSkeleton />
             </template>
 
@@ -74,59 +74,59 @@
             <template v-else>
               <!-- 已暂存文件 (绿色，✓ 图标) -->
               <span
-                v-if="getProjectStatus(project).stagedCount > 0"
+                v-if="status.stagedCount > 0"
                 class="status-indicator staged"
-                :class="{ loading: getProjectStatus(project).loading }"
-                :title="`${getProjectStatus(project).stagedCount} 个已暂存文件`"
+                :class="{ loading: status.loading }"
+                :title="`${status.stagedCount} 个已暂存文件`"
               >
-                ✓ {{ getProjectStatus(project).stagedCount }}
+                ✓ {{ status.stagedCount }}
               </span>
 
               <!-- 未暂存文件 (橙色，≠ 图标) -->
               <span
-                v-if="getProjectStatus(project).unstagedCount > 0"
+                v-if="status.unstagedCount > 0"
                 class="status-indicator unstaged"
-                :class="{ loading: getProjectStatus(project).loading }"
-                :title="`${getProjectStatus(project).unstagedCount} 个未暂存文件`"
+                :class="{ loading: status.loading }"
+                :title="`${status.unstagedCount} 个未暂存文件`"
               >
-                ≠ {{ getProjectStatus(project).unstagedCount }}
+                ≠ {{ status.unstagedCount }}
               </span>
 
               <!-- 未跟踪文件 (黄色，➤ 图标) -->
               <span
-                v-if="getProjectStatus(project).untrackedCount > 0"
+                v-if="status.untrackedCount > 0"
                 class="status-indicator untracked"
-                :class="{ loading: getProjectStatus(project).loading }"
-                :title="`${getProjectStatus(project).untrackedCount} 个未跟踪文件`"
+                :class="{ loading: status.loading }"
+                :title="`${status.untrackedCount} 个未跟踪文件`"
               >
-                ➤ {{ getProjectStatus(project).untrackedCount }}
+                ➤ {{ status.untrackedCount }}
               </span>
 
               <!-- 本地领先远程 (蓝绿色，↑ 图标) -->
               <span
-                v-if="getProjectStatus(project).aheadCount > 0"
+                v-if="status.aheadCount > 0"
                 class="status-indicator ahead"
-                :class="{ loading: getProjectStatus(project).loading }"
-                :title="`本地领先 ${getProjectStatus(project).aheadCount} 个提交，可推送`"
+                :class="{ loading: status.loading }"
+                :title="`本地领先 ${status.aheadCount} 个提交，可推送`"
               >
-                ↑ {{ getProjectStatus(project).aheadCount }}
+                ↑ {{ status.aheadCount }}
               </span>
 
               <!-- 本地落后远程 (红色，↓ 图标) -->
               <span
-                v-if="getProjectStatus(project).behindCount > 0"
+                v-if="status.behindCount > 0"
                 class="status-indicator behind"
-                :class="{ loading: getProjectStatus(project).loading }"
-                :title="`本地落后 ${getProjectStatus(project).behindCount} 个提交，需要拉取`"
+                :class="{ loading: status.loading }"
+                :title="`本地落后 ${status.behindCount} 个提交，需要拉取`"
               >
-                ↓ {{ getProjectStatus(project).behindCount }}
+                ↓ {{ status.behindCount }}
               </span>
 
               <!-- Pushover 更新提示 -->
               <span
-                v-if="getProjectStatus(project).pushoverUpdateAvailable"
+                v-if="status.pushoverUpdateAvailable"
                 class="status-indicator update"
-                :class="{ loading: getProjectStatus(project).loading }"
+                :class="{ loading: status.loading }"
                 title="Pushover 插件可更新"
               >
                 ⬆️
@@ -193,6 +193,14 @@ const filteredProjects = computed(() => {
     p.name.toLowerCase().includes(query) ||
     p.path.toLowerCase().includes(query)
   )
+})
+
+// 优化：预先计算所有项目的状态，避免模板中重复调用
+const projectsWithStatus = computed(() => {
+  return filteredProjects.value.map(project => ({
+    project,
+    status: getProjectStatus(project)
+  }))
 })
 
 function selectProject(project: GitProject) {
