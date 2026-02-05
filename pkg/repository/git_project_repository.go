@@ -9,7 +9,7 @@ import (
 )
 
 // 确保类型实现了接口
-var _ GitProjectRepository = (*GitProjectRepository)(nil)
+var _ IGitProjectRepository = (*GitProjectRepository)(nil)
 
 // GitProjectRepository handles git project data operations
 type GitProjectRepository struct {

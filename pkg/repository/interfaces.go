@@ -4,8 +4,9 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 )
 
-// GitProjectRepository 定义 Git 项目仓库接口
-type GitProjectRepository interface {
+// IGitProjectRepository 定义 Git 项目仓库接口
+// 注意：此接口只包含实际实现中存在的方法
+type IGitProjectRepository interface {
 	// GetAll 获取所有项目
 	GetAll() ([]models.GitProject, error)
 
@@ -24,24 +25,19 @@ type GitProjectRepository interface {
 	// Delete 删除项目
 	Delete(id uint) error
 
-	// UpdateLastCommitTime 更新最后提交时间
-	UpdateLastCommitTime(id uint, commitTime int64) error
-
-	// UpdateHookStatus 更新 Hook 状态
-	UpdateHookStatus(id uint, needsUpdate bool) error
+	// GetMaxSortOrder 获取最大排序值
+	GetMaxSortOrder() (int, error)
 }
 
-// CommitHistoryRepository 定义提交历史仓库接口
-type CommitHistoryRepository interface {
+// ICommitHistoryRepository 定义提交历史仓库接口
+// 注意：此接口只包含实际实现中存在的方法
+type ICommitHistoryRepository interface {
 	// Create 创建提交历史记录
 	Create(history *models.CommitHistory) error
 
 	// GetByProjectID 获取项目的提交历史
 	GetByProjectID(projectID uint, limit int) ([]models.CommitHistory, error)
 
-	// Delete 删除历史记录
-	Delete(id uint) error
-
-	// DeleteByProjectID 删除项目的所有历史
-	DeleteByProjectID(projectID uint) error
+	// GetRecent 获取最近的提交历史
+	GetRecent(limit int) ([]models.CommitHistory, error)
 }

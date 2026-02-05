@@ -8,7 +8,7 @@ import (
 )
 
 // 确保类型实现了接口
-var _ CommitHistoryRepository = (*CommitHistoryRepository)(nil)
+var _ ICommitHistoryRepository = (*CommitHistoryRepository)(nil)
 
 // CommitHistoryRepository handles commit history data operations
 type CommitHistoryRepository struct {
