@@ -20,13 +20,13 @@ type UpdateService struct {
 
 // GitHubRelease GitHub Release API 响应
 type GitHubRelease struct {
-	TagName    string  `json:"tag_name"`
-	Name       string  `json:"name"`
-	Body       string  `json:"body"`
-	Draft      bool    `json:"draft"`
-	Prerelease bool    `json:"prerelease"`
-	PublishedAt string `json:"published_at"`
-	Assets     []Asset `json:"assets"`
+	TagName     string  `json:"tag_name"`
+	Name        string  `json:"name"`
+	Body        string  `json:"body"`
+	Draft       bool    `json:"draft"`
+	Prerelease  bool    `json:"prerelease"`
+	PublishedAt string  `json:"published_at"`
+	Assets      []Asset `json:"assets"`
 }
 
 // Asset Release 资源

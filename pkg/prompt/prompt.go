@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	gogitobj "github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/committypes"
+	gogitobj "github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // DefaultPromptTemplate is used if no template is configured for commit message generation.

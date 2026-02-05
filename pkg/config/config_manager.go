@@ -67,4 +67,3 @@ func isZeroValue(v reflect.Value) bool {
 		return v.IsZero()
 	}
 }
-

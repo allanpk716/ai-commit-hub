@@ -226,6 +226,7 @@ func encodeICOBMPDIB(img *image.NRGBA) []byte {
 	}
 	return buf
 }
+
 func pngToICOBMP(pngBytes []byte, sizes []int) ([]byte, error) {
 	if len(pngBytes) == 0 {
 		return nil, fmt.Errorf("png bytes empty")

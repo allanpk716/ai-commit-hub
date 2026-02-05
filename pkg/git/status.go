@@ -19,9 +19,9 @@ type UntrackedFile struct {
 }
 
 type ProjectStatus struct {
-	Branch      string      `json:"branch"`
+	Branch      string       `json:"branch"`
 	StagedFiles []StagedFile `json:"staged_files"`
-	HasStaged   bool        `json:"has_staged"`
+	HasStaged   bool         `json:"has_staged"`
 }
 
 func GetProjectStatus(ctx context.Context, projectPath string) (*ProjectStatus, error) {

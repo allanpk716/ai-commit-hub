@@ -43,7 +43,7 @@ func TestGitProject_Validate(t *testing.T) {
 	t.Run("Invalid git repo should fail", func(t *testing.T) {
 		// Create a directory that is not a git repo
 		nonGitDir := filepath.Join(tempDir, "not-a-git-repo")
-		if err := os.Mkdir(nonGitDir, 0755); err != nil {
+		if err := os.Mkdir(nonGitDir, 0o755); err != nil {
 			t.Fatalf("Failed to create test directory: %v", err)
 		}
 
@@ -63,7 +63,7 @@ func TestGitProject_Validate(t *testing.T) {
 	t.Run("Valid git repo should pass", func(t *testing.T) {
 		// Create a valid git repository
 		validGitDir := filepath.Join(tempDir, "valid-git-repo")
-		if err := os.Mkdir(validGitDir, 0755); err != nil {
+		if err := os.Mkdir(validGitDir, 0o755); err != nil {
 			t.Fatalf("Failed to create test directory: %v", err)
 		}
 
@@ -89,7 +89,7 @@ func TestGitProject_DetectName(t *testing.T) {
 
 	t.Run("Normal folder path should return folder name", func(t *testing.T) {
 		projectPath := filepath.Join(tempDir, "my-project")
-		if err := os.Mkdir(projectPath, 0755); err != nil {
+		if err := os.Mkdir(projectPath, 0o755); err != nil {
 			t.Fatalf("Failed to create test directory: %v", err)
 		}
 
@@ -113,7 +113,7 @@ func TestGitProject_DetectName(t *testing.T) {
 
 	t.Run("Nested folder path should return leaf folder name", func(t *testing.T) {
 		nestedPath := filepath.Join(tempDir, "parent", "child", "project")
-		if err := os.MkdirAll(nestedPath, 0755); err != nil {
+		if err := os.MkdirAll(nestedPath, 0o755); err != nil {
 			t.Fatalf("Failed to create nested test directory: %v", err)
 		}
 
@@ -137,7 +137,7 @@ func TestGitProject_DetectName(t *testing.T) {
 
 	t.Run("Path with special characters", func(t *testing.T) {
 		specialPath := filepath.Join(tempDir, "my-project-123")
-		if err := os.Mkdir(specialPath, 0755); err != nil {
+		if err := os.Mkdir(specialPath, 0o755); err != nil {
 			t.Fatalf("Failed to create test directory: %v", err)
 		}
 

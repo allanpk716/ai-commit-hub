@@ -12,15 +12,15 @@ import (
 )
 
 type GoogleClient struct {
-    ai.BaseAIClient
-    client *genai.GenerativeModel
+	ai.BaseAIClient
+	client *genai.GenerativeModel
 }
 
 func NewClient(provider string, client *genai.GenerativeModel) *GoogleClient {
-    return &GoogleClient{
-        BaseAIClient: ai.BaseAIClient{Provider: provider},
-        client:       client,
-    }
+	return &GoogleClient{
+		BaseAIClient: ai.BaseAIClient{Provider: provider},
+		client:       client,
+	}
 }
 
 func NewGoogleProClient(ctx context.Context, apiKey string, modelName string, baseURL string) (*genai.GenerativeModel, error) {

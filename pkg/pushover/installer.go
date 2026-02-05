@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	configFileMode = 0644
+	configFileMode = 0o644
 )
 
 // Installer Hook 安装器
@@ -359,6 +359,6 @@ func (in *Installer) parseInstallResult(output []byte, hookPath string) (*Instal
 
 	return &InstallResult{
 		Success: false,
-		Message:  fmt.Sprintf("无法解析安装结果: %s", outputStr),
+		Message: fmt.Sprintf("无法解析安装结果: %s", outputStr),
 	}, nil
 }

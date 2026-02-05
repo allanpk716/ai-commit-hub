@@ -20,7 +20,7 @@ func setupTestApp(t *testing.T) (*repository.DatabaseConfig, context.Context) {
 	testDBPath := filepath.Join("..", "..", "tmp", "test_integration.db")
 
 	// 确保 tmp 目录存在
-	os.MkdirAll(filepath.Join("..", "..", "tmp"), 0755)
+	os.MkdirAll(filepath.Join("..", "..", "tmp"), 0o755)
 
 	config := &repository.DatabaseConfig{Path: testDBPath}
 
@@ -134,8 +134,7 @@ func TestAppAPI_MoveProject(t *testing.T) {
 	// 交换 project2 和 project3 的排序
 	// 交换前: [project1(0), project2(1), project3(2)]
 	// 交换后: [project1(0), project2(2), project3(1)]
-	projects[1].SortOrder, projects[2].SortOrder =
-		projects[2].SortOrder, projects[1].SortOrder
+	projects[1].SortOrder, projects[2].SortOrder = projects[2].SortOrder, projects[1].SortOrder
 
 	repo.Update(&projects[1])
 	repo.Update(&projects[2])

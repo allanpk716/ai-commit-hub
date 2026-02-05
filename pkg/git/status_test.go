@@ -78,7 +78,7 @@ func TestGetProjectStatus_DeletedFile(t *testing.T) {
 
 	// 删除文件并暂存删除
 	helpers.RunGitCmd(t, repo.Path, "rm", "temp.txt")
-	helpers.RunGitCmd(t, repo.Path, "add", "-u")  // 暂存删除操作
+	helpers.RunGitCmd(t, repo.Path, "add", "-u") // 暂存删除操作
 
 	status, err := GetProjectStatus(context.Background(), repo.Path)
 

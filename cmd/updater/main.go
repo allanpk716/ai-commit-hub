@@ -86,7 +86,7 @@ func extractUpdate(zipPath, targetDir string) error {
 
 	// 创建备份目录
 	backupDir := filepath.Join(targetDir, ".backup")
-	os.MkdirAll(backupDir, 0755)
+	os.MkdirAll(backupDir, 0o755)
 
 	// 备份当前可执行文件（仅支持 Windows）
 	exeName := "ai-commit-hub.exe"

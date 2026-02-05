@@ -17,21 +17,21 @@ type GitProject struct {
 	SortOrder int    `gorm:"index" json:"sort_order"`
 
 	// 项目级别 AI 配置（可选）
-	Provider   *string `json:"provider,omitempty"`    // nil 表示使用默认
-	Language   *string `json:"language,omitempty"`    // nil 表示使用默认
-	Model      *string `json:"model,omitempty"`       // nil 表示使用默认
+	Provider   *string `json:"provider,omitempty"`              // nil 表示使用默认
+	Language   *string `json:"language,omitempty"`              // nil 表示使用默认
+	Model      *string `json:"model,omitempty"`                 // nil 表示使用默认
 	UseDefault bool    `gorm:"default:true" json:"use_default"` // true=使用默认配置
 
 	// Pushover Hook 配置
-	HookInstalled   bool        `gorm:"default:false" json:"hook_installed"`
+	HookInstalled    bool       `gorm:"default:false" json:"hook_installed"`
 	NotificationMode string     `gorm:"default:'enabled'" json:"notification_mode"` // enabled/pushover_only/windows_only/disabled
-	HookVersion     string      `gorm:"size:50" json:"hook_version"`
-	HookInstalledAt *time.Time  `json:"hook_installed_at,omitempty"`
+	HookVersion      string     `gorm:"size:50" json:"hook_version"`
+	HookInstalledAt  *time.Time `json:"hook_installed_at,omitempty"`
 
 	// 运行时状态字段（不持久化到数据库）
 	HasUncommittedChanges bool `json:"has_uncommitted_changes" gorm:"-"`
-	UntrackedCount       int  `json:"untracked_count" gorm:"-"`
-	PushoverNeedsUpdate  bool `json:"pushover_needs_update" gorm:"-"`
+	UntrackedCount        int  `json:"untracked_count" gorm:"-"`
+	PushoverNeedsUpdate   bool `json:"pushover_needs_update" gorm:"-"`
 }
 
 // TableName specifies the table name for GitProject
@@ -92,8 +92,8 @@ func (gp *GitProject) DetectName() (string, error) {
 // SingleProjectStatus 表示单个项目的运行时状态
 // 用于增量更新项目状态，避免检查所有项目
 type SingleProjectStatus struct {
-	Path                 string `json:"path"`
+	Path                  string `json:"path"`
 	HasUncommittedChanges bool   `json:"has_uncommitted_changes"`
-	UntrackedCount       int    `json:"untracked_count"`
-	PushoverNeedsUpdate  bool   `json:"pushover_needs_update"`
+	UntrackedCount        int    `json:"untracked_count"`
+	PushoverNeedsUpdate   bool   `json:"pushover_needs_update"`
 }

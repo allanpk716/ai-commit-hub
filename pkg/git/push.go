@@ -24,7 +24,6 @@ func PushToRemote(ctx context.Context) error {
 	// 执行推送命令
 	pushCmd := Command("git", "push", "origin", branchName)
 	output, err := pushCmd.CombinedOutput()
-
 	if err != nil {
 		// 提供详细的错误信息
 		errorMsg := string(output)

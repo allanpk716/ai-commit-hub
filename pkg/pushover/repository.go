@@ -41,7 +41,7 @@ func (rm *RepositoryManager) Clone() error {
 	}
 
 	// 确保 extensions 目录存在
-	if err := os.MkdirAll(rm.basePath, 0755); err != nil {
+	if err := os.MkdirAll(rm.basePath, 0o755); err != nil {
 		return fmt.Errorf("创建 extensions 目录失败: %w", err)
 	}
 

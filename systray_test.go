@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	apperrors "github.com/allanpk716/ai-commit-hub/pkg/errors"
 	"github.com/allanpk716/ai-commit-hub/pkg/constants"
+	apperrors "github.com/allanpk716/ai-commit-hub/pkg/errors"
 )
 
 func TestTimingConstants(t *testing.T) {

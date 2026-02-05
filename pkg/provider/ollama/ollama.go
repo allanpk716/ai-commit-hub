@@ -8,30 +8,30 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/ollama/ollama/api"
 	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/ai"
+	"github.com/ollama/ollama/api"
 )
 
 type OllamaClient struct {
-    ai.BaseAIClient
-    client *api.Client
-    model  string
+	ai.BaseAIClient
+	client *api.Client
+	model  string
 }
 
 func NewOllamaClient(provider, baseURL, model string) (*OllamaClient, error) {
-    u, err := url.Parse(strings.TrimSpace(baseURL))
-    if err != nil || u.Scheme == "" || u.Host == "" {
-        return nil, fmt.Errorf("invalid Ollama baseURL: %q", baseURL)
-    }
-    if strings.TrimSpace(model) == "" {
-        return nil, fmt.Errorf("ollama model is required")
-    }
-    client := api.NewClient(u, http.DefaultClient)
-    return &OllamaClient{
-        BaseAIClient: ai.BaseAIClient{Provider: provider},
-        client:       client,
-        model:        model,
-    }, nil
+	u, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return nil, fmt.Errorf("invalid Ollama baseURL: %q", baseURL)
+	}
+	if strings.TrimSpace(model) == "" {
+		return nil, fmt.Errorf("ollama model is required")
+	}
+	client := api.NewClient(u, http.DefaultClient)
+	return &OllamaClient{
+		BaseAIClient: ai.BaseAIClient{Provider: provider},
+		client:       client,
+		model:        model,
+	}, nil
 }
 
 func (oc *OllamaClient) GetCommitMessage(ctx context.Context, prompt string) (string, error) {

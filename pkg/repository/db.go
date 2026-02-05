@@ -32,7 +32,7 @@ func NewDatabaseConfig() *DatabaseConfig {
 	}
 
 	configDir := filepath.Join(homeDir, ".ai-commit-hub")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		panic(fmt.Sprintf("Failed to create config directory: %v", err))
 	}
 

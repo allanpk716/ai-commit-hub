@@ -62,7 +62,6 @@ func TestCleanVersion(t *testing.T) {
 	}
 }
 
-
 func TestCompareVersions(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -195,10 +194,10 @@ func TestParseVersionNumbers(t *testing.T) {
 
 func TestCleanVersionAndCompare(t *testing.T) {
 	tests := []struct {
-		name               string
-		hookVersion        string
-		extensionVersion   string
-		needsUpdate        bool
+		name             string
+		hookVersion      string
+		extensionVersion string
+		needsUpdate      bool
 	}{
 		{
 			name:             "Hook version matches extension version (Git describe format)",
@@ -250,4 +249,3 @@ func TestCleanVersionAndCompare(t *testing.T) {
 		})
 	}
 }
-

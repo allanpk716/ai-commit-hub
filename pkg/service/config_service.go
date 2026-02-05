@@ -33,7 +33,7 @@ func (s *ConfigService) LoadConfig(ctx context.Context) (*config.Config, error) 
 	}
 
 	configDir := filepath.Join(homeDir, ".ai-commit-hub")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -65,14 +65,14 @@ func (s *ConfigService) LoadConfig(ctx context.Context) (*config.Config, error) 
 
 func (s *ConfigService) getDefaultConfig() *config.Config {
 	return &config.Config{
-		Provider:      "openai",
-		Language:      "zh",
-		AuthorName:    config.DefaultAuthorName,
-		AuthorEmail:   config.DefaultAuthorEmail,
-		EnableEmoji:   true,
-		SemanticRelease: false,
+		Provider:         "openai",
+		Language:         "zh",
+		AuthorName:       config.DefaultAuthorName,
+		AuthorEmail:      config.DefaultAuthorEmail,
+		EnableEmoji:      true,
+		SemanticRelease:  false,
 		InteractiveSplit: false,
-		LockFiles:     []string{"go.mod", "go.sum", "package-lock.json", "yarn.lock"},
+		LockFiles:        []string{"go.mod", "go.sum", "package-lock.json", "yarn.lock"},
 		CommitTypes: []config.CommitTypeConfig{
 			{Type: "feat", Emoji: "✨"},
 			{Type: "fix", Emoji: "🐛"},
@@ -138,7 +138,7 @@ func (s *ConfigService) saveConfig(path string, cfg *config.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0o644)
 }
 
 func (s *ConfigService) GetAvailableProviders() []string {

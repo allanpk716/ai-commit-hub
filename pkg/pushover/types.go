@@ -14,11 +14,11 @@ const (
 
 // HookStatus Hook 状态信息
 type HookStatus struct {
-	Installed       bool            `json:"installed"`
+	Installed       bool             `json:"installed"`
 	Mode            NotificationMode `json:"mode"`
-	Version         string          `json:"version"`
-	InstalledAt     *time.Time      `json:"installed_at,omitempty"`
-	UpdateAvailable bool            `json:"update_available,omitempty"` // 是否有可用更新
+	Version         string           `json:"version"`
+	InstalledAt     *time.Time       `json:"installed_at,omitempty"`
+	UpdateAvailable bool             `json:"update_available,omitempty"` // 是否有可用更新
 }
 
 // ExtensionInfo 扩展信息
@@ -41,7 +41,7 @@ type InstallResult struct {
 
 // PythonInstallResult Python 脚本输出的 JSON 格式
 type PythonInstallResult struct {
-	Status   string `json:"status"`   // "success", "error", "cancelled"
+	Status   string `json:"status"` // "success", "error", "cancelled"
 	Message  string `json:"message,omitempty"`
 	HookPath string `json:"hook_path,omitempty"`
 	Version  string `json:"version,omitempty"`

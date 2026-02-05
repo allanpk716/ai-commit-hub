@@ -95,7 +95,7 @@ func AddToGitIgnoreFile(projectPath, pattern string) error {
 	gitIgnorePath := filepath.Join(projectPath, ".gitignore")
 
 	// 获取现有文件权限
-	existingPerms := os.FileMode(0644)
+	existingPerms := os.FileMode(0o644)
 	if info, err := os.Stat(gitIgnorePath); err == nil {
 		existingPerms = info.Mode().Perm()
 	}

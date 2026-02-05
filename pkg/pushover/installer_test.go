@@ -24,7 +24,7 @@ func TestReadNotificationConfig(t *testing.T) {
 
 	// 测试：只有 .no-pushover
 	noPushoverPath := filepath.Join(tempDir, ".no-pushover")
-	if err := os.WriteFile(noPushoverPath, []byte(""), 0644); err != nil {
+	if err := os.WriteFile(noPushoverPath, []byte(""), 0o644); err != nil {
 		t.Fatalf("创建 .no-pushover 失败: %v", err)
 	}
 
@@ -38,7 +38,7 @@ func TestReadNotificationConfig(t *testing.T) {
 
 	// 测试：两个文件都存在
 	noWindowsPath := filepath.Join(tempDir, ".no-windows")
-	if err := os.WriteFile(noWindowsPath, []byte(""), 0644); err != nil {
+	if err := os.WriteFile(noWindowsPath, []byte(""), 0o644); err != nil {
 		t.Fatalf("创建 .no-windows 失败: %v", err)
 	}
 

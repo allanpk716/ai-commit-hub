@@ -32,7 +32,7 @@ func initLogger() {
 
 	// 创建日志目录
 	logDir := filepath.Join(homeDir, ".ai-commit-hub", "logs")
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
 		logger.Errorf("Failed to create log directory: %v", err)
 		return
 	}
@@ -83,7 +83,6 @@ func main() {
 			app,
 		},
 	})
-
 	if err != nil {
 		logger.Errorf("Error: %v", err)
 	}

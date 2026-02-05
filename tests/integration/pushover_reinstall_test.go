@@ -38,7 +38,7 @@ func TestReinstallHook(t *testing.T) {
 
 	// 2. 修改通知配置（禁用 Pushover）
 	noPushoverPath := filepath.Join(tempProject, ".no-pushover")
-	if err := os.WriteFile(noPushoverPath, []byte(""), 0644); err != nil {
+	if err := os.WriteFile(noPushoverPath, []byte(""), 0o644); err != nil {
 		t.Fatalf("创建 .no-pushover 失败: %v", err)
 	}
 

@@ -177,11 +177,11 @@ func TestAddToGitIgnoreFile(t *testing.T) {
 			},
 		},
 		{
-			name: "重复添加相同规则 - 应该忽略",
+			name:    "重复添加相同规则 - 应该忽略",
 			pattern: "node_modules",
 			preWrite: func(tmpDir string) error {
 				gitIgnorePath := filepath.Join(tmpDir, ".gitignore")
-				return os.WriteFile(gitIgnorePath, []byte("node_modules\n"), 0644)
+				return os.WriteFile(gitIgnorePath, []byte("node_modules\n"), 0o644)
 			},
 			checkFunc: func(content string) bool {
 				// 计算出现次数
@@ -190,11 +190,11 @@ func TestAddToGitIgnoreFile(t *testing.T) {
 			},
 		},
 		{
-			name: "追加到现有内容",
+			name:    "追加到现有内容",
 			pattern: "*.log",
 			preWrite: func(tmpDir string) error {
 				gitIgnorePath := filepath.Join(tmpDir, ".gitignore")
-				return os.WriteFile(gitIgnorePath, []byte("node_modules\n\nbuild/\n"), 0644)
+				return os.WriteFile(gitIgnorePath, []byte("node_modules\n\nbuild/\n"), 0o644)
 			},
 			checkFunc: func(content string) bool {
 				return strings.Contains(content, "node_modules") &&
@@ -271,9 +271,9 @@ func TestToGitPath(t *testing.T) {
 // - 在目录模式下，直接使用前端传递的 pattern，不再调用 GenerateGitIgnorePattern
 func TestDirectoryModeBugRegression(t *testing.T) {
 	tests := []struct {
-		name                  string
-		selectedPattern       string // 用户在下拉框中选择的目录
-		expectedWritePattern  string // 期望写入 .gitignore 的内容
+		name                 string
+		selectedPattern      string // 用户在下拉框中选择的目录
+		expectedWritePattern string // 期望写入 .gitignore 的内容
 	}{
 		{
 			name:                 "选择 src/components 目录",

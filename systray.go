@@ -12,11 +12,11 @@ import (
 
 // SystrayManager 管理系统托盘
 type SystrayManager struct {
-	app           *App
-	quitOnce      sync.Once
-	windowShown   bool
-	currentIcon   []byte
-	iconLoaded    bool
+	app         *App
+	quitOnce    sync.Once
+	windowShown bool
+	currentIcon []byte
+	iconLoaded  bool
 }
 
 // NewSystrayManager 创建托盘管理器

@@ -41,7 +41,7 @@ func (d *Downloader) Download(url, filename string) (string, error) {
 	logger.Infof("开始下载: %s -> %s", url, filename)
 
 	// 确保下载目录存在
-	if err := os.MkdirAll(d.downloadDir, 0755); err != nil {
+	if err := os.MkdirAll(d.downloadDir, 0o755); err != nil {
 		return "", fmt.Errorf("创建下载目录失败: %w", err)
 	}
 
@@ -69,8 +69,8 @@ func (d *Downloader) Download(url, filename string) (string, error) {
 
 	// 创建写入器和跟踪器
 	writer := &progressWriter{
-		writer:    destFile,
-		total:     totalSize,
+		writer:     destFile,
+		total:      totalSize,
 		onProgress: d.onProgress,
 		lastUpdate: time.Now(),
 	}
@@ -97,11 +97,11 @@ func (d *Downloader) Download(url, filename string) (string, error) {
 
 // progressWriter 进度写入器
 type progressWriter struct {
-	writer      io.Writer
-	total       int64
-	written     int64
-	onProgress  ProgressFunc
-	lastUpdate  time.Time
+	writer     io.Writer
+	total      int64
+	written    int64
+	onProgress ProgressFunc
+	lastUpdate time.Time
 }
 
 // Write 实现 io.Writer
@@ -146,4 +146,3 @@ func (d *Downloader) Cancel(filename string) error {
 	logger.Infof("已取消下载，删除文件: %s", destPath)
 	return nil
 }
-

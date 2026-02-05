@@ -29,7 +29,7 @@ func SetupTestRepoNamed(t *testing.T, name string) *TestRepo {
 	repoPath := filepath.Join(tempDir, name)
 
 	// 创建目录
-	if err := os.Mkdir(repoPath, 0755); err != nil {
+	if err := os.Mkdir(repoPath, 0o755); err != nil {
 		t.Fatalf("创建目录失败: %v", err)
 	}
 
@@ -95,7 +95,7 @@ func WriteFile(t *testing.T, dir, filename, content string) {
 	t.Helper()
 
 	path := filepath.Join(dir, filename)
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("写入文件失败 %s: %v", path, err)
 	}
 }

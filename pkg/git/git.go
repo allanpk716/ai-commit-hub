@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/committypes"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/allanpk716/ai-commit-hub/pkg/aicommit/committypes"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -655,7 +655,6 @@ func GetPushStatus(projectPath string) (*PushStatus, error) {
 	var remoteBranch bytes.Buffer
 	cmd.Stdout = &remoteBranch
 	err := cmd.Run()
-
 	// No remote tracking branch
 	if err != nil {
 		return &PushStatus{

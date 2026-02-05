@@ -55,11 +55,11 @@ func TestConfigService_ResolvePromptTemplate_Custom(t *testing.T) {
 	// 创建临时目录和文件
 	tempDir := t.TempDir()
 	promptsDir := filepath.Join(tempDir, "prompts")
-	os.Mkdir(promptsDir, 0755)
+	os.Mkdir(promptsDir, 0o755)
 
 	customPrompt := "Custom prompt template for testing"
 	promptPath := filepath.Join(promptsDir, "custom.txt")
-	os.WriteFile(promptPath, []byte(customPrompt), 0644)
+	os.WriteFile(promptPath, []byte(customPrompt), 0o644)
 
 	template, err := service.ResolvePromptTemplate(tempDir, "custom.txt")
 

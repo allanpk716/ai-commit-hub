@@ -48,7 +48,7 @@ func TestPushoverUpdateFlow(t *testing.T) {
 	// 6. 模拟更新流程：创建新版本的 Hook 目录和 VERSION 文件
 	// (直接模拟 install.py 的结果，避免 Python 依赖)
 	newHookDir := filepath.Join(projectPath, ".claude", "hooks", "pushover-hook")
-	err = os.MkdirAll(newHookDir, 0755)
+	err = os.MkdirAll(newHookDir, 0o755)
 	require.NoError(t, err, "创建新 Hook 目录不应该失败")
 
 	// 创建新版本的 hook 脚本
@@ -57,12 +57,12 @@ func TestPushoverUpdateFlow(t *testing.T) {
 # cc-pushover-hook version 1.0.0
 print("Hook version 1.0.0 installed")
 `
-	err = os.WriteFile(newHookPath, []byte(newHookContent), 0755)
+	err = os.WriteFile(newHookPath, []byte(newHookContent), 0o755)
 	require.NoError(t, err, "写入新 Hook 脚本不应该失败")
 
 	// 创建 VERSION 文件（这是测试的核心）
 	versionContent := "version=1.0.0\n"
-	err = os.WriteFile(versionFilePath, []byte(versionContent), 0644)
+	err = os.WriteFile(versionFilePath, []byte(versionContent), 0o644)
 	require.NoError(t, err, "写入 VERSION 文件不应该失败")
 
 	// 删除旧版本的 Hook（模拟更新过程）
@@ -225,7 +225,7 @@ func setupTestProject(t *testing.T, projectPath string) {
 	t.Helper()
 
 	// 创建项目目录
-	err := os.MkdirAll(projectPath, 0755)
+	err := os.MkdirAll(projectPath, 0o755)
 	require.NoError(t, err, "创建项目目录不应该失败")
 
 	// 初始化 Git 仓库
@@ -245,7 +245,7 @@ func installLegacyHook(t *testing.T, projectPath string) {
 	t.Helper()
 
 	hookDir := filepath.Join(projectPath, ".claude", "hooks")
-	err := os.MkdirAll(hookDir, 0755)
+	err := os.MkdirAll(hookDir, 0o755)
 	require.NoError(t, err, "创建 hook 目录不应该失败")
 
 	// 创建旧版本的 hook 脚本
@@ -254,7 +254,7 @@ func installLegacyHook(t *testing.T, projectPath string) {
 print("Legacy hook installed")
 `
 	hookPath := filepath.Join(hookDir, "pushover-notify.py")
-	err = os.WriteFile(hookPath, []byte(hookContent), 0755)
+	err = os.WriteFile(hookPath, []byte(hookContent), 0o755)
 	require.NoError(t, err, "写入旧版本 hook 脚本不应该失败")
 }
 
@@ -263,7 +263,7 @@ func installHookWithVersion(t *testing.T, projectPath, version string) {
 	t.Helper()
 
 	hookDir := filepath.Join(projectPath, ".claude", "hooks", "pushover-hook")
-	err := os.MkdirAll(hookDir, 0755)
+	err := os.MkdirAll(hookDir, 0o755)
 	require.NoError(t, err, "创建 hook 目录不应该失败")
 
 	// 创建新版本的 hook 脚本
@@ -272,13 +272,13 @@ func installHookWithVersion(t *testing.T, projectPath, version string) {
 print("Hook version ` + version + ` installed")
 `
 	hookPath := filepath.Join(hookDir, "pushover-notify.py")
-	err = os.WriteFile(hookPath, []byte(hookContent), 0755)
+	err = os.WriteFile(hookPath, []byte(hookContent), 0o755)
 	require.NoError(t, err, "写入 hook 脚本不应该失败")
 
 	// 创建 VERSION 文件
 	versionContent := "version=" + version + "\n"
 	versionPath := filepath.Join(hookDir, "VERSION")
-	err = os.WriteFile(versionPath, []byte(versionContent), 0644)
+	err = os.WriteFile(versionPath, []byte(versionContent), 0o644)
 	require.NoError(t, err, "写入 VERSION 文件不应该失败")
 }
 
@@ -288,7 +288,7 @@ func setupMockExtension(t *testing.T, extensionsPath, version string) {
 	t.Helper()
 
 	extensionPath := filepath.Join(extensionsPath, "cc-pushover-hook")
-	err := os.MkdirAll(extensionPath, 0755)
+	err := os.MkdirAll(extensionPath, 0o755)
 	require.NoError(t, err, "创建扩展目录不应该失败")
 
 	// 创建模拟的 install.py 脚本
@@ -353,7 +353,7 @@ print(json.dumps({
 `
 
 	installScriptPath := filepath.Join(extensionPath, "install.py")
-	err = os.WriteFile(installScriptPath, []byte(installScript), 0755)
+	err = os.WriteFile(installScriptPath, []byte(installScript), 0o755)
 	require.NoError(t, err, "写入 install.py 脚本不应该失败")
 }
 

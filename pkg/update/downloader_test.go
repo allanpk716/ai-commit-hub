@@ -131,7 +131,7 @@ func TestDownload_Cancel(t *testing.T) {
 
 	// 创建一个假文件
 	testFile := filepath.Join(tempDir, "test.txt")
-	os.WriteFile(testFile, []byte("test"), 0644)
+	os.WriteFile(testFile, []byte("test"), 0o644)
 
 	// 取消下载
 	err := downloader.Cancel("test.txt")
