@@ -139,10 +139,32 @@ Frontend (Vue3)  ←→  Wails Bindings  ←→  Backend (Go)
 
 ### 后端架构 (Go)
 
-**App 层 (`app.go`)**: Wails 应用的入口，包含所有导出给前端的 API 方法
-- 13 个公开方法：项目管理、Commit 生成、Git 操作、历史记录
-- 持有 `context.Context` 用于调用 Wails runtime 方法
-- 初始化时创建数据库连接和所有 Repository
+**App 层**: Wails 应用的入口，包含所有导出给前端的 API 方法
+- `app.go`: 核心 API 方法 (~1,950 行)
+  - 项目管理、Commit 生成、Git 操作、历史记录
+  - 持有 `context.Context` 用于调用 Wails runtime 方法
+  - 初始化时创建数据库连接和所有 Repository
+- `systray.go`: 系统托盘管理 (~140 行, WIP)
+  - `SystrayManager` 结构体封装托盘逻辑
+  - 图标加载、菜单设置、窗口显示控制
+  - 待完成: 完全集成到 App 生命周期
+
+**常量层 (`pkg/constants/`)**: 提取的魔法数字
+- `timing.go`: 时间和延迟相关常量
+  - SystrayInitDelay (300ms)
+  - IconSettleDelay (150ms)
+  - IconRetryDelay (200ms)
+  - MaxIconRetryAttempts (5)
+  - DefaultMaxConcurrentOps (10)
+  - LowCPUMaxConcurrentOps (5)
+  - StatusCacheTTLSec (30)
+  - WindowShowDelay (100ms)
+
+**错误处理 (`pkg/errors/`)**: 统一错误类型
+- `app_errors.go`: 应用初始化错误处理
+  - `AppInitError` 类型（实现 error 接口）
+  - `CheckInit()` 辅助函数
+  - 54 个错误检查点统一使用此函数
 
 **Service 层 (`pkg/service/`)**: 业务逻辑层
 - `ConfigService`: AI Provider 配置管理
@@ -173,7 +195,25 @@ Frontend (Vue3)  ←→  Wails Bindings  ←→  Backend (Go)
 
 **组件 (`components/`)**:
 - `ProjectList.vue`: 可拖拽排序的项目列表，支持搜索过滤
-- `CommitPanel.vue`: Commit 生成面板，显示项目状态、AI 设置、流式输出、历史记录
+- `CommitPanel.vue`: Commit 生成面板主容器 (~1,895 行，待重构)
+  - 显示项目状态、AI 设置、流式输出、历史记录
+- `CommitControls.vue`: 提交控制按钮组件 (~120 行)
+  - 生成、提交、推送按钮
+  - 禁用状态管理和事件发射
+- `CommitMessage.vue`: 消息显示和编辑组件 (~184 行)
+  - 文本输入、字符计数、清空按钮
+  - 加载和错误状态显示
+- `ProjectStatusHeader.vue`: 项目状态头部
+- `StagingArea.vue`: 暂存区显示
+- `UpdateNotification.vue`, `UpdateDialog.vue`: 更新通知
+
+**Composables (`composables/`)**: 可复用逻辑提取
+- `useCommit.ts`: Commit 相关逻辑 (~89 行)
+  - `generateMessage()`: 生成 commit 消息
+  - `commit()`: 提交并乐观更新状态
+  - `clearMessage()`: 清空消息
+  - 事件监听: commit-delta, commit-complete
+  - 自动清理事件监听器
 
 **状态管理 (`stores/`)**:
 - `projectStore.ts`: 项目列表状态、CRUD 操作、排序
@@ -185,6 +225,7 @@ Frontend (Vue3)  ←→  Wails Bindings  ←→  Backend (Go)
   - 项目 Hook 状态从 StatusCache 读取（不重复存储）
 
 **类型定义 (`types/index.ts`)**: TypeScript 类型与 Go 结构体同步
+**类型定义 (`types/status.ts`)**: StatusCache 相关类型定义
 **类型定义 (`types/status.ts`)**: StatusCache 相关类型定义
 
 ### 程序启动流程
