@@ -54,8 +54,8 @@ func Command(name string, args ...string) *exec.Cmd {
 type App struct {
 	ctx                  context.Context
 	dbPath               string
-	gitProjectRepo       repository.GitProjectRepository
-	commitHistoryRepo    repository.CommitHistoryRepository
+	gitProjectRepo       repository.IGitProjectRepository
+	commitHistoryRepo    repository.ICommitHistoryRepository
 	configService        *service.ConfigService
 	projectConfigService *service.ProjectConfigService
 	pushoverService      *pushover.Service
@@ -64,12 +64,12 @@ type App struct {
 	installer            *update.Installer
 	initError            error
 	// 系统托盘相关字段
-	systrayReady   chan struct{} // systray 就绪信号
-	systrayExit    *sync.Once    // 确保只退出一次
-	windowVisible  bool          // 窗口可见状态
-	windowMutex    sync.RWMutex  // 保护 windowVisible
+	systrayReady  chan struct{} // systray 就绪信号
+	systrayExit   *sync.Once    // 确保只退出一次
+	windowVisible bool          // 窗口可见状态
+	windowMutex   sync.RWMutex  // 保护 windowVisible
 	systrayRunning atomic.Bool   // systray 运行状态
-	quitting       atomic.Bool   // 应用是否正在退出
+	quitting      atomic.Bool   // 应用是否正在退出
 }
 
 // NewApp creates a new App application struct
