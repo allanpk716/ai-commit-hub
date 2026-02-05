@@ -1,6 +1,11 @@
 import { ref } from "vue";
 import { useStatusCache } from "@/stores/statusCache";
-import type { GitStatus, StagingStatus, PushStatus } from "@/types/status";
+import type {
+  GitStatus,
+  StagingStatus,
+  PushStatus,
+  ProjectStatusCache,
+} from "@/types/status";
 
 /**
  * Git 操作结果接口
@@ -16,12 +21,7 @@ export interface GitOperationResult<T = void> {
  * Git 操作选项接口
  */
 export interface GitOperationOptions {
-  optimisticUpdate?: Partial<{
-    hasUncommittedChanges: boolean;
-    untrackedCount: number;
-    lastCommitTime: number;
-    branch: string;
-  }>;
+  optimisticUpdate?: Partial<ProjectStatusCache>;
   refreshOnSuccess?: boolean;
   silent?: boolean;
 }

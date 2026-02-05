@@ -1,6 +1,13 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import type { ProjectStatus, ProjectAIConfig, ProviderInfo, StagingStatus, StagedFile, UntrackedFile } from '../types'
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import type {
+  ProjectStatus,
+  ProjectAIConfig,
+  ProviderInfo,
+  StagingStatus,
+  StagedFile,
+  UntrackedFile,
+} from "../types";
 import {
   GetProjectStatus,
   GenerateCommit,
@@ -19,98 +26,110 @@ import {
   GetUntrackedFiles,
   StageFiles,
   AddToGitIgnore,
-  DiscardFileChanges
-} from '../../wailsjs/go/main/App'
-import { EventsEmit } from '../../wailsjs/runtime'
+  DiscardFileChanges,
+} from "../../wailsjs/go/main/App";
+import { EventsEmit } from "../../wailsjs/runtime";
+import { useGitOperation } from "@/composables/useGitOperation";
+import { useStatusCache } from "./statusCache";
 
-export const useCommitStore = defineStore('commit', () => {
-  const selectedProjectPath = ref<string>('')
-  const selectedProjectId = ref<number>(0)
-  const projectStatus = ref<ProjectStatus | null>(null)
-  const isGenerating = ref(false)
-  const streamingMessage = ref('')
-  const generatedMessage = ref('')
-  const error = ref<string | null>(null)
+export const useCommitStore = defineStore("commit", () => {
+  const selectedProjectPath = ref<string>("");
+  const selectedProjectId = ref<number>(0);
+  const projectStatus = ref<ProjectStatus | null>(null);
+  const isGenerating = ref(false);
+  const streamingMessage = ref("");
+  const generatedMessage = ref("");
+  const error = ref<string | null>(null);
 
   // Provider 列表
-  const availableProviders = ref<ProviderInfo[]>([])
+  const availableProviders = ref<ProviderInfo[]>([]);
 
   // Provider settings
-  const provider = ref('openai')
-  const language = ref('zh')
-  const isDefaultConfig = ref(true)  // 标记是否使用默认配置
-  const isSavingConfig = ref(false)  // 保存状态
+  const provider = ref("openai");
+  const language = ref("zh");
+  const isDefaultConfig = ref(true); // 标记是否使用默认配置
+  const isSavingConfig = ref(false); // 保存状态
 
   // 配置验证状态
   const configValidation = ref<{
-    valid: boolean
-    resetFields: string[]
-    suggestedConfig?: ProjectAIConfig
-  } | null>(null)
+    valid: boolean;
+    resetFields: string[];
+    suggestedConfig?: ProjectAIConfig;
+  } | null>(null);
 
   // 暂存区状态
-  const stagingStatus = ref<StagingStatus | null>(null)
-  const isLoadingStaging = ref(false)
+  const stagingStatus = ref<StagingStatus | null>(null);
+  const isLoadingStaging = ref(false);
   const selectedFileDiff = ref<{
-    filePath: string
-    diff: string
-  } | null>(null)
+    filePath: string;
+    diff: string;
+  } | null>(null);
 
   // 文件选择状态
-  const selectedStagedFiles = ref<Set<string>>(new Set())
-  const selectedUnstagedFiles = ref<Set<string>>(new Set())
-  const selectedFile = ref<StagedFile | null>(null)
-  const fileDiff = ref<string | null>(null)
-  const isLoadingDiff = ref(false)
+  const selectedStagedFiles = ref<Set<string>>(new Set());
+  const selectedUnstagedFiles = ref<Set<string>>(new Set());
+  const selectedFile = ref<StagedFile | null>(null);
+  const fileDiff = ref<string | null>(null);
+  const isLoadingDiff = ref(false);
 
   // 未跟踪文件状态
-  const untrackedFiles = ref<UntrackedFile[]>([])
-  const untrackedFilesLoading = ref(false)
+  const untrackedFiles = ref<UntrackedFile[]>([]);
+  const untrackedFilesLoading = ref(false);
 
   async function loadProjectStatus(path: string) {
-    selectedProjectPath.value = path
-    error.value = null
+    selectedProjectPath.value = path;
+    error.value = null;
 
     try {
-      const result = await GetProjectStatus(path)
-      console.log('[loadProjectStatus] 后端返回:', result)
-      console.log('[loadProjectStatus] has_staged 值:', (result as any).has_staged)
-      projectStatus.value = result as ProjectStatus
-      console.log('[loadProjectStatus] projectStatus.value.has_staged:', projectStatus.value?.has_staged)
+      const result = await GetProjectStatus(path);
+      console.log("[loadProjectStatus] 后端返回:", result);
+      console.log(
+        "[loadProjectStatus] has_staged 值:",
+        (result as any).has_staged,
+      );
+      projectStatus.value = result as ProjectStatus;
+      console.log(
+        "[loadProjectStatus] projectStatus.value.has_staged:",
+        projectStatus.value?.has_staged,
+      );
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '加载项目状态失败'
-      error.value = message
+      const message = e instanceof Error ? e.message : "加载项目状态失败";
+      error.value = message;
     }
   }
 
   // 添加一个计算属性来判断是否有暂存文件
   const hasStagedFiles = computed(() => {
-    console.log('[hasStagedFiles] 计算中...', {
+    console.log("[hasStagedFiles] 计算中...", {
       stagingStatus: stagingStatus.value,
       stagedLength: stagingStatus.value?.staged?.length ?? 0,
-      projectStatus: projectStatus.value
-    })
+      projectStatus: projectStatus.value,
+    });
     // 优先使用 stagingStatus.staged 的长度
-    if (stagingStatus.value && stagingStatus.value.staged && stagingStatus.value.staged.length > 0) {
-      return true
+    if (
+      stagingStatus.value &&
+      stagingStatus.value.staged &&
+      stagingStatus.value.staged.length > 0
+    ) {
+      return true;
     }
     // 降级使用 projectStatus.has_staged
-    return projectStatus.value?.has_staged ?? false
-  })
+    return projectStatus.value?.has_staged ?? false;
+  });
 
   async function loadProjectAIConfig(projectId: number) {
-    selectedProjectId.value = projectId
+    selectedProjectId.value = projectId;
 
     try {
-      const config = await GetProjectAIConfig(projectId)
-      provider.value = config.Provider
-      language.value = config.Language
-      isDefaultConfig.value = config.IsDefault
+      const config = await GetProjectAIConfig(projectId);
+      provider.value = config.Provider;
+      language.value = config.Language;
+      isDefaultConfig.value = config.IsDefault;
 
       // 验证配置
-      const result = await ValidateProjectConfig(projectId) as any
+      const result = (await ValidateProjectConfig(projectId)) as any;
       if (result && result.length === 3) {
-        const [valid, resetFields, suggestedConfig] = result
+        const [valid, resetFields, suggestedConfig] = result;
         if (!valid && resetFields.length > 0) {
           configValidation.value = {
             valid: false,
@@ -118,672 +137,710 @@ export const useCommitStore = defineStore('commit', () => {
             suggestedConfig: {
               provider: suggestedConfig.Provider,
               language: suggestedConfig.Language,
-              isDefault: suggestedConfig.IsDefault
-            }
-          }
+              isDefault: suggestedConfig.IsDefault,
+            },
+          };
         } else {
-          configValidation.value = null
+          configValidation.value = null;
         }
       }
     } catch (e: unknown) {
-      console.error('加载项目配置失败:', e)
+      console.error("加载项目配置失败:", e);
       // 失败时使用默认配置
-      provider.value = 'openai'
-      language.value = 'zh'
-      isDefaultConfig.value = true
+      provider.value = "openai";
+      language.value = "zh";
+      isDefaultConfig.value = true;
     }
   }
 
   async function loadAvailableProviders() {
     try {
-      const result = await GetConfiguredProviders()
-      availableProviders.value = result as ProviderInfo[]
+      const result = await GetConfiguredProviders();
+      availableProviders.value = result as ProviderInfo[];
     } catch (e) {
-      console.error('加载 provider 列表失败:', e)
+      console.error("加载 provider 列表失败:", e);
       // 失败时使用空数组，避免界面崩溃
-      availableProviders.value = []
+      availableProviders.value = [];
     }
   }
 
   async function saveProjectConfig(projectId: number) {
     if (isSavingConfig.value) {
-      return
+      return;
     }
 
-    isSavingConfig.value = true
+    isSavingConfig.value = true;
 
     try {
       await UpdateProjectAIConfig(
         projectId,
-        isDefaultConfig.value ? '' : provider.value,
-        isDefaultConfig.value ? '' : language.value,
-        '',
-        isDefaultConfig.value
-      )
+        isDefaultConfig.value ? "" : provider.value,
+        isDefaultConfig.value ? "" : language.value,
+        "",
+        isDefaultConfig.value,
+      );
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '保存配置失败'
-      error.value = message
-      throw e
+      const message = e instanceof Error ? e.message : "保存配置失败";
+      error.value = message;
+      throw e;
     } finally {
-      isSavingConfig.value = false
+      isSavingConfig.value = false;
     }
   }
 
   async function confirmResetConfig(projectId: number) {
     try {
-      await ConfirmResetProjectConfig(projectId)
+      await ConfirmResetProjectConfig(projectId);
 
       // 重新加载配置
-      await loadProjectAIConfig(projectId)
+      await loadProjectAIConfig(projectId);
 
-      configValidation.value = null
+      configValidation.value = null;
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '重置配置失败'
-      error.value = message
-      throw e
+      const message = e instanceof Error ? e.message : "重置配置失败";
+      error.value = message;
+      throw e;
     }
   }
 
   async function generateCommit() {
     if (!selectedProjectPath.value) {
-      error.value = '请先选择项目'
-      return
+      error.value = "请先选择项目";
+      return;
     }
 
-    isGenerating.value = true
-    streamingMessage.value = ''
-    generatedMessage.value = ''
-    error.value = null
+    isGenerating.value = true;
+    streamingMessage.value = "";
+    generatedMessage.value = "";
+    error.value = null;
 
     try {
       await GenerateCommit(
         selectedProjectPath.value,
         provider.value,
-        language.value
-      )
+        language.value,
+      );
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '生成失败'
-      error.value = message
-      isGenerating.value = false
+      const message = e instanceof Error ? e.message : "生成失败";
+      error.value = message;
+      isGenerating.value = false;
     }
   }
 
   function clearMessage() {
-    streamingMessage.value = ''
-    generatedMessage.value = ''
+    streamingMessage.value = "";
+    generatedMessage.value = "";
   }
 
   // 事件处理函数（供组件调用）
   function handleDelta(delta: string) {
-    console.log('[commit-delta] 收到 delta:', delta.substring(0, 50) + '...')
-    streamingMessage.value += delta
-    console.log('[commit-delta] 当前 streamingMessage 长度:', streamingMessage.value.length)
+    console.log("[commit-delta] 收到 delta:", delta.substring(0, 50) + "...");
+    streamingMessage.value += delta;
+    console.log(
+      "[commit-delta] 当前 streamingMessage 长度:",
+      streamingMessage.value.length,
+    );
   }
 
   function handleComplete(message: string) {
-    console.log('[commit-complete] 收到完整消息:', message.substring(0, 50) + '...')
-    generatedMessage.value = message
-    streamingMessage.value = message
-    isGenerating.value = false
+    console.log(
+      "[commit-complete] 收到完整消息:",
+      message.substring(0, 50) + "...",
+    );
+    generatedMessage.value = message;
+    streamingMessage.value = message;
+    isGenerating.value = false;
   }
 
   function handleError(err: string) {
-    console.log('[commit-error] 收到错误:', err)
-    error.value = err
-    isGenerating.value = false
+    console.log("[commit-error] 收到错误:", err);
+    error.value = err;
+    isGenerating.value = false;
   }
 
   // 通知项目列表状态已更新
   function notifyProjectStatusChanged() {
     if (!selectedProjectPath.value) {
-      console.warn('[commitStore] 没有选中项目，跳过状态通知')
-      return
+      console.warn("[commitStore] 没有选中项目，跳过状态通知");
+      return;
     }
-    console.log('[commitStore] 发送 project-status-changed 事件:', selectedProjectPath.value)
-    EventsEmit('project-status-changed', {
+    console.log(
+      "[commitStore] 发送 project-status-changed 事件:",
+      selectedProjectPath.value,
+    );
+    EventsEmit("project-status-changed", {
       projectPath: selectedProjectPath.value,
-      changeType: 'commit'
-    })
+      changeType: "commit",
+    });
   }
 
   // 暂存区管理方法
   async function loadStagingStatus(path: string) {
     if (!path) {
-      stagingStatus.value = null
-      return
+      stagingStatus.value = null;
+      return;
     }
 
-    isLoadingStaging.value = true
-    error.value = null
+    isLoadingStaging.value = true;
+    error.value = null;
 
     try {
-      console.log('[loadStagingStatus] 开始加载暂存状态, path:', path)
-      const result = await GetStagingStatus(path)
-      console.log('[loadStagingStatus] 后端返回:', result)
-      console.log('[loadStagingStatus] staged 数量:', (result as any)?.staged?.length)
-      console.log('[loadStagingStatus] unstaged 数量:', (result as any)?.unstaged?.length)
-      stagingStatus.value = result as StagingStatus
+      console.log("[loadStagingStatus] 开始加载暂存状态, path:", path);
+      const result = await GetStagingStatus(path);
+      console.log("[loadStagingStatus] 后端返回:", result);
+      console.log(
+        "[loadStagingStatus] staged 数量:",
+        (result as any)?.staged?.length,
+      );
+      console.log(
+        "[loadStagingStatus] unstaged 数量:",
+        (result as any)?.unstaged?.length,
+      );
+      stagingStatus.value = result as StagingStatus;
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '加载暂存区状态失败'
-      error.value = message
-      stagingStatus.value = null
+      const message = e instanceof Error ? e.message : "加载暂存区状态失败";
+      error.value = message;
+      stagingStatus.value = null;
     } finally {
-      isLoadingStaging.value = false
+      isLoadingStaging.value = false;
     }
   }
 
   async function loadFileDiff(filePath: string, staged: boolean) {
     if (!selectedProjectPath.value) {
-      error.value = '请先选择项目'
-      return
+      error.value = "请先选择项目";
+      return;
     }
 
-    error.value = null
+    error.value = null;
 
     try {
-      const diff = await GetFileDiff(selectedProjectPath.value, filePath, staged)
+      const diff = await GetFileDiff(
+        selectedProjectPath.value,
+        filePath,
+        staged,
+      );
       selectedFileDiff.value = {
         filePath,
-        diff: diff as string
-      }
+        diff: diff as string,
+      };
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '加载文件差异失败'
-      error.value = message
-      selectedFileDiff.value = null
+      const message = e instanceof Error ? e.message : "加载文件差异失败";
+      error.value = message;
+      selectedFileDiff.value = null;
     }
   }
 
   async function stageFile(filePath: string) {
     if (!selectedProjectPath.value) {
-      error.value = '请先选择项目'
-      return
+      error.value = "请先选择项目";
+      return;
     }
 
-    // 导入 statusCache
-    const { useStatusCache } = await import('./statusCache')
-    const statusCache = useStatusCache()
+    const gitOp = useGitOperation();
+    const statusCache = useStatusCache();
 
     // 乐观更新：预估暂存后的状态
-    const currentCache = statusCache.getStatus(selectedProjectPath.value)
-    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+    const currentCache = statusCache.getStatus(selectedProjectPath.value);
+    const optimisticUpdate = {
       stagingStatus: {
         staged: [
           ...(currentCache?.stagingStatus?.staged || []),
-          { path: filePath, status: 'M', ignored: false }
+          { path: filePath, status: "M", ignored: false },
         ],
-        unstaged: (currentCache?.stagingStatus?.unstaged || [])
-          .filter(f => f.path !== filePath),
-        untracked: currentCache?.stagingStatus?.untracked || []
-      }
-    })
+        unstaged: (currentCache?.stagingStatus?.unstaged || []).filter(
+          (f) => f.path !== filePath,
+        ),
+        untracked: currentCache?.stagingStatus?.untracked || [],
+      },
+    };
 
-    try {
-      console.log('[stageFile] 开始暂存文件:', filePath)
-      await StageFile(selectedProjectPath.value, filePath)
-      console.log('[stageFile] 暂存文件成功，开始重新加载状态')
-      // 重新加载暂存区状态和项目状态
-      await loadStagingStatus(selectedProjectPath.value)
-      console.log('[stageFile] loadStagingStatus 完成')
-      await loadProjectStatus(selectedProjectPath.value)
-      console.log('[stageFile] loadProjectStatus 完成')
-      // 通知项目列表状态已更新
-      notifyProjectStatusChanged()
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '暂存文件失败'
-      error.value = message
-      // 回滚乐观更新
-      rollback?.()
-      throw e
+    const result = await gitOp.executeGitOperation(
+      () => StageFile(selectedProjectPath.value, filePath),
+      selectedProjectPath.value,
+      { optimisticUpdate, refreshOnSuccess: true },
+    );
+
+    if (!result.success) {
+      error.value = result.error?.message || "暂存文件失败";
+      throw result.error;
     }
+
+    // 通知项目列表状态已更新
+    notifyProjectStatusChanged();
   }
 
   async function stageAllFiles() {
     if (!selectedProjectPath.value) {
-      error.value = '请先选择项目'
-      return
+      error.value = "请先选择项目";
+      return;
     }
 
-    // 导入 statusCache
-    const { useStatusCache } = await import('./statusCache')
-    const statusCache = useStatusCache()
+    const gitOp = useGitOperation();
+    const statusCache = useStatusCache();
 
-    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
-    const unstagedFiles = currentStatus?.stagingStatus?.unstaged || []
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value);
+    const unstagedFiles = currentStatus?.stagingStatus?.unstaged || [];
 
     // 乐观更新：预估所有文件暂存后的状态
-    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+    const optimisticUpdate = {
       stagingStatus: {
         staged: [
           ...(currentStatus?.stagingStatus?.staged || []),
-          ...unstagedFiles
+          ...unstagedFiles,
         ],
         unstaged: [],
-        untracked: currentStatus?.stagingStatus?.untracked || []
-      }
-    })
+        untracked: currentStatus?.stagingStatus?.untracked || [],
+      },
+    };
 
-    try {
-      await StageAllFiles(selectedProjectPath.value)
-      // 重新加载暂存区状态和项目状态
-      await loadStagingStatus(selectedProjectPath.value)
-      await loadProjectStatus(selectedProjectPath.value)
-      // 通知项目列表状态已更新
-      notifyProjectStatusChanged()
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '暂存所有文件失败'
-      error.value = message
-      // 回滚乐观更新
-      rollback?.()
-      throw e
+    const result = await gitOp.executeGitOperation(
+      () => StageAllFiles(selectedProjectPath.value),
+      selectedProjectPath.value,
+      { optimisticUpdate, refreshOnSuccess: true },
+    );
+
+    if (!result.success) {
+      error.value = result.error?.message || "暂存所有文件失败";
+      throw result.error;
     }
+
+    // 通知项目列表状态已更新
+    notifyProjectStatusChanged();
   }
 
   async function unstageFile(filePath: string) {
     if (!selectedProjectPath.value) {
-      error.value = '请先选择项目'
-      return
+      error.value = "请先选择项目";
+      return;
     }
 
-    // 导入 statusCache
-    const { useStatusCache } = await import('./statusCache')
-    const statusCache = useStatusCache()
+    const gitOp = useGitOperation();
+    const statusCache = useStatusCache();
+
+    const currentCache = statusCache.getStatus(selectedProjectPath.value);
 
     // 乐观更新：预估取消暂存后的状态
-    const currentCache = statusCache.getStatus(selectedProjectPath.value)
-    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+    const optimisticUpdate = {
       stagingStatus: {
-        staged: (currentCache?.stagingStatus?.staged || [])
-          .filter(f => f.path !== filePath),
+        staged: (currentCache?.stagingStatus?.staged || []).filter(
+          (f) => f.path !== filePath,
+        ),
         unstaged: [
           ...(currentCache?.stagingStatus?.unstaged || []),
-          { path: filePath, status: 'M', ignored: false }
+          { path: filePath, status: "M", ignored: false },
         ],
-        untracked: currentCache?.stagingStatus?.untracked || []
-      }
-    })
+        untracked: currentCache?.stagingStatus?.untracked || [],
+      },
+    };
 
-    try {
-      await UnstageFile(selectedProjectPath.value, filePath)
-      // 重新加载暂存区状态和项目状态
-      await loadStagingStatus(selectedProjectPath.value)
-      await loadProjectStatus(selectedProjectPath.value)
-      // 刷新未跟踪文件列表
-      await loadUntrackedFiles(selectedProjectPath.value)
-      // 通知项目列表状态已更新
-      notifyProjectStatusChanged()
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '取消暂存文件失败'
-      error.value = message
-      // 回滚乐观更新
-      rollback?.()
-      throw e
+    const result = await gitOp.executeGitOperation(
+      () => UnstageFile(selectedProjectPath.value, filePath),
+      selectedProjectPath.value,
+      { optimisticUpdate, refreshOnSuccess: true },
+    );
+
+    if (!result.success) {
+      error.value = result.error?.message || "取消暂存文件失败";
+      throw result.error;
     }
+
+    // 刷新未跟踪文件列表
+    await loadUntrackedFiles(selectedProjectPath.value);
+    // 通知项目列表状态已更新
+    notifyProjectStatusChanged();
   }
 
   async function discardFileChanges(filePath: string) {
     if (!selectedProjectPath.value) {
-      error.value = '请先选择项目'
-      return
+      error.value = "请先选择项目";
+      return;
     }
 
-    // 导入 statusCache
-    const { useStatusCache } = await import('./statusCache')
-    const statusCache = useStatusCache()
+    const gitOp = useGitOperation();
+    const statusCache = useStatusCache();
 
-    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value);
 
     // 乐观更新：预估还原文件后的状态
-    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+    const optimisticUpdate = {
       stagingStatus: {
-        staged: (currentStatus?.stagingStatus?.staged || []).filter(f => f.path !== filePath),
-        unstaged: (currentStatus?.stagingStatus?.unstaged || []).filter(f => f.path !== filePath),
-        untracked: currentStatus?.stagingStatus?.untracked || []
-      }
-    })
+        staged: (currentStatus?.stagingStatus?.staged || []).filter(
+          (f) => f.path !== filePath,
+        ),
+        unstaged: (currentStatus?.stagingStatus?.unstaged || []).filter(
+          (f) => f.path !== filePath,
+        ),
+        untracked: currentStatus?.stagingStatus?.untracked || [],
+      },
+    };
 
-    try {
-      await DiscardFileChanges(selectedProjectPath.value, filePath)
-      // 重新加载暂存区状态和项目状态
-      await loadStagingStatus(selectedProjectPath.value)
-      await loadProjectStatus(selectedProjectPath.value)
-      // 刷新未跟踪文件列表
-      await loadUntrackedFiles(selectedProjectPath.value)
-      // 通知项目列表状态已更新
-      notifyProjectStatusChanged()
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '还原文件失败'
-      error.value = message
-      // 回滚乐观更新
-      rollback?.()
-      throw e
+    const result = await gitOp.executeGitOperation(
+      () => DiscardFileChanges(selectedProjectPath.value, filePath),
+      selectedProjectPath.value,
+      { optimisticUpdate, refreshOnSuccess: true },
+    );
+
+    if (!result.success) {
+      error.value = result.error?.message || "还原文件失败";
+      throw result.error;
     }
+
+    // 刷新未跟踪文件列表
+    await loadUntrackedFiles(selectedProjectPath.value);
+    // 通知项目列表状态已更新
+    notifyProjectStatusChanged();
   }
 
   async function unstageAllFiles() {
     if (!selectedProjectPath.value) {
-      error.value = '请先选择项目'
-      return
+      error.value = "请先选择项目";
+      return;
     }
 
-    // 导入 statusCache
-    const { useStatusCache } = await import('./statusCache')
-    const statusCache = useStatusCache()
+    const gitOp = useGitOperation();
+    const statusCache = useStatusCache();
 
-    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
-    const stagedFiles = currentStatus?.stagingStatus?.staged || []
-    const unstagedFiles = currentStatus?.stagingStatus?.unstaged || []
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value);
+    const stagedFiles = currentStatus?.stagingStatus?.staged || [];
+    const unstagedFiles = currentStatus?.stagingStatus?.unstaged || [];
 
     // 乐观更新：预估所有文件取消暂存后的状态
-    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+    const optimisticUpdate = {
       stagingStatus: {
         staged: [],
-        unstaged: [
-          ...unstagedFiles,
-          ...stagedFiles
-        ],
-        untracked: currentStatus?.stagingStatus?.untracked || []
-      }
-    })
+        unstaged: [...unstagedFiles, ...stagedFiles],
+        untracked: currentStatus?.stagingStatus?.untracked || [],
+      },
+    };
 
-    try {
-      await UnstageAllFiles(selectedProjectPath.value)
-      // 重新加载暂存区状态和项目状态
-      await loadStagingStatus(selectedProjectPath.value)
-      await loadProjectStatus(selectedProjectPath.value)
-      // 通知项目列表状态已更新
-      notifyProjectStatusChanged()
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '取消暂存所有文件失败'
-      error.value = message
-      // 回滚乐观更新
-      rollback?.()
-      throw e
+    const result = await gitOp.executeGitOperation(
+      () => UnstageAllFiles(selectedProjectPath.value),
+      selectedProjectPath.value,
+      { optimisticUpdate, refreshOnSuccess: true },
+    );
+
+    if (!result.success) {
+      error.value = result.error?.message || "取消暂存所有文件失败";
+      throw result.error;
     }
+
+    // 通知项目列表状态已更新
+    notifyProjectStatusChanged();
   }
 
   function clearFileDiff() {
-    selectedFileDiff.value = null
+    selectedFileDiff.value = null;
   }
 
   // 选择文件
   function selectFile(file: StagedFile) {
-    selectedFile.value = file
+    selectedFile.value = file;
 
     // 如果文件路径为空，清空 diff 而不是尝试加载
     // 修复：避免在关闭 diff 按钮时加载空路径导致的错误
     if (!file.path) {
-      selectedFileDiff.value = null
-      return
+      selectedFileDiff.value = null;
+      return;
     }
 
     // 判断文件是已暂存还是未暂存
-    const isStaged = stagingStatus.value?.staged?.some((f: StagedFile) => f.path === file.path) ?? false
+    const isStaged =
+      stagingStatus.value?.staged?.some(
+        (f: StagedFile) => f.path === file.path,
+      ) ?? false;
     // 加载文件差异
-    loadFileDiff(file.path, isStaged)
+    loadFileDiff(file.path, isStaged);
   }
 
   // 选择未跟踪文件（专门用于未跟踪文件，避免调用 loadFileDiff）
   async function selectUntrackedFile(file: StagedFile) {
-    console.log('[selectUntrackedFile] 选择未跟踪文件:', file.path)
+    console.log("[selectUntrackedFile] 选择未跟踪文件:", file.path);
 
     if (!file.path) {
-      selectedFile.value = null
-      selectedFileDiff.value = null
-      return
+      selectedFile.value = null;
+      selectedFileDiff.value = null;
+      return;
     }
 
     // 先设置文件和清空旧的 diff，显示加载状态
-    selectedFile.value = file
-    selectedFileDiff.value = null
-    console.log('[selectUntrackedFile] 已清空旧的 diff，准备加载新内容')
+    selectedFile.value = file;
+    selectedFileDiff.value = null;
+    console.log("[selectUntrackedFile] 已清空旧的 diff，准备加载新内容");
 
     // 加载文件内容（不是 diff）
-    await loadUntrackedFileContent(file.path)
-    console.log('[selectUntrackedFile] 文件内容加载完成')
+    await loadUntrackedFileContent(file.path);
+    console.log("[selectUntrackedFile] 文件内容加载完成");
   }
 
   // 加载未跟踪文件内容
   async function loadUntrackedFileContent(filePath: string) {
     if (!selectedProjectPath.value) {
-      error.value = '请先选择项目'
-      return
+      error.value = "请先选择项目";
+      return;
     }
 
     try {
-      console.log('[loadUntrackedFileContent] 开始加载未跟踪文件:', filePath)
-      console.log('[loadUntrackedFileContent] 项目路径:', selectedProjectPath.value)
-      const result = await GetUntrackedFileContent(selectedProjectPath.value, filePath)
-      console.log('[loadUntrackedFileContent] API 返回结果:', result)
-      console.log('[loadUntrackedFileContent] IsBinary:', result.IsBinary)
-      console.log('[loadUntrackedFileContent] Content 长度:', result.Content?.length)
+      console.log("[loadUntrackedFileContent] 开始加载未跟踪文件:", filePath);
+      console.log(
+        "[loadUntrackedFileContent] 项目路径:",
+        selectedProjectPath.value,
+      );
+      const result = await GetUntrackedFileContent(
+        selectedProjectPath.value,
+        filePath,
+      );
+      console.log("[loadUntrackedFileContent] API 返回结果:", result);
+      console.log("[loadUntrackedFileContent] IsBinary:", result.IsBinary);
+      console.log(
+        "[loadUntrackedFileContent] Content 长度:",
+        result.Content?.length,
+      );
 
       if (result.IsBinary) {
         // 二进制文件：显示占位提示
-        console.log('[loadUntrackedFileContent] 检测到二进制文件')
+        console.log("[loadUntrackedFileContent] 检测到二进制文件");
         selectedFileDiff.value = {
           filePath,
-          diff: '[二进制文件，无法预览内容]'
-        }
+          diff: "[二进制文件，无法预览内容]",
+        };
       } else {
         // 文本文件：设置 diff
-        console.log('[loadUntrackedFileContent] 设置文件内容到 selectedFileDiff')
+        console.log(
+          "[loadUntrackedFileContent] 设置文件内容到 selectedFileDiff",
+        );
         selectedFileDiff.value = {
           filePath,
-          diff: result.Content
-        }
-        console.log('[loadUntrackedFileContent] selectedFileDiff 已设置:', selectedFileDiff.value)
+          diff: result.Content,
+        };
+        console.log(
+          "[loadUntrackedFileContent] selectedFileDiff 已设置:",
+          selectedFileDiff.value,
+        );
       }
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '读取文件内容失败'
-      console.error('[loadUntrackedFileContent] 加载失败:', e)
-      error.value = message
-      selectedFileDiff.value = null
+      const message = e instanceof Error ? e.message : "读取文件内容失败";
+      console.error("[loadUntrackedFileContent] 加载失败:", e);
+      error.value = message;
+      selectedFileDiff.value = null;
     }
   }
 
   // 批量暂存选中的文件
   async function stageSelectedFiles() {
     if (!selectedProjectPath.value || selectedUnstagedFiles.value.size === 0) {
-      return
+      return;
     }
 
-    // 导入 statusCache
-    const { useStatusCache } = await import('./statusCache')
-    const statusCache = useStatusCache()
+    const gitOp = useGitOperation();
+    const statusCache = useStatusCache();
 
-    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
-    const filesToStage = Array.from(selectedUnstagedFiles.value)
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value);
+    const filesToStage = Array.from(selectedUnstagedFiles.value);
 
     // 乐观更新：预估批量暂存后的状态
-    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+    const optimisticUpdate = {
       stagingStatus: {
         staged: [
           ...(currentStatus?.stagingStatus?.staged || []),
-          ...filesToStage.map(f => ({ path: f, status: 'M', ignored: false }))
+          ...filesToStage.map((f) => ({
+            path: f,
+            status: "M",
+            ignored: false,
+          })),
         ],
-        unstaged: (currentStatus?.stagingStatus?.unstaged || [])
-          .filter(f => !selectedUnstagedFiles.value.has(f.path)),
-        untracked: currentStatus?.stagingStatus?.untracked || []
-      }
-    })
+        unstaged: (currentStatus?.stagingStatus?.unstaged || []).filter(
+          (f) => !selectedUnstagedFiles.value.has(f.path),
+        ),
+        untracked: currentStatus?.stagingStatus?.untracked || [],
+      },
+    };
 
-    try {
-      for (const filePath of selectedUnstagedFiles.value) {
-        await StageFile(selectedProjectPath.value, filePath)
-      }
-      // 清空选择
-      selectedUnstagedFiles.value.clear()
-      // 重新加载暂存区状态和项目状态
-      await loadStagingStatus(selectedProjectPath.value)
-      await loadProjectStatus(selectedProjectPath.value)
-      // 通知项目列表状态已更新
-      notifyProjectStatusChanged()
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '批量暂存文件失败'
-      error.value = message
-      // 回滚乐观更新
-      rollback?.()
-      throw e
+    const result = await gitOp.executeGitOperation(
+      async () => {
+        for (const filePath of selectedUnstagedFiles.value) {
+          await StageFile(selectedProjectPath.value, filePath);
+        }
+      },
+      selectedProjectPath.value,
+      { optimisticUpdate, refreshOnSuccess: true },
+    );
+
+    if (!result.success) {
+      error.value = result.error?.message || "批量暂存文件失败";
+      throw result.error;
     }
+
+    // 清空选择
+    selectedUnstagedFiles.value.clear();
+    // 通知项目列表状态已更新
+    notifyProjectStatusChanged();
   }
 
   // 批量取消暂存选中的文件
   async function unstageSelectedFiles() {
     if (!selectedProjectPath.value || selectedStagedFiles.value.size === 0) {
-      return
+      return;
     }
 
-    // 导入 statusCache
-    const { useStatusCache } = await import('./statusCache')
-    const statusCache = useStatusCache()
+    const gitOp = useGitOperation();
+    const statusCache = useStatusCache();
 
-    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
-    const filesToUnstage = Array.from(selectedStagedFiles.value)
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value);
+    const filesToUnstage = Array.from(selectedStagedFiles.value);
 
     // 乐观更新：预估批量取消暂存后的状态
-    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+    const optimisticUpdate = {
       stagingStatus: {
-        staged: (currentStatus?.stagingStatus?.staged || [])
-          .filter(f => !selectedStagedFiles.value.has(f.path)),
+        staged: (currentStatus?.stagingStatus?.staged || []).filter(
+          (f) => !selectedStagedFiles.value.has(f.path),
+        ),
         unstaged: [
           ...(currentStatus?.stagingStatus?.unstaged || []),
-          ...filesToUnstage.map(f => ({ path: f, status: 'M', ignored: false }))
+          ...filesToUnstage.map((f) => ({
+            path: f,
+            status: "M",
+            ignored: false,
+          })),
         ],
-        untracked: currentStatus?.stagingStatus?.untracked || []
-      }
-    })
+        untracked: currentStatus?.stagingStatus?.untracked || [],
+      },
+    };
 
-    try {
-      for (const filePath of selectedStagedFiles.value) {
-        await UnstageFile(selectedProjectPath.value, filePath)
-      }
-      // 清空选择
-      selectedStagedFiles.value.clear()
-      // 重新加载暂存区状态和项目状态
-      await loadStagingStatus(selectedProjectPath.value)
-      await loadProjectStatus(selectedProjectPath.value)
-      // 通知项目列表状态已更新
-      notifyProjectStatusChanged()
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '批量取消暂存文件失败'
-      error.value = message
-      // 回滚乐观更新
-      rollback?.()
-      throw e
+    const result = await gitOp.executeGitOperation(
+      async () => {
+        for (const filePath of selectedStagedFiles.value) {
+          await UnstageFile(selectedProjectPath.value, filePath);
+        }
+      },
+      selectedProjectPath.value,
+      { optimisticUpdate, refreshOnSuccess: true },
+    );
+
+    if (!result.success) {
+      error.value = result.error?.message || "批量取消暂存文件失败";
+      throw result.error;
     }
+
+    // 清空选择
+    selectedStagedFiles.value.clear();
+    // 通知项目列表状态已更新
+    notifyProjectStatusChanged();
   }
 
   // 切换文件选择状态
-  function toggleFileSelection(filePath: string, type: 'staged' | 'unstaged') {
-    if (type === 'staged') {
+  function toggleFileSelection(filePath: string, type: "staged" | "unstaged") {
+    if (type === "staged") {
       if (selectedStagedFiles.value.has(filePath)) {
-        selectedStagedFiles.value.delete(filePath)
+        selectedStagedFiles.value.delete(filePath);
       } else {
-        selectedStagedFiles.value.add(filePath)
+        selectedStagedFiles.value.add(filePath);
       }
     } else {
       if (selectedUnstagedFiles.value.has(filePath)) {
-        selectedUnstagedFiles.value.delete(filePath)
+        selectedUnstagedFiles.value.delete(filePath);
       } else {
-        selectedUnstagedFiles.value.add(filePath)
+        selectedUnstagedFiles.value.add(filePath);
       }
     }
   }
 
   // 清空暂存区选择状态
   function clearStagingState() {
-    selectedStagedFiles.value.clear()
-    selectedUnstagedFiles.value.clear()
-    selectedFile.value = null
-    fileDiff.value = null
-    isLoadingDiff.value = false
+    selectedStagedFiles.value.clear();
+    selectedUnstagedFiles.value.clear();
+    selectedFile.value = null;
+    fileDiff.value = null;
+    isLoadingDiff.value = false;
   }
 
   // 加载未跟踪文件列表
   async function loadUntrackedFiles(projectPath: string) {
-    untrackedFilesLoading.value = true
+    untrackedFilesLoading.value = true;
     try {
-      const files = await GetUntrackedFiles(projectPath)
-      untrackedFiles.value = files
+      const files = await GetUntrackedFiles(projectPath);
+      untrackedFiles.value = files;
     } catch (e) {
-      console.error('加载未跟踪文件失败:', e)
-      untrackedFiles.value = []
+      console.error("加载未跟踪文件失败:", e);
+      untrackedFiles.value = [];
     } finally {
-      untrackedFilesLoading.value = false
+      untrackedFilesLoading.value = false;
     }
   }
 
   // 批量暂存文件
   async function stageFiles(files: string[]) {
-    if (!selectedProjectPath.value) return
+    if (!selectedProjectPath.value) return;
 
-    // 导入 statusCache
-    const { useStatusCache } = await import('./statusCache')
-    const statusCache = useStatusCache()
+    const gitOp = useGitOperation();
+    const statusCache = useStatusCache();
 
-    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value);
 
     // 乐观更新：预估批量暂存后的状态
-    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
+    const optimisticUpdate = {
       stagingStatus: {
         staged: [
           ...(currentStatus?.stagingStatus?.staged || []),
-          ...files.map(f => ({ path: f, status: 'M', ignored: false }))
+          ...files.map((f) => ({ path: f, status: "M", ignored: false })),
         ],
-        unstaged: (currentStatus?.stagingStatus?.unstaged || [])
-          .filter(f => !files.includes(f.path)),
-        untracked: currentStatus?.stagingStatus?.untracked || []
-      }
-    })
+        unstaged: (currentStatus?.stagingStatus?.unstaged || []).filter(
+          (f) => !files.includes(f.path),
+        ),
+        untracked: currentStatus?.stagingStatus?.untracked || [],
+      },
+    };
 
-    try {
-      await StageFiles(selectedProjectPath.value, files)
-      // 刷新暂存区和未跟踪文件
-      await Promise.all([
-        loadStagingStatus(selectedProjectPath.value),
-        loadUntrackedFiles(selectedProjectPath.value)
-      ])
-      // 通知项目列表状态已更新
-      notifyProjectStatusChanged()
-    } catch (e) {
-      console.error('添加到暂存区失败:', e)
-      // 回滚乐观更新
-      rollback?.()
-      throw e
+    const result = await gitOp.executeGitOperation(
+      () => StageFiles(selectedProjectPath.value, files),
+      selectedProjectPath.value,
+      { optimisticUpdate, refreshOnSuccess: true },
+    );
+
+    if (!result.success) {
+      console.error("添加到暂存区失败:", result.error);
+      throw result.error;
     }
+
+    // 刷新未跟踪文件
+    await loadUntrackedFiles(selectedProjectPath.value);
+    // 通知项目列表状态已更新
+    notifyProjectStatusChanged();
   }
 
   // 添加到 .gitignore
-  async function addToGitIgnore(file: string, mode: 'exact' | 'extension' | 'directory') {
-    if (!selectedProjectPath.value) return
+  async function addToGitIgnore(
+    file: string,
+    mode: "exact" | "extension" | "directory",
+  ) {
+    if (!selectedProjectPath.value) return;
 
-    // 导入 statusCache
-    const { useStatusCache } = await import('./statusCache')
-    const statusCache = useStatusCache()
+    const gitOp = useGitOperation();
+    const statusCache = useStatusCache();
 
-    const currentStatus = statusCache.getStatus(selectedProjectPath.value)
-    const untrackedFiles = currentStatus?.untrackedCount || 0
+    const currentStatus = statusCache.getStatus(selectedProjectPath.value);
+    const untrackedFiles = currentStatus?.untrackedCount || 0;
 
     // 乐观更新：预估添加到 .gitignore 后的状态
-    const rollback = statusCache.updateOptimistic(selectedProjectPath.value, {
-      untrackedCount: Math.max(0, untrackedFiles - 1)
-    })
+    const optimisticUpdate = {
+      untrackedCount: Math.max(0, untrackedFiles - 1),
+    };
 
-    try {
-      await AddToGitIgnore(selectedProjectPath.value, file, mode)
-      // 刷新暂存区和未跟踪文件
-      await Promise.all([
-        loadStagingStatus(selectedProjectPath.value),
-        loadUntrackedFiles(selectedProjectPath.value)
-      ])
-      // 通知项目列表状态已更新
-      notifyProjectStatusChanged()
-    } catch (e) {
-      console.error('添加到排除列表失败:', e)
-      // 回滚乐观更新
-      rollback?.()
-      throw e
+    const result = await gitOp.executeGitOperation(
+      () => AddToGitIgnore(selectedProjectPath.value, file, mode),
+      selectedProjectPath.value,
+      { optimisticUpdate, refreshOnSuccess: true },
+    );
+
+    if (!result.success) {
+      console.error("添加到排除列表失败:", result.error);
+      throw result.error;
     }
+
+    // 刷新未跟踪文件
+    await loadUntrackedFiles(selectedProjectPath.value);
+    // 通知项目列表状态已更新
+    notifyProjectStatusChanged();
   }
 
   return {
@@ -838,6 +895,6 @@ export const useCommitStore = defineStore('commit', () => {
     clearStagingState,
     loadUntrackedFiles,
     stageFiles,
-    addToGitIgnore
-  }
-})
+    addToGitIgnore,
+  };
+});
