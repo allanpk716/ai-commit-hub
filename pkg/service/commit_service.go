@@ -7,16 +7,17 @@ import (
 
 	"github.com/WQGroup/logger"
 	"github.com/allanpk716/ai-commit-hub/pkg/ai"
+	aicommitconfig "github.com/allanpk716/ai-commit-hub/pkg/aicommit/config"
+	apperrors "github.com/allanpk716/ai-commit-hub/pkg/errors"
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/prompt"
 	"github.com/allanpk716/ai-commit-hub/pkg/provider/registry"
-	aicommitconfig "github.com/allanpk716/ai-commit-hub/pkg/aicommit/config"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type CommitService struct {
-	ctx            context.Context
-	configService  *ConfigService
+	ctx           context.Context
+	configService *ConfigService
 }
 
 func NewCommitService(ctx context.Context) *CommitService {
@@ -39,7 +40,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 		errMsg := fmt.Sprintf("加载配置失败: %v", err)
 		logger.Errorf(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
-		return fmt.Errorf("加载配置失败: %w", err)
+		return apperrors.NewValidationError("config", "failed to load configuration", err)
 	}
 	logger.Info("配置加载成功")
 	logger.Infof("当前默认 Provider: %s", cfg.Provider)
@@ -74,7 +75,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 		logger.Errorf(errMsg)
 		logger.Infof("可用的 Provider: %v", providers)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
-		return fmt.Errorf("provider not configured: %s", cfg.Provider)
+		return apperrors.NewValidationError("provider", fmt.Sprintf("provider '%s' is not configured", cfg.Provider), nil)
 	}
 
 	// Get AI client from registry (imports provider packages for side effects)
@@ -85,7 +86,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 		errMsg := fmt.Sprintf("未知的 provider: %s", cfg.Provider)
 		logger.Errorf(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
-		return fmt.Errorf("未知的 provider: %s", cfg.Provider)
+		return apperrors.NewValidationError("provider", fmt.Sprintf("unknown provider: %s", cfg.Provider), nil)
 	}
 
 	// Convert our config.ProviderSettings to ai-commit's config.ProviderSettings
@@ -103,7 +104,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 		errMsg := fmt.Sprintf("创建 AI client 失败: %v", err)
 		logger.Errorf(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
-		return fmt.Errorf("创建 AI client 失败: %w", err)
+		return apperrors.NewAIProviderError(cfg.Provider, "failed to create AI client", err)
 	}
 	logger.Info("AI Client 创建成功")
 
@@ -115,7 +116,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 		errMsg := fmt.Sprintf("切换到项目目录失败: %v", err)
 		logger.Errorf(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
-		return fmt.Errorf("切换目录失败: %w", err)
+		return apperrors.NewGitOperationError("chdir", projectPath, err)
 	}
 	defer os.Chdir(originalDir)
 
@@ -124,7 +125,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 		errMsg := fmt.Sprintf("获取暂存区 diff 失败: %v", err)
 		logger.Errorf(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
-		return fmt.Errorf("获取暂存区 diff 失败: %w", err)
+		return apperrors.NewGitOperationError("diff --cached", projectPath, err)
 	}
 	logger.Infof("暂存区 Diff 获取成功，长度: %d 字符", len(diff))
 
@@ -168,7 +169,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 		errMsg := fmt.Sprintf("生成失败: %v", err)
 		logger.Errorf(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
-		return err
+		return apperrors.NewAIProviderError(cfg.Provider, "failed to generate commit message", err)
 	}
 
 	logger.Info("Commit 消息生成成功")
