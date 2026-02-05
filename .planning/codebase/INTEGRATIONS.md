@@ -4,163 +4,129 @@
 
 ## APIs & External Services
 
-**AI Provider APIs:**
-- **OpenAI** - GPT-3.5/GPT-4 models for commit message generation
-  - SDK: github.com/openai/openai-go/v2 v2.7.1
-  - Auth: API key via config.yaml
-  - Endpoint: https://api.openai.com/v1
+**AI Providers:**
+- **OpenAI** - GPT-3.5/4 models
+  - SDK: `github.com/openai/openai-go/v2`
+  - Auth: API key via `APIKey` config
+  - Models: Default configured in `pkg/config/config.go`
 
-- **Anthropic Claude** - Claude 3 models for commit analysis
-  - SDK: github.com/anthropics/anthropic-sdk-go v1.19.0
-  - Auth: API key via config.yaml
-  - Endpoint: https://api.anthropic.com
+- **Anthropic Claude** - Claude 3 models
+  - SDK: `github.com/anthropics/anthropic-sdk-go`
+  - Auth: API key via `APIKey` config
+  - Models: Custom provider in `pkg/provider/anthropic/`
 
-- **Google AI** - Gemini models for commit generation
-  - SDK: github.com/google/generative-ai-go v0.20.1
-  - Auth: API key via config.yaml
+- **Google Gemini** - Google AI models
+  - SDK: `github.com/google/generative-ai-go`
+  - Auth: API key via `APIKey` config
+  - Models: Google AI provider
 
-- **DeepSeek** - DeepSeek Chat for commit analysis
-  - SDK: Custom implementation
-  - Auth: API key via config.yaml
-  - Endpoint: https://api.deepseek.com
+- **Ollama** - Local AI models
+  - SDK: `github.com/ollama/ollama`
+  - Auth: Local API
+  - Models: Configurable local models
 
-- **Ollama** - Local AI model hosting
-  - SDK: github.com/ollama/ollama v0.14.3
-  - Auth: Local server (no auth required)
-  - Endpoint: http://localhost:11434
+- **DeepSeek** - DeepSeek AI models
+  - Custom provider in `pkg/provider/deepseek/`
+  - Auth: API key
 
-- **Phind** - AI code assistant
-  - SDK: Custom implementation
-  - Auth: API key via config.yaml
+- **OpenRouter** - Multi-provider AI routing
+  - Custom provider in `pkg/provider/openrouter/`
+  - Auth: API key
 
-- **Custom Provider Registry** - Dynamic provider loading and management
-  - Location: `pkg/provider/registry/`
-  - Supports runtime provider switching
+- **Phind** - Programming-focused AI
+  - Custom provider in `pkg/provider/phind/`
+  - Auth: API key
 
 ## Data Storage
 
 **Databases:**
-- **SQLite** - Local database for projects and commit history
-  - ORM: GORM v1.31.1
-  - Driver: gorm.io/driver/sqlite v1.6.0
-  - File: `~/.ai-commit-hub/ai-commit-hub.db`
-  - Models: GitProject, CommitHistory
+- **SQLite** - Local database
+  - Connection: GORM driver
+  - Client: `gorm.io/driver/sqlite`
+  - Location: `~/.ai-commit-hub/ai-commit-hub.db` (platform-specific)
 
 **File Storage:**
-- **Local filesystem** - Git repositories, custom prompts, configuration
-- **Embedded assets** - Frontend build files, application icons
-- **Temporary files** - `tmp/` directory for testing and temporary data
+- Local filesystem - Git repositories and config files
+- No cloud file storage integration
 
 **Caching:**
-- **In-memory cache** - Project status caching (StatusCache)
-- **Cache TTL** - 30 seconds with background refresh
-- **Optimistic updates** - Immediate UI updates with async verification
+- In-memory caching via Go structures
+- No external caching service
 
 ## Authentication & Identity
 
-**Git Authentication:**
-- **SSH Keys** - Standard Git SSH key authentication
-- **HTTP Basic Auth** - Username/password for remote repositories
-- **Credential Helpers** - System credential manager integration
-- **Token-based** - Personal access tokens for GitHub/GitLab
+**Auth Provider:**
+- Custom API key authentication
+  - Implementation: API keys stored in `config.yaml`
+  - Encryption: No encryption (plaintext storage)
+  - Multi-provider: Each AI provider has separate API keys
 
-**AI Provider Authentication:**
-- **API Keys** - Direct API key authentication for all AI providers
-- **Environment Variables** - Optional alternative to config.yaml
-- **Secure Storage** - API keys stored in encrypted config.yaml
-
-## Pushover Integration
-
-**Pushover Hook System:**
-- **Custom Python Hook** - Pushover notification webhook
-- **Installation Management** - Automatic download and installation
-- **Version Management** - Update checking and reinstallation
-- **Notification Modes** - Full, Pushover-only, Windows-only, Disabled
-
-**Features:**
-- **Environment Variables** - Pushover API token and user key
-- **Local Installation** - Per-project hook installation
-- **Configuration Persistence** - `.no-pushover`, `.no-windows` files
-- **Status Tracking** - Real-time hook status and version info
-
-## Git Integration
-
-**Repository Management:**
-- **Go-git v5.16.4** - Git operations implementation
-- **Status Monitoring** - Real-time git status and staging area
-- **Commit Operations** - Local commit creation with AI messages
-- **Push Operations** - Remote repository synchronization
-- **Branch Management** - Current branch detection and switching
-
-**Features:**
-- **Diff Generation** - Unified diff for AI analysis
-- **Staging Area** - Interactive file staging
-- **Untracked Files** - New file detection and exclusion
-- **Gitignore Support** - Standard gitignore processing
-
-## System Integration
-
-**Desktop Integration:**
-- **System Tray** - Windows/Linux tray functionality
-- **Window Management** - Minimize to tray, restore from tray
-- **File Associations** - Optional Git repository associations
-- **Auto-start** - Optional system startup integration
-
-**Build Integration:**
-- **Wails Build** - Cross-platform desktop builds
-- **Code Signing** - Windows certificate signing support
-- **Auto-update** - Built-in update mechanism
-- **Icon Management** - Multi-resolution system tray icons
+**User Management:**
+- No user accounts system
+- Local configuration only
 
 ## Monitoring & Observability
 
-**Logging:**
-- **Structured Logging** - JSON and text log formats
-- **Log Rotation** - Automatic file rotation and cleanup
-- **Log Levels** - Debug, Info, Warn, Error levels
-- **Performance Tracking** - Response times and error rates
-
 **Error Tracking:**
-- **Custom Error Service** - Centralized error handling
-- **Error Display** - Toast notifications for user feedback
-- **Error Recovery** - Graceful degradation and retry logic
+- No external error tracking service
+- Local logging via `github.com/WQGroup/logger`
+
+**Logs:**
+- Framework: `github.com/WQGroup/logger`
+- Format: JSON and text
+- Rotation: Automatic cleanup configured
+- Location: Platform-specific log directory
 
 ## CI/CD & Deployment
 
-**GitHub Actions:**
-- **Release Workflow** - Automated builds and releases
-- **Node.js Version** - v20 for frontend builds
-- **Windows Builds** - Primary platform support
-- **Version Management** - Automatic version injection
+**Hosting:**
+- Wails cross-platform builds
+- No external hosting service
 
-**Deployment:**
-- **GitHub Releases** - Primary distribution channel
-- **Binary Distribution** - Pre-built executables for Windows
-- **Homebrew** - Optional macOS installation via Homebrew
-- **Scoop** - Windows package manager support
+**CI Pipeline:**
+- GitHub Actions in `.github/`
+- Manual builds via `wails build`
+- No automated deployment
 
 ## Environment Configuration
 
 **Required env vars:**
-- `PUSHOVER_API_TOKEN` - Pushover API token (for notifications)
-- `PUSHOVER_USER_KEY` - Pushover user key (for notifications)
+- None required (configuration via YAML)
+- Platform-specific config directories
 
 **Secrets location:**
 - Configuration file: `~/.ai-commit-hub/config.yaml`
-- Environment variables (alternative to config file)
-- System credential manager (for Git authentication)
+- API keys stored in `providers` section
+- File permissions: Standard user permissions
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- **Pushover Webhook** - HTTP endpoint for Git commit notifications
-- **Status Webhook** - Repository status change notifications
-- **Custom Hooks** - Extensible webhook system architecture
+- No webhook endpoints (desktop application)
 
 **Outgoing:**
-- **Git Push** - Remote repository synchronization
-- **Commit History** - Local database persistence
-- **Status Updates** - Real-time UI updates via Wails Events
+- No outgoing webhooks
+- Local system tray notifications
+
+## System Integration
+
+**Operating System:**
+- Windows system tray integration
+- macOS/Linux system tray (via systray)
+- File system operations for Git repositories
+
+**Notifications:**
+- **Pushover** - Push notification service
+  - SDK: Custom implementation in `pkg/pushover/`
+  - Auth: API token
+  - Features: Update notifications, alerts
+  - Configurable modes: enabled, pushover_only, windows_only, disabled
+
+**Git Integration:**
+- **Local Git repositories** - Direct git operations
+  - SDK: `github.com/go-git/go-git/v5`
+  - Operations: Commit, diff, status
+  - No external Git hosting integration
 
 ---
 

@@ -1,346 +1,206 @@
-# 代码库结构
+# Codebase Structure
 
-**分析日期：** 2024-02-05
+**Analysis Date:** 2026-02-05
 
-## 目录布局
+## Directory Layout
 
 ```
 ai-commit-hub/
-├── app.go                    # Wails App 结构体和导出方法
-├── main.go                   # Wails 应用入口点
-├── tray_icon.go             # 系统托盘图标处理
-├── go.mod                   # Go 模块定义
-├── wails.json               # Wails 配置文件
-├── BUILD.md                 # 构建说明
-├── README.md                # 项目说明
-├── CLAUDE.md                # Claude Code 指导文件
-├── Makefile                 # 构建脚本
-├── dev-*.bat                # 开发启动脚本
-├── rsrc_windows_*.syso     # Windows 资源文件
-├── pkg/                     # Go 后端包
-│   ├── ai/                  # AI 客户端抽象
-│   ├── aicommit/            # AI Commit 特定逻辑
-│   ├── config/              # 配置管理
-│   ├── git/                 # Git 命令封装
-│   ├── models/              # 数据模型定义
-│   ├── prompt/              # Prompt 模板
-│   ├── provider/            # AI Provider 实现
-│   │   ├── anthropic/       # Anthropic Claude
-│   │   ├── deepseek/        # DeepSeek
-│   │   ├── google/          # Google Gemini
-│   │   ├── ollama/          # Ollama 本地模型
-│   │   ├── openai/          # OpenAI GPT
-│   │   ├── openai_compat/   # OpenAI 兼容接口
-│   │   ├── openrouter/      # OpenRouter 聚合
-│   │   ├── phind/           # Phind 代码搜索
-│   │   └── registry/        # Provider 注册管理
-│   ├── pushover/            # Pushover Hook 管理
-│   ├── repository/          # 数据访问层
-│   │   ├── db.go            # 数据库初始化
-│   │   ├── git_project_repository.go     # Git 项目 CRUD
-│   │   ├── commit_history_repository.go   # 历史记录 CRUD
-│   │   └── migration.go     # 数据库迁移
-│   ├── service/             # 业务逻辑层
-│   │   ├── commit_service.go         # Commit 生成服务
-│   │   ├── config_service.go        # 配置管理服务
-│   │   ├── error_service.go         # 错误处理服务
-│   │   ├── project_config_service.go # 项目配置服务
-│   │   ├── startup_service.go       # 启动服务
-│   │   ├── update_service.go        # 更新服务
-│   │   └── *_test.go               # 单元测试
-│   ├── update/               # 应用更新逻辑
-│   └── version/             # 版本信息
-├── frontend/                # Vue3 前端应用
+├── app.go                     # Wails application entry point
+├── main.go                    # Wails application initialization
+├── wails.json                 # Wails configuration
+├── go.mod                     # Go module dependencies
+├── go.sum                     # Go dependency checksums
+├── frontend/                  # Vue3 frontend application
 │   ├── src/
-│   │   ├── assets/          # 静态资源
-│   │   ├── components/      # Vue 组件
-│   │   │   ├── __tests__/           # 组件测试
-│   │   │   ├── BackendApiTest.vue   # API 测试组件
-│   │   │   ├── CommitPanel.vue      # Commit 生成面板
-│   │   │   ├── ProjectList.vue      # 项目列表
-│   │   │   ├── ProjectStatusHeader.vue # 项目状态头部
-│   │   │   ├── SettingsDialog.vue   # 设置对话框
-│   │   │   ├── ConfirmDialog.vue     # 确认对话框
-│   │   │   ├── DiffViewer.vue       # 差异查看器
-│   │   │   ├── StagedList.vue        # 已暂存文件列表
-│   │   │   ├── UnstagedList.vue      # 未暂存文件列表
-│   │   │   ├── StagingArea.vue       # 暂存区域
-│   │   │   ├── PushoverStatusRow.vue # Pushover 状态行
-│   │   │   ├── ExtensionInfoDialog.vue # 扩展信息对话框
-│   │   │   ├── ErrorToast.vue       # 错误提示
-│   │   │   ├── SplashScreen.vue      # 启动画面
-│   │   │   ├── FileContextMenu.vue   # 文件上下文菜单
-│   │   │   ├── ExcludeDialog.vue    # 排除对话框
-│   │   │   ├── UpdateDialog.vue      # 更新对话框
-│   │   │   ├── UpdateNotification.vue # 更新通知
-│   │   │   ├── StatusSkeleton.vue   # 状态加载骨架
-│   │   │   └── HelloWorld.vue        # 示例组件
-│   │   ├── stores/          # Pinia 状态管理
-│   │   │   ├── __tests__/           # Store 测试
-│   │   │   ├── commitStore.ts        # Commit 状态
-│   │   │   ├── projectStore.ts       # 项目状态
-│   │   │   ├── statusCache.ts        # 状态缓存管理
-│   │   │   ├── pushoverStore.ts     # Pushover 状态
-│   │   │   ├── errorStore.ts         # 错误状态
-│   │   │   ├── startupStore.ts       # 启动状态
-│   │   │   └── updateStore.ts        # 更新状态
-│   │   ├── types/           # TypeScript 类型定义
-│   │   │   ├── index.ts              # 基础类型
-│   │   │   └── status.ts             # 状态相关类型
-│   │   ├── utils/           # 工具函数
-│   │   ├── App.vue          # 主应用组件
-│   │   ├── main.ts          # 应用入口
-│   │   └── style.css        # 全局样式
-│   ├── tests/               # 前端测试
-│   │   ├── integration/              # 集成测试
-│   │   ├── unit/                     # 单元测试
-│   │   │   ├── components/           # 组件测试
-│   │   │   └── stores/               # Store 测试
-│   │   └── playwright.config.ts       # Playwright 配置
-│   ├── package.json         # 前端依赖
-│   ├── vite.config.ts       # Vite 配置
-│   ├── tsconfig.json        # TypeScript 配置
-│   └── wailsjs/             # Wails 生成的绑定
-│       ├── go/                   # Go 方法绑定
-│       └── runtime/               # Wails 运行时
-├── assets/                  # 应用资源
-│   └── icons/               # 应用图标
-├── build/                   # 构建输出
-│   └── windows/             # Windows 特定资源
-│       └── icon.ico          # Windows 图标
-├── docs/                    # 文档目录
-│   ├── lessons-learned/     # 经验总结
-│   ├── fixes/               # 修复记录
-│   ├── plans/               # 项目计划
-│   └── features/            # 功能文档
-├── scripts/                 # 脚本文件
-├── tests/                   # 集成测试
-├── tmp/                     # 临时文件
-├── .ai-commit-hub/          # 应用配置目录（运行时创建）
-├── .planning/               # 规划文档
-│   └── codebase/            # 架构文档
-└── .github/                 # GitHub 配置
-    └── workflows/           # CI/CD 工作流
+│   │   ├── App.vue           # Main Vue application component
+│   │   ├── main.ts           # Vue application entry point
+│   │   ├── components/       # Vue components
+│   │   │   ├── CommitPanel.vue        # Commit generation UI
+│   │   │   ├── ProjectList.vue        # Project management
+│   │   │   ├── StagingArea.vue        # Git staging interface
+│   │   │   ├── SettingsDialog.vue     # Configuration UI
+│   │   │   └── ...                   # Other components
+│   │   ├── stores/           # Pinia state management
+│   │   │   ├── commitStore.ts         # Commit state
+│   │   │   ├── projectStore.ts        # Project state
+│   │   │   ├── statusCache.ts         # Status caching
+│   │   │   └── ...                   # Other stores
+│   │   ├── types/           # TypeScript type definitions
+│   │   ├── utils/           # Utility functions
+│   │   └── assets/          # Static assets
+│   ├── package.json         # Node.js dependencies
+│   ├── vite.config.ts      # Vite build configuration
+│   └── tsconfig.json        # TypeScript configuration
+├── pkg/                     # Go packages
+│   ├── service/            # Business logic services
+│   │   ├── commit_service.go          # Commit generation
+│   │   ├── config_service.go          # Configuration management
+│   │   ├── project_config_service.go   # Project configs
+│   │   ├── error_service.go           # Error handling
+│   │   ├── startup_service.go         # App startup
+│   │   └── update_service.go          # Update management
+│   ├── repository/         # Data access layer
+│   │   ├── git_project_repository.go   # Project CRUD
+│   │   └── Logs/                      # Log storage
+│   ├── models/             # Data models
+│   │   └── git_project.go             # Project model
+│   ├── git/                # Git operations
+│   │   ├── git.go                     # Git command wrapper
+│   │   ├── status.go                  # Git status
+│   │   ├── diff.go                    # Git diff
+│   │   ├── commit.go                  # Git commit
+│   │   ├── push.go                    # Git push
+│   │   └── gitignore.go               # Git ignore
+│   ├── provider/           # AI provider implementations
+│   │   ├── registry/                  # Provider registry
+│   │   ├── openai/                    # OpenAI implementation
+│   │   ├── anthropic/                 # Anthropic implementation
+│   │   ├── google/                    # Google implementation
+│   │   ├── ollama/                    # Ollama implementation
+│   │   └── ...                       # Other providers
+│   ├── ai/                 # AI integration
+│   │   └── client.go                  # AI client interface
+│   ├── config/            # Configuration handling
+│   │   ├── config.go                  # Config structure
+│   │   └── provider.go                # Provider config
+│   ├── prompt/            # Prompt construction
+│   │   └── prompt.go                  # Prompt templates
+│   ├── pushover/          # Pushover integration
+│   │   ├── installer.go               # Extension installer
+│   │   └── version.go                 # Version checking
+│   ├── update/            # Update management
+│   │   └── update.go                  # Update checking
+│   └── version/           # Version information
+│       └── version.go                 # Build version
+└── docs/                  # Documentation
+    ├── development/       # Development guides
+    │   ├── wails-development-standards.md
+    │   └── logging-standards.md
+    ├── lessons-learned/   # Implementation guides
+    └── plans/            # Project planning
 ```
 
-## 目录用途
+## Directory Purposes
 
-### 根目录 (`./`)
+**Backend (pkg/):**
+- Purpose: Go backend business logic and services
+- Contains: Services, repositories, models, providers
+- Key files: `pkg/service/commit_service.go`, `pkg/git/git.go`
 
-**核心文件：**
-- `app.go`: Wails App 结构体，包含所有导出 API 方法
-- `main.go`: Wails 应用启动入口
-- `go.mod/go.sum`: Go 依赖管理
-- `wails.json`: Wails 构建和运行配置
+**Frontend (frontend/):**
+- Purpose: Vue3 user interface
+- Contains: Components, stores, types, utilities
+- Key files: `frontend/src/App.vue`, `frontend/src/stores/commitStore.ts`
 
-**构建相关：**
-- `Makefile`: 构建脚本
-- `rsrc_windows_*.syso`: Windows 资源文件（图标、版本信息）
-- `dev-*.bat`: Windows 开发启动脚本
+**Configuration & Models:**
+- Purpose: Data persistence and configuration
+- Contains: GORM models, YAML config handling
+- Key files: `pkg/models/git_project.go`, `pkg/config/config.go`
 
-**文档：**
-- `README.md`: 项目说明（GitHub 首页展示）
-- `CLAUDE.md`: Claude Code 工作指导
-- `docs/`: 文档目录
-  - `build/`: 构建说明文档
-  - `development/`: 开发规范（Wails、日志等）
-  - `history/`: 历史文档（实现总结、最终报告）
-  - `lessons-learned/`: 技术经验总结
-  - `fixes/`: 问题修复记录
-  - `plans/`: 项目开发计划
-  - `archive/`: 归档文档（过时设计、安装文档等）
+**AI Providers:**
+- Purpose: Abstract AI service integrations
+- Contains: Provider implementations and registry
+- Key files: `pkg/provider/registry/registry.go`, `pkg/provider/openai/openai.go`
 
-### 后端核心 (`pkg/`)
+**Documentation:**
+- Purpose: Project documentation and guides
+- Contains: Development standards, implementation lessons
+- Key files: `docs/development/wails-development-standards.md`
 
-**服务层 (`pkg/service/`)**:
-- `commit_service.go`: Commit 消息生成（支持流式）
-- `config_service.go`: AI Provider 配置管理
-- `startup_service.go`: 应用启动状态预加载
-- `project_config_service.go`: 项目特定配置管理
+## Key File Locations
 
-**数据层 (`pkg/repository/`)**:
-- `git_project_repository.go`: Git 项目数据访问
-- `commit_history_repository.go`: 历史记录数据访问
-- `db.go`: 数据库连接和初始化
-- `migration.go`: 数据库迁移逻辑
+**Entry Points:**
+- `main.go`: Wails application initialization
+- `app.go`: Application event handlers and logic
+- `frontend/src/main.ts`: Vue application entry
+- `frontend/src/App.vue`: Main Vue component
 
-**AI 层 (`pkg/ai/`, `pkg/provider/`)**:
-- `ai/ai.go`: AI 客户端接口定义
-- `provider/*/`: 各个 AI Provider 实现
-- `provider/registry/`: Provider 注册管理
+**Configuration:**
+- `wails.json`: Wails build configuration
+- `frontend/vite.config.ts`: Frontend build configuration
+- `frontend/tsconfig.json`: TypeScript configuration
+- `go.mod`: Go dependencies
 
-**工具层 (`pkg/git/`, `pkg/config/`, `pkg/pushover/`)**:
-- `git/`: Git 命令封装
-- `config/`: 配置文件解析
-- `pushover/`: Pushover Hook 管理
+**Core Logic:**
+- `pkg/service/commit_service.go`: Commit message generation
+- `pkg/git/git.go`: Git operations wrapper
+- `pkg/provider/registry/registry.go`: AI provider management
+- `pkg/config/config.go`: Configuration management
 
-### 前端核心 (`frontend/`)
+**Testing:**
+- `pkg/service/commit_service_test.go`: Service tests
+- `pkg/git/commit_test.go`: Git operation tests
+- `tests/`: Integration tests
 
-**组件 (`frontend/src/components/`)**:
-- `ProjectList.vue`: 项目列表（可拖拽、搜索）
-- `CommitPanel.vue`: Commit 生成界面
-- `SettingsDialog.vue`: 设置界面
-- `ProjectStatusHeader.vue`: 项目状态显示
-- 暂存相关：`StagedList.vue`、`UnstagedList.vue`、`StagingArea.vue`
+## Naming Conventions
 
-**状态管理 (`frontend/src/stores/`)**:
-- `statusCache.ts`: 状态缓存管理（核心）
-- `commitStore.ts`: Commit 生成状态
-- `projectStore.ts`: 项目列表状态
-- `pushoverStore.ts`: Pushover 扩展状态
+**Files:**
+- Go: `snake_case` (e.g., `commit_service.go`)
+- Vue: `PascalCase` (e.g., `CommitPanel.vue`)
+- Tests: `*_test.go` (e.g., `commit_service_test.go`)
 
-**类型定义 (`frontend/src/types/`)**:
-- `index.ts`: 与 Go 结构体同步的基础类型
-- `status.ts`: StatusCache 相关类型
+**Packages:**
+- Go: `snake_case` (e.g., `pkg/service/`)
+- Vue: `kebab-case` for filenames, PascalCase for imports
 
-### 构建和资源
+**Variables:**
+- Go: `camelCase` (e.g., `projectPath`)
+- Vue/TypeScript: `camelCase` (e.g., `projectPath`)
 
-**构建输出 (`build/`)**:
-- `windows/icon.ico`: Windows 托盘图标
+**Functions:**
+- Go: `camelCase` with clear intent (e.g., `GenerateCommit`)
+- Vue/TypeScript: `camelCase` (e.g., `generateCommit`)
 
-**前端资源 (`frontend/dist/`)**:
-- 构建后的静态文件（HTML、CSS、JS）
+## Where to Add New Code
 
-## 关键文件位置
+**New AI Provider:**
+- Implementation: `pkg/provider/[provider-name]/`
+- Registration: `pkg/provider/registry/registry.go`
+- Configuration: Update provider models
 
-### 入口点
+**New Git Feature:**
+- Implementation: `pkg/git/[feature].go`
+- Service integration: `pkg/service/commit_service.go`
+- Tests: `pkg/git/[feature]_test.go`
 
-**应用入口：**
-- `main.go`: Wails 应用启动
-- `app.go`: 后端 API 导出
-- `frontend/src/main.ts`: Vue 应用启动
-- `frontend/src/App.vue`: 主应用组件
+**New UI Component:**
+- Implementation: `frontend/src/components/[ComponentName].vue`
+- Store integration: `frontend/src/stores/[store].ts`
+- Types: `frontend/src/types/[type].ts`
 
-### 配置文件
+**New Configuration Option:**
+- Model: `pkg/models/[model].go`
+- Service: `pkg/service/config_service.go`
+- Frontend: `frontend/src/stores/[store].ts`
 
-**应用配置：**
-- `wails.json`: Wails 构建配置
-- `frontend/package.json`: 前端依赖配置
-- `frontend/vite.config.ts`: Vite 构建配置
+**New Business Logic:**
+- Service: `pkg/service/[logic]_service.go`
+- Repository: `pkg/repository/[model]_repository.go`
+- Model: `pkg/models/[model].go`
 
-**运行时配置：**
-- `~/.ai-commit-hub/config.yaml`: 用户配置文件
-- `~/.ai-commit-hub/ai-commit-hub.db`: SQLite 数据库
+## Special Directories
 
-### 核心业务逻辑
+**.wails/**:
+- Purpose: Wails build artifacts and temporary files
+- Generated: Yes
+- Committed: No
 
-**后端：**
-- `pkg/service/commit_service.go`: AI Commit 生成
-- `pkg/repository/git_project_repository.go`: Git 项目管理
-- `pkg/ai/ai.go`: AI 接口抽象
+**frontend/dist/**:
+- Purpose: Frontend build output
+- Generated: Yes
+- Committed: No
 
-**前端：**
-- `frontend/src/stores/statusCache.ts`: 状态缓存管理
-- `frontend/src/components/CommitPanel.vue`: Commit 界面
-- `frontend/src/components/ProjectList.vue`: 项目管理界面
+**frontend/wailsjs/**:
+- Purpose: Generated Go bindings for Vue
+- Generated: Yes
+- Committed: No
 
-## 命名约定
-
-### Go 代码
-
-**文件命名：**
-- 小写 + 下划线：`git_project_repository.go`
-- 驼峰式导出：`ProjectConfigService`
-
-**函数命名：**
-- 公开方法：大写开头 `GetProjects()`
-- 私有方法：小写开头 `getProjectPath()`
-- 接口：`AIClient`、`Repository`
-
-**变量命名：**
-- 结构体：大写开头 `GitProject`
-- 私有变量：小写开头 `projectPath`
-- 接口接收者：简短名称 `g *GitProject`
-
-### Vue/TypeScript 代码
-
-**文件命名：**
-- PascalCase：`ProjectList.vue`、`StatusCache.ts`
-
-**组件命名：**
-- PascalCase：`ProjectList`、`CommitPanel`
-
-**状态管理：**
-- Store 文件：`projectStore.ts`
-- State 属性：`projects`、`loading`
-- Action 方法：`fetchProjects`、`addProject`
-
-**事件命名：**
-- Wails Events：`startup-complete`、`commit-delta`
-- 组件事件：`project-selected`、`commit-generated`
-
-## 新增代码指南
-
-### 新增 Git 功能
-
-**后端位置：**
-- 逻辑：`pkg/service/` 新增服务或修改现有服务
-- 数据访问：`pkg/repository/git_project_repository.go`
-- API 导出：`app.go` 添加新方法
-
-**前端位置：**
-- 状态管理：`frontend/src/stores/statusCache.ts`
-- 组件：`frontend/src/components/` 新增或修改组件
-- 类型定义：`frontend/src/types/index.ts`
-
-### 新增 AI Provider
-
-**位置：**
-- 实现：`pkg/provider/[name]/` 新建目录
-- 注册：自动通过匿名导入注册
-- 测试：`pkg/service/commit_service_test.go`
-
-**步骤：**
-1. 在 `pkg/provider/` 创建新目录
-2. 实现 `AIClient` 接口
-3. 匿名导入触发 `init()` 注册
-
-### 新增前端组件
-
-**位置：**
-- 组件：`frontend/src/components/[Name].vue`
-- 测试：`frontend/src/components/__tests__/[Name].spec.ts`
-- 样式：组件内部 scoped style
-
-**结构：**
-```vue
-<template>
-  <!-- 模板 -->
-</template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-// 逻辑
-</script>
-
-<style scoped>
-/* 样式 */
-</style>
-```
-
-## 特殊目录说明
-
-### `.planning/codebase/`
-架构分析和规划文档目录，包含：
-- `ARCHITECTURE.md`: 架构模式、层次、数据流
-- `STRUCTURE.md`: 目录布局、关键位置
-- `CONVENTIONS.md`: 编码规范
-- `TESTING.md`: 测试模式
-- `CONCERNS.md`: 技术债务
-
-### `docs/lessons-learned/`
-经验总结和技术文档：
-- Windows 托盘图标实现指南
-- 双击功能修复记录
-- 退出问题修复
-
-### `tmp/`
-临时测试文件目录（应在 .gitignore 中忽略）：
-- 临时测试数据和脚本
-- 快速原型验证
-- 调试信息和日志
-- **注意**: 此目录内容会被 git ignore，不应提交到仓库
+**tmp/**:
+- Purpose: Temporary files for development
+- Generated: Yes
+- Committed: No
 
 ---
 
-*结构分析：2024-02-05*
+*Structure analysis: 2026-02-05*

@@ -1,435 +1,215 @@
-# 编码约定
+# Coding Conventions
 
-**分析日期:** 2026-02-05
+**Analysis Date:** 2026-02-05
 
-## 命名模式
+## Naming Patterns
 
-### Go 代码
+### Files
+- **Go files**: Lowercase with underscores (e.g., `commit_service.go`, `config_manager.go`)
+- **Test files**: `_test.go` suffix (e.g., `commit_service_test.go`, `status_cache.spec.ts`)
+- **TypeScript files**: PascalCase for component files, lowercase for utilities (e.g., `statusCache.ts`, `versionFormat.ts`)
 
-**文件命名：**
-- 使用小写，下划线分隔：`git_helper.go`、`status_cache.go`
-- 测试文件添加 `_test` 后缀：`commit_test.go`、`diff_test.go`
-- 接口命名以 `er` 结尾：`Repository`、`Service`
+### Functions
+- **Go**: PascalCase for exported functions, lowercase for private ones
+  ```go
+  func GenerateCommit(...) // Exported
+  func (s *CommitService) validateProvider(...) // Private
+  ```
+- **TypeScript**: camelCase for all functions
+  ```typescript
+  function getStatus(path: string)
+  function refreshWithRetry(path: string, maxRetries = 2)
+  ```
 
-**函数命名：**
-- 导出函数使用大写开头：`GetProjectStatus()`、`CommitChanges()`
-- 私有函数使用小写开头：`setupTestRepo()`、`runGitCmd()`
-- 测试函数使用 `Test` 前缀：`TestCommitChanges_Success()`
+### Variables
+- **Go**: PascalCase for exported, lowercase for private
+  ```go
+  var DefaultProvider = "phind"
+  func (s *CommitService) configService *ConfigService
+  ```
+- **TypeScript**: camelCase with descriptive names
+  ```typescript
+  const cache = ref<ProjectStatusCacheMap>({})
+  const pendingRequests = ref<Set<string>>(new Set())
+  ```
 
-**变量命名：**
-- 使用驼峰命名：`gitProjectRepo`、`commitHistoryRepo`
-- 布尔变量使用 `is/has/can` 前缀：`isLoading`、`hasChanges`
-- 错误变量统一为 `err`
+### Types
+- **Go**: PascalCase for all types
+  ```go
+  type CommitService struct {}
+  type ProviderSettings struct {}
+  type Config struct {}
+  ```
+- **TypeScript**: PascalCase for interfaces and types
+  ```typescript
+  interface ProjectStatusCache {}
+  type CacheOptions = {}
+  ```
 
-**类型定义：**
-- 结构体使用名词形式：`App`、`GitProject`
-- 接口使用形容词或名词：`Repository`、`Service`
-- 扩展类型使用 `With` 前缀：`GitProjectWithStatus`
+## Code Style
 
-### TypeScript/Vue 代码
+### Go
+- **Formatting**: Use `gofmt` for standard formatting
+- **Line Length**: Aim for under 80 characters when possible
+- **Error Handling**: Always use `fmt.Errorf` with `%w` wrapper
+- **Logging**: Use `github.com/WQGroup/logger` with consistent patterns
+  ```go
+  logger.Info("开始生成 Commit 消息")
+  logger.Infof("项目路径: %s", projectPath)
+  logger.Errorf("加载配置失败: %v", err)
+  ```
 
-**文件命名：**
-- 组件使用 PascalCase：`ProjectList.vue`、`CommitPanel.vue`
-- 工具文件使用 kebab-case：`status-cache.ts`、`project-store.ts`
-- 测试文件添加 `.spec.ts` 或 `.test.ts` 后缀
+### TypeScript/Vue
+- **Formatting**: Use Prettier with TypeScript configuration
+- **Line Length**: Max 100 characters
+- **Vue Composition API**: Use `<script setup>` with proper TypeScript
+- **Store Pattern**: Follow Pinia conventions with `defineStore`
 
-**函数命名：**
-- 使用驼峰命名：`loadProjects()`、`handleGenerate()`
-- 事件处理函数使用 `handle` 前缀：`handleRefresh()`
-- 计算属性使用 `get` 前缀或直接属性名
+## Import Organization
 
-**变量命名：**
-- 使用 camelCase：`selectedPath`、`loadingState`
-- 响应式变量使用 `ref()` 和 `computed()`
-常量使用大写：`API_BASE_URL`
-
-## 代码风格
-
-### Go 代码
-
-**格式化：**
-- 使用 `go fmt` 自动格式化
-- 导入分组：标准库、第三方库、本地包
-- 错误处理：使用 `if err != nil` 模式
-
+### Go
 ```go
-// 正确的导入组织
 import (
+    // Standard library (sorted)
     "context"
     "fmt"
     "os"
 
+    // Third-party (sorted by import path)
     "github.com/WQGroup/logger"
+    "github.com/allanpk716/ai-commit-hub/pkg/ai"
     "github.com/allanpk716/ai-commit-hub/pkg/git"
-    "github.com/allanpk716/ai-commit-hub/pkg/repository"
-)
 
-// 错误处理模式
-func doSomething() error {
-    err := doAnotherThing()
-    if err != nil {
-        logger.Errorf("操作失败: %v", err)
-        return err
-    }
-    return nil
-}
-```
-
-**注释规范：**
-- 包级别注释说明主要功能
-- 导出函数添加注释说明用途和参数
-- 复杂逻辑添加行内注释
-
-```go
-// SetupTestRepo 创建测试 Git 仓库
-func SetupTestRepo(t *testing.T) *TestRepo {
-    t.Helper()
-    // 创建临时目录
-    tempDir := t.TempDir()
-    // 初始化 Git 仓库
-    RunGitCmd(t, tempDir, "init")
-    return &TestRepo{Path: tempDir}
-}
-```
-
-### TypeScript/Vue 代码
-
-**格式化：**
-- 使用 Prettier 进行代码格式化
-- 使用 ESLint 进行代码检查
-- Vue 组件使用 `<script setup>` 语法
-
-**组件结构：**
-```vue
-<template>
-  <div class="component-name">
-    <!-- 模板内容 -->
-  </div>
-</template>
-
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-
-// 导入的组件
-import ComponentName from './ComponentName.vue'
-
-// 响应式状态
-const count = ref(0)
-
-// 计算属性
-const doubled = computed(() => count.value * 2)
-
-// 方法定义
-function increment() {
-  count.value++
-}
-</script>
-
-<style scoped>
-.component-name {
-  /* 样式定义 */
-}
-</style>
-```
-
-**TypeScript 类型：**
-- 使用接口定义对象类型
-- 泛型用于类型安全的函数
-- 联合类型处理多种情况
-
-```typescript
-interface ProjectStatus {
-  branch: string
-  hasChanges: boolean
-  stagedCount: number
-}
-
-type ProviderName = 'openai' | 'anthropic' | 'deepseek'
-
-function getStatus(path: string): ProjectStatus | null {
-  // 实现
-}
-```
-
-## 导入组织
-
-### Go 导入顺序
-```go
-import (
-    // 标准库
-    "context"
-    "fmt"
-    "os"
-    "time"
-
-    // 第三方库
-    "github.com/WQGroup/logger"
-    "github.com/wailsapp/wails/v2/pkg/runtime"
-    "gorm.io/gorm"
-
-    // 本地包
-    "github.com/allanpk716/ai-commit-hub/pkg/git"
-    "github.com/allanpk716/ai-commit-hub/pkg/repository"
+    // Internal packages (sorted by path)
+    "github.com/allanpk716/ai-commit-hub/pkg/config"
     "github.com/allanpk716/ai-commit-hub/pkg/service"
 )
 ```
 
-### TypeScript 导入顺序
+### TypeScript
 ```typescript
-// 1. Vue 相关
+// Standard library imports
 import { ref, computed } from 'vue'
+
+// Third-party imports
 import { defineStore } from 'pinia'
+import { vi } from 'vitest'
 
-// 2. 组件导入
-import ProjectList from './ProjectList.vue'
-import CommitPanel from './CommitPanel.vue'
-
-// 3. 工具和类型
-import type { GitProject } from '../types'
-import { useStatusCache } from './status-cache'
-
-// 4. Wails 绑定
-import { GetAllProjects, AddProject } from '../../wailsjs/go/main/App'
-import { EventsOn } from '../../wailsjs/runtime/runtime'
+// Internal imports
+import type { ProjectStatusCache } from '../types/status'
+import { useStatusCache } from '../stores/statusCache'
 ```
 
-## 错误处理
+## Error Handling
 
-### Go 错误处理
+### Go Patterns
 ```go
-// 1. 使用统一的日志库
-import "github.com/WQGroup/logger"
+// Standard error wrapping
+return fmt.Errorf("创建 AI client 失败: %w", err)
 
-// 2. 错误返回模式
-func (a *App) LoadProjects() error {
-    if a.initError != nil {
-        return a.initError
-    }
-
-    projects, err := a.gitProjectRepo.GetAll()
-    if err != nil {
-        logger.Errorf("加载项目失败: %v", err)
-        return fmt.Errorf("加载项目失败: %w", err)
-    }
-
-    return nil
-}
-
-// 3. 测试中的错误处理
-func TestSomething(t *testing.T) {
-    defer func() {
-        if r := recover(); r != nil {
-            t.Errorf("测试发生恐慌: %v", r)
-        }
-    }()
-}
+// Error context with logging
+logger.Errorf(errMsg)
+runtime.EventsEmit(s.ctx, "commit-error", errMsg)
+return fmt.Errorf("provider not configured: %s", cfg.Provider)
 ```
 
-### TypeScript 错误处理
+### TypeScript Patterns
 ```typescript
-// 1. 错误捕获和处理
-async function loadProjects() {
-    try {
-        loading.value = true
-        const result = await GetAllProjects() as GitProject[]
-        projects.value = result
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : '加载失败'
-        error.value = message
-        console.error('Failed to load projects:', error)
-    } finally {
-        loading.value = false
-    }
+// Async error handling with try/catch
+try {
+    const response = await apiCall()
+} catch (error) {
+    console.error('Operation failed:', error)
+    throw error
 }
 
-// 2. 自定义错误类
-class ApiError extends Error {
-    constructor(
-        message: string,
-        public statusCode: number,
-        public details?: any
-    ) {
-        super(message)
-        this.name = 'ApiError'
+// Type-safe error handling
+function isRetryable(error: unknown): boolean {
+    if (error instanceof Error) {
+        return error.message.includes('network') ||
+               error.message.includes('timeout')
     }
+    return false
 }
 ```
 
-## 日志规范
+## Logging
 
-### Go 日志规范
+### Framework
+- **Go**: `github.com/WQGroup/logger`
+- **TypeScript**: Console methods with proper logging levels
+
+### Patterns
 ```go
-import "github.com/WQGroup/logger"
-
-// 使用不同级别
-logger.Info("应用启动")
-logger.Warn("配置文件不存在，使用默认配置")
-logger.Errorf("数据库连接失败: %v", err)
-
-// 格式化日志
-logger.Infof("处理项目 %s，状态: %s", projectPath, status)
+// Go logging with Chinese messages
+logger.Info("开始生成 Commit 消息")
+logger.Infof("项目路径: %s", projectPath)
+logger.Warn("暂存区没有变更")
+logger.Errorf("加载配置失败: %v", err)
 ```
 
-### TypeScript 日志规范
 ```typescript
-// 使用 console 进行调试
-console.log('应用启动')
-console.warn('配置文件不存在，使用默认配置')
-console.error('加载失败:', error)
-
-// 开发环境使用 debug
-if (import.meta.env.DEV) {
-    console.debug('调试信息:', data)
-}
+// TypeScript logging
+console.debug('[StatusCache] 检测到不一致，已自动修正', data)
+console.warn('[StatusCache] 刷新项目状态失败:', path, error)
+console.error('Preload failed, falling back to individual loads:', error)
 ```
 
-## 函数设计
+## Comments
 
-### Go 函数设计
+### When to Comment
+- Public APIs and their purpose
+- Complex business logic decisions
+- Important performance considerations
+- Configuration options and their defaults
+
+### Documentation Patterns
 ```go
-// 单一职责原则
-func (a *App) GetProjectStatus(ctx context.Context, path string) (*ProjectStatus, error) {
-    // 获取 Git 状态
-    // 获取暂存区状态
-    // 合并结果
-    // 返回统一状态
+// CommitService handles AI-powered commit message generation
+type CommitService struct {
+    ctx           context.Context
+    configService *ConfigService
 }
 
-// 参数验证
-func ValidateProjectPath(path string) error {
-    if path == "" {
-        return errors.New("项目路径不能为空")
-    }
-    return nil
-}
+// GenerateCommit generates commit messages using AI providers
+// Supports both streaming and non-streaming modes
+func (s *CommitService) GenerateCommit(projectPath, providerName, language string) error
 ```
 
-### TypeScript 函数设计
 ```typescript
-// 异步函数
-async function generateCommitMessage(projectPath: string): Promise<string> {
-    // 实现
-}
-
-// 纯函数
-function calculateStatus(status: StagingStatus): boolean {
-    return status.hasChanges && status.stagedCount > 0
-}
-
-// 防抖函数
-const debouncedSearch = useDebounceFn(async (query: string) => {
-    await searchProjects(query)
-}, 300)
+/**
+ * StatusCache Store - 项目状态缓存管理
+ *
+ * 用于缓存项目状态信息，避免频繁调用后端 API 导致 UI 闪烁
+ * 支持 TTL 过期、乐观更新、批量预加载等特性
+ */
+export const useStatusCache = defineStore('statusCache', () => {
 ```
 
-## 模块设计
+## Function Design
 
-### Go 模块设计
-```go
-// 清晰的接口定义
-type Repository interface {
-    Get(id uint) (*Model, error)
-    Create(model *Model) error
-    Update(model *Model) error
-    Delete(id uint) error
-}
+### Size Guidelines
+- **Go**: Functions should be under 50 lines when possible
+- **TypeScript**: Keep functions focused, single responsibility
 
-// 依赖注入
-func NewApp(
-    ctx context.Context,
-    repo *GitProjectRepository,
-    service *ConfigService,
-) *App {
-    return &App{
-        ctx: ctx,
-        gitProjectRepo: repo,
-        configService: service,
-    }
-}
-```
+### Parameters
+- **Go**: Limit to 3-4 parameters, use structs for complex cases
+- **TypeScript**: Use destructuring for multiple parameters
 
-### TypeScript 模块设计
-```typescript
-// Pinia Store 设计
-export const useProjectStore = defineStore('project', () => {
-    // 状态
-    const projects = ref<GitProject[]>([])
-    const loading = ref(false)
+### Return Values
+- **Go**: Return single value + error pattern
+- **TypeScript**: Use Promises for async, direct returns for sync
 
-    // 操作
-    async function loadProjects() {
-        // 实现
-    }
+## Module Design
 
-    // 计算属性
-    const selectedProject = computed(() => {
-        return projects.value.find(p => p.path === selectedPath.value)
-    })
+### Exports
+- **Go**: Export only what's necessary, minimize public API
+- **TypeScript**: Use named exports for utilities, default for components
 
-    return {
-        projects,
-        loading,
-        selectedProject,
-        loadProjects
-    }
-})
-
-// 工具函数
-export function formatDate(date: Date): string {
-    return date.toLocaleString('zh-CN')
-}
-```
-
-## Vue 组件规范
-
-### 组件结构
-```vue
-<template>
-  <div class="component-name">
-    <!-- Props 和事件 -->
-    <slot :name="slotName" :data="slotData" />
-
-    <!-- 组件逻辑 -->
-    <ChildComponent
-      :prop="value"
-      @event="handleEvent"
-    />
-  </div>
-</template>
-
-<script setup lang="ts">
-// Props 定义
-const props = defineProps<{
-  title: string
-  visible?: boolean
-}>()
-
-// Emits 定义
-const emit = defineEmits<{
-  (e: 'close'): void
-  (e: 'update', value: string): void
-}>()
-
-// 组件逻辑
-const count = ref(0)
-
-function handleClick() {
-  emit('update', count.value.toString())
-}
-</script>
-
-<style scoped>
-.component-name {
-  /* 样式定义 */
-}
-</style>
-```
-
-### 组件命名约定
-- 使用 PascalCase：`ProjectList`、`CommitPanel`
-- 文件名与组件名一致：`ProjectList.vue`
-- 测试文件：`ProjectList.spec.ts`
+### Barrel Files
+- **Go**: No barrel files pattern
+- **TypeScript**: Use barrel files for type exports (`types/index.ts`)
 
 ---
 
-*编码约定分析: 2026-02-05*
+*Convention analysis: 2026-02-05*
