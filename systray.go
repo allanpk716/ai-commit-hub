@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	stdruntime "runtime"
 	"sync"
 	"time"
 
@@ -111,7 +110,7 @@ func (sm *SystrayManager) Quit() {
 
 // onExit 托盘退出回调
 func (sm *SystrayManager) onExit() {
-	sm.app.cleanup()
+	sm.app.onSystrayExit()
 }
 
 // loadAppIcon 加载应用图标
@@ -128,11 +127,4 @@ func (sm *SystrayManager) loadDarwinIcon() ([]byte, error) {
 // loadDefaultIcon 加载默认图标（占位实现）
 func (sm *SystrayManager) loadDefaultIcon() ([]byte, error) {
 	return sm.app.getTrayIcon(), nil
-}
-
-// cleanup 清理资源
-func (sm *SystrayManager) cleanup() {
-	if sm.app.pushoverService != nil {
-		sm.app.pushoverService.Stop()
-	}
 }
