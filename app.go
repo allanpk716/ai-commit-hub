@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/WQGroup/logger"
+	"github.com/allanpk716/ai-commit-hub/pkg/concurrency"
 	"github.com/allanpk716/ai-commit-hub/pkg/constants"
 	apperrors "github.com/allanpk716/ai-commit-hub/pkg/errors"
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
@@ -1861,69 +1862,68 @@ type ProjectFullStatus struct {
 }
 
 // GetAllProjectStatuses 批量获取多个项目的完整状态
-// 使用并发控制，最多同时查询 10 个项目
+// 使用动态并发控制，根据项目数量和 CPU 核心数自动调整并发度
 func (a *App) GetAllProjectStatuses(projectPaths []string) (map[string]*ProjectFullStatus, error) {
 	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 
-	maxConcurrent := constants.DefaultMaxConcurrentOps
-	if stdruntime.NumCPU() < 4 {
-		maxConcurrent = constants.LowCPUMaxConcurrentOps
-	}
+	// 根据项目数量和 CPU 核心数动态调整并发数
+	maxConcurrency := concurrency.DynamicConcurrency(
+		len(projectPaths),
+		constants.DefaultMaxConcurrentOps,
+	)
 
-	type result struct {
-		path   string
-		status *ProjectFullStatus
-	}
+	pool := concurrency.NewWorkerPool(maxConcurrency)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	sem := make(chan struct{}, maxConcurrent)
-	results := make(chan result, len(projectPaths))
+	statuses := make(map[string]*ProjectFullStatus)
+	var mu sync.Mutex
 
 	for _, path := range projectPaths {
-		sem <- struct{}{}
-		go func(p string) {
-			defer func() { <-sem }()
-
+		path := path // 创建局部变量
+		err := pool.Submit(ctx, func() error {
 			status := &ProjectFullStatus{
 				LastUpdated: time.Now(),
 			}
 
 			// 获取 Git 状态
-			gitStatus, _ := git.GetProjectStatus(context.Background(), p)
+			gitStatus, _ := git.GetProjectStatus(context.Background(), path)
 			status.GitStatus = gitStatus
 
 			// 获取暂存区状态
-			staging, _ := git.GetStagingStatus(p)
+			staging, _ := git.GetStagingStatus(path)
 			status.StagingStatus = staging
 
 			// 获取未跟踪文件数量
-			untracked, _ := git.GetUntrackedFiles(p)
+			untracked, _ := git.GetUntrackedFiles(path)
 			status.UntrackedCount = len(untracked)
 
 			// 获取 Pushover Hook 状态
 			if a.pushoverService != nil {
-				pushover, _ := a.pushoverService.GetHookStatus(p)
+				pushover, _ := a.pushoverService.GetHookStatus(path)
 				status.PushoverStatus = pushover
 			}
 
 			// 获取推送状态
-			pushStatus, _ := git.GetPushStatus(p)
+			pushStatus, _ := git.GetPushStatus(path)
 			status.PushStatus = pushStatus
 
-			results <- result{
-				path:   p,
-				status: status,
-			}
-		}(path)
+			mu.Lock()
+			statuses[path] = status
+			mu.Unlock()
+
+			return nil
+		})
+
+		if err != nil {
+			logger.Warnf("Failed to submit task for %s: %v", path, err)
+		}
 	}
 
-	// 收集所有结果
-	statuses := make(map[string]*ProjectFullStatus)
-	for i := 0; i < len(projectPaths); i++ {
-		r := <-results
-		statuses[r.path] = r.status
-	}
+	pool.Wait()
+	cancel()
 
 	return statuses, nil
 }
