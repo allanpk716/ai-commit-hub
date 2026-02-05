@@ -8,6 +8,9 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
 )
 
+// 确保类型实现了接口
+var _ GitProjectRepository = (*GitProjectRepository)(nil)
+
 // GitProjectRepository handles git project data operations
 type GitProjectRepository struct {
 	db *gorm.DB
