@@ -38,11 +38,24 @@ Thumbs.db
 # Logs
 *.log
 
-# Temporary files
+# Temporary files and directories
+tmp/
+*.tmp
+*.bak
+*.swp
+*~
 nul
 /.claude
-tmp/
 .playwright-mcp/
+
+# Test coverage reports
+coverage/
+*.out
+
+# Build output
+/build/
+build/bin/
+build/dist/
 
 # Git worktrees
 .worktrees/
