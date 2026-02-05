@@ -62,7 +62,7 @@ type App struct {
 	errorService         *service.ErrorService
 	updateService        *service.UpdateService
 	installer            *update.Installer
-	initError            error
+	initErr            error
 	// 系统托盘相关字段
 	systrayReady   chan struct{} // systray 就绪信号
 	systrayExit    *sync.Once    // 确保只退出一次
@@ -105,7 +105,7 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize database
 	dbConfig := &repository.DatabaseConfig{Path: a.dbPath}
 	if err := repository.InitializeDatabase(dbConfig); err != nil {
-		a.initError = fmt.Errorf("database initialization failed: %w", err)
+		a.initErr = fmt.Errorf("database initialization failed: %w", err)
 		logger.Errorf("Failed to initialize database: %v", err)
 		return
 	}
@@ -509,7 +509,7 @@ func (a *App) OpenConfigFolder() error {
 
 // OpenExtensionFolder opens the cc-pushover-hook extension folder in system file manager
 func (a *App) OpenExtensionFolder() error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if a.pushoverService == nil {
@@ -676,7 +676,7 @@ func (a *App) GetAvailableTerminals() []Terminal {
 
 // CheckForUpdates 手动检查更新
 func (a *App) CheckForUpdates() (*models.UpdateInfo, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 	return a.updateService.CheckForUpdates()
@@ -684,7 +684,7 @@ func (a *App) CheckForUpdates() (*models.UpdateInfo, error) {
 
 // InstallUpdate 安装更新
 func (a *App) InstallUpdate(downloadURL, assetName string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 
@@ -732,7 +732,7 @@ func (a *App) InstallUpdate(downloadURL, assetName string) error {
 
 // GetAllProjects retrieves all projects
 func (a *App) GetAllProjects() ([]models.GitProject, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 	projects, err := a.gitProjectRepo.GetAll()
@@ -744,7 +744,7 @@ func (a *App) GetAllProjects() ([]models.GitProject, error) {
 
 // GetProjectsWithStatus 获取带状态的项目列表
 func (a *App) GetProjectsWithStatus() ([]models.GitProject, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 
@@ -782,7 +782,7 @@ func (a *App) GetProjectsWithStatus() ([]models.GitProject, error) {
 // GetSingleProjectStatus 获取单个项目的运行时状态
 // 用于增量更新，避免检查所有项目
 func (a *App) GetSingleProjectStatus(projectPath string) (*models.SingleProjectStatus, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 
@@ -820,7 +820,7 @@ func (a *App) GetSingleProjectStatus(projectPath string) (*models.SingleProjectS
 
 // AddProject adds a new project
 func (a *App) AddProject(path string) (models.GitProject, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return models.GitProject{}, err
 	}
 
@@ -854,7 +854,7 @@ func (a *App) AddProject(path string) (models.GitProject, error) {
 
 // DeleteProject deletes a project
 func (a *App) DeleteProject(id uint) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if err := a.gitProjectRepo.Delete(id); err != nil {
@@ -879,7 +879,7 @@ func (a *App) SelectProjectFolder() (string, error) {
 
 // MoveProject moves a project up or down
 func (a *App) MoveProject(id uint, direction string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 
@@ -929,7 +929,7 @@ func (a *App) MoveProject(id uint, direction string) error {
 
 // ReorderProjects reorders projects based on new order
 func (a *App) ReorderProjects(projects []models.GitProject) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 
@@ -944,7 +944,7 @@ func (a *App) ReorderProjects(projects []models.GitProject) error {
 
 // GetProjectStatus retrieves the git status of a project
 func (a *App) GetProjectStatus(projectPath string) (map[string]interface{}, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 
@@ -965,8 +965,8 @@ func (a *App) GenerateCommit(projectPath, provider, language string) error {
 	logger.Info("App.GenerateCommit 被调用")
 	logger.Infof("参数 - projectPath: %s, provider: %s, language: %s", projectPath, provider, language)
 
-	if err := apperrors.CheckInit(a.initError); err != nil {
-		errMsg := fmt.Sprintf("应用未正确初始化: %v", a.initError)
+	if err := apperrors.CheckInit(a.initErr); err != nil {
+		errMsg := fmt.Sprintf("应用未正确初始化: %v", a.initErr)
 		logger.Errorf(errMsg)
 		return err
 	}
@@ -986,8 +986,8 @@ func (a *App) GenerateCommit(projectPath, provider, language string) error {
 func (a *App) CommitLocally(projectPath, message string) error {
 	logger.Infof("CommitLocally 被调用 - projectPath: %s, message: %s", projectPath, message)
 
-	if err := apperrors.CheckInit(a.initError); err != nil {
-		logger.Errorf("数据库初始化错误: %v", a.initError)
+	if err := apperrors.CheckInit(a.initErr); err != nil {
+		logger.Errorf("数据库初始化错误: %v", a.initErr)
 		return err
 	}
 
@@ -1034,7 +1034,7 @@ func (a *App) CommitLocally(projectPath, message string) error {
 
 // SaveCommitHistory saves a generated commit message to history
 func (a *App) SaveCommitHistory(projectID uint, message, provider, language string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 
@@ -1053,7 +1053,7 @@ func (a *App) SaveCommitHistory(projectID uint, message, provider, language stri
 
 // GetProjectHistory retrieves commit history for a project
 func (a *App) GetProjectHistory(projectID uint) ([]models.CommitHistory, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 
@@ -1066,7 +1066,7 @@ func (a *App) GetProjectHistory(projectID uint) ([]models.CommitHistory, error) 
 
 // GetProjectAIConfig 获取项目的 AI 配置
 func (a *App) GetProjectAIConfig(projectID int) (*service.ProjectAIConfig, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 
@@ -1080,7 +1080,7 @@ func (a *App) GetProjectAIConfig(projectID int) (*service.ProjectAIConfig, error
 
 // UpdateProjectAIConfig 更新项目的 AI 配置
 func (a *App) UpdateProjectAIConfig(projectID int, provider, language, model string, useDefault bool) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 
@@ -1116,7 +1116,7 @@ func (a *App) UpdateProjectAIConfig(projectID int, provider, language, model str
 
 // ValidateProjectConfig 验证项目配置
 func (a *App) ValidateProjectConfig(projectID int) (valid bool, resetFields []string, suggestedConfig map[string]interface{}, err error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return false, nil, nil, err
 	}
 
@@ -1138,7 +1138,7 @@ func (a *App) ValidateProjectConfig(projectID int) (valid bool, resetFields []st
 
 // ConfirmResetProjectConfig 确认并重置项目配置
 func (a *App) ConfirmResetProjectConfig(projectID int) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 
@@ -1151,7 +1151,7 @@ func (a *App) ConfirmResetProjectConfig(projectID int) error {
 
 // GetConfiguredProviders 返回所有支持的 providers 及其配置状态
 func (a *App) GetConfiguredProviders() ([]models.ProviderInfo, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 
@@ -1166,7 +1166,7 @@ func (a *App) GetConfiguredProviders() ([]models.ProviderInfo, error) {
 
 // GetPushoverHookStatus 获取项目的 Pushover Hook 状态
 func (a *App) GetPushoverHookStatus(projectPath string) (*pushover.HookStatus, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 	if a.pushoverService == nil {
@@ -1177,13 +1177,13 @@ func (a *App) GetPushoverHookStatus(projectPath string) (*pushover.HookStatus, e
 
 // GetPushStatus 获取项目的推送状态
 func (a *App) GetPushStatus(projectPath string) *git.PushStatus {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return &git.PushStatus{
 			CanPush:      false,
 			AheadCount:   0,
 			BehindCount:  0,
 			RemoteBranch: "",
-			Error:        a.initError.Error(),
+			Error:        a.initErr.Error(),
 		}
 	}
 	status, err := git.GetPushStatus(projectPath)
@@ -1201,7 +1201,7 @@ func (a *App) GetPushStatus(projectPath string) *git.PushStatus {
 
 // InstallPushoverHook 为项目安装 Pushover Hook
 func (a *App) InstallPushoverHook(projectPath string, force bool) (*pushover.InstallResult, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return &pushover.InstallResult{Success: false, Message: err.Error()}, nil
 	}
 	if a.pushoverService == nil {
@@ -1227,7 +1227,7 @@ func (a *App) InstallPushoverHook(projectPath string, force bool) (*pushover.Ins
 
 // UninstallPushoverHook 卸载项目的 Pushover Hook
 func (a *App) UninstallPushoverHook(projectPath string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if a.pushoverService == nil {
@@ -1250,7 +1250,7 @@ func (a *App) UninstallPushoverHook(projectPath string) error {
 
 // UpdatePushoverHook 更新项目的 Pushover Hook
 func (a *App) UpdatePushoverHook(projectPath string) (*pushover.InstallResult, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return &pushover.InstallResult{Success: false, Message: err.Error()}, nil
 	}
 	if a.pushoverService == nil {
@@ -1276,7 +1276,7 @@ func (a *App) UpdatePushoverHook(projectPath string) (*pushover.InstallResult, e
 
 // ReinstallPushoverHook 重装项目的 Pushover Hook
 func (a *App) ReinstallPushoverHook(projectPath string) (*pushover.InstallResult, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return &pushover.InstallResult{Success: false, Message: err.Error()}, nil
 	}
 	if a.pushoverService == nil {
@@ -1301,7 +1301,7 @@ func (a *App) ReinstallPushoverHook(projectPath string) (*pushover.InstallResult
 
 // SetPushoverNotificationMode 设置项目的通知模式
 func (a *App) SetPushoverNotificationMode(projectPath string, mode string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if a.pushoverService == nil {
@@ -1316,7 +1316,7 @@ func (a *App) ToggleNotification(projectPath string, notificationType string) er
 	logger.Infof("切换通知状态: 项目=%s, 类型=%s", projectPath, notificationType)
 
 	// 检查初始化错误
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 
@@ -1399,7 +1399,7 @@ func (a *App) CheckPushoverConfig() map[string]interface{} {
 
 // GetPushoverExtensionInfo 获取 cc-pushover-hook 扩展信息
 func (a *App) GetPushoverExtensionInfo() (*pushover.ExtensionInfo, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 	if a.pushoverService == nil {
@@ -1410,7 +1410,7 @@ func (a *App) GetPushoverExtensionInfo() (*pushover.ExtensionInfo, error) {
 
 // CheckPushoverExtensionUpdates 检查 cc-pushover-hook 扩展更新
 func (a *App) CheckPushoverExtensionUpdates() (map[string]interface{}, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 	if a.pushoverService == nil {
@@ -1431,7 +1431,7 @@ func (a *App) CheckPushoverExtensionUpdates() (map[string]interface{}, error) {
 
 // ClonePushoverExtension 克隆 cc-pushover-hook 扩展
 func (a *App) ClonePushoverExtension() error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if a.pushoverService == nil {
@@ -1442,7 +1442,7 @@ func (a *App) ClonePushoverExtension() error {
 
 // UpdatePushoverExtension 更新 cc-pushover-hook 扩展
 func (a *App) UpdatePushoverExtension() error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if a.pushoverService == nil {
@@ -1453,7 +1453,7 @@ func (a *App) UpdatePushoverExtension() error {
 
 // ReclonePushoverExtension 重新下载 cc-pushover-hook 扩展
 func (a *App) ReclonePushoverExtension() error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if a.pushoverService == nil {
@@ -1464,7 +1464,7 @@ func (a *App) ReclonePushoverExtension() error {
 
 // CheckPushoverUpdates 检查项目的 Pushover Hook 更新
 func (a *App) CheckPushoverUpdates(projectPath string) (map[string]interface{}, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 	if a.pushoverService == nil {
@@ -1574,7 +1574,7 @@ func (a *App) syncProjectHookStatusByPath(projectPath string) error {
 
 // SyncProjectHookStatus 同步单个项目的 Hook 状态
 func (a *App) SyncProjectHookStatus(projectPath string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if a.pushoverService == nil {
@@ -1586,7 +1586,7 @@ func (a *App) SyncProjectHookStatus(projectPath string) error {
 
 // SyncAllProjectsHookStatus 手动同步所有项目的 Hook 状态
 func (a *App) SyncAllProjectsHookStatus() error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if a.pushoverService == nil {
@@ -1601,8 +1601,8 @@ func (a *App) SyncAllProjectsHookStatus() error {
 func (a *App) DebugHookStatus() map[string]interface{} {
 	result := make(map[string]interface{})
 
-	if err := apperrors.CheckInit(a.initError); err != nil {
-		result["error"] = a.initError.Error()
+	if err := apperrors.CheckInit(a.initErr); err != nil {
+		result["error"] = a.initErr.Error()
 		return result
 	}
 
@@ -1649,8 +1649,8 @@ func (a *App) DebugHookStatus() map[string]interface{} {
 func (a *App) PushToRemote(projectPath string) error {
 	logger.Infof("PushToRemote 被调用 - projectPath: %s", projectPath)
 
-	if err := apperrors.CheckInit(a.initError); err != nil {
-		logger.Errorf("数据库初始化错误: %v", a.initError)
+	if err := apperrors.CheckInit(a.initErr); err != nil {
+		logger.Errorf("数据库初始化错误: %v", a.initErr)
 		return err
 	}
 
@@ -1684,7 +1684,7 @@ func (a *App) PushToRemote(projectPath string) error {
 // GetStagingStatus 获取项目的暂存区状态
 func (a *App) GetStagingStatus(projectPath string) (*git.StagingStatus, error) {
 	logger.Infof("[App.GetStagingStatus] 开始获取暂存状态: %s", projectPath)
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 	status, err := git.GetStagingStatus(projectPath)
@@ -1698,7 +1698,7 @@ func (a *App) GetStagingStatus(projectPath string) (*git.StagingStatus, error) {
 
 // GetFileDiff 获取文件 diff
 func (a *App) GetFileDiff(projectPath, filePath string, staged bool) (string, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return "", err
 	}
 	return git.GetFileDiff(projectPath, filePath, staged)
@@ -1707,7 +1707,7 @@ func (a *App) GetFileDiff(projectPath, filePath string, staged bool) (string, er
 // GetUntrackedFileContent 获取未跟踪文件内容
 func (a *App) GetUntrackedFileContent(projectPath, filePath string) (git.FileContentResult, error) {
 	logger.Infof("[App.GetUntrackedFileContent] 开始读取未跟踪文件: %s in %s", filePath, projectPath)
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		logger.Errorf("[App.GetUntrackedFileContent] 初始化错误: %v", err)
 		return git.FileContentResult{}, err
 	}
@@ -1723,7 +1723,7 @@ func (a *App) GetUntrackedFileContent(projectPath, filePath string) (git.FileCon
 // StageFile 暂存文件
 func (a *App) StageFile(projectPath, filePath string) error {
 	logger.Infof("[App.StageFile] 开始暂存文件: %s in %s", filePath, projectPath)
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	err := git.StageFile(projectPath, filePath)
@@ -1737,7 +1737,7 @@ func (a *App) StageFile(projectPath, filePath string) error {
 
 // StageAllFiles 暂存所有文件
 func (a *App) StageAllFiles(projectPath string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	return git.StageAllFiles(projectPath)
@@ -1745,7 +1745,7 @@ func (a *App) StageAllFiles(projectPath string) error {
 
 // UnstageFile 取消暂存文件
 func (a *App) UnstageFile(projectPath, filePath string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	return git.UnstageFile(projectPath, filePath)
@@ -1753,7 +1753,7 @@ func (a *App) UnstageFile(projectPath, filePath string) error {
 
 // UnstageAllFiles 取消暂存所有文件
 func (a *App) UnstageAllFiles(projectPath string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	return git.UnstageAllFiles(projectPath)
@@ -1761,7 +1761,7 @@ func (a *App) UnstageAllFiles(projectPath string) error {
 
 // DiscardFileChanges 还原工作区文件的更改
 func (a *App) DiscardFileChanges(projectPath, filePath string) error {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	return git.DiscardFileChanges(projectPath, filePath)
@@ -1770,7 +1770,7 @@ func (a *App) DiscardFileChanges(projectPath, filePath string) error {
 // GetUntrackedFiles 获取未跟踪文件列表
 func (a *App) GetUntrackedFiles(projectPath string) ([]git.UntrackedFile, error) {
 	logger.Infof("[App.GetUntrackedFiles] 开始获取未跟踪文件: %s", projectPath)
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 	files, err := git.GetUntrackedFiles(projectPath)
@@ -1785,7 +1785,7 @@ func (a *App) GetUntrackedFiles(projectPath string) ([]git.UntrackedFile, error)
 // StageFiles 添加文件到暂存区
 func (a *App) StageFiles(projectPath string, files []string) error {
 	logger.Infof("[App.StageFiles] 开始暂存文件: %d 个文件 in %s", len(files), projectPath)
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 	if len(files) == 0 {
@@ -1808,7 +1808,7 @@ func (a *App) StageFiles(projectPath string, files []string) error {
 // AddToGitIgnore 添加到 .gitignore
 func (a *App) AddToGitIgnore(projectPath, pattern, mode string) error {
 	logger.Infof("[App.AddToGitIgnore] 添加到排除列表: pattern=%s, mode=%s", pattern, mode)
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 
@@ -1842,7 +1842,7 @@ func (a *App) AddToGitIgnore(projectPath, pattern, mode string) error {
 // GetDirectoryOptions 获取目录层级选项
 func (a *App) GetDirectoryOptions(filePath string) ([]git.DirectoryOption, error) {
 	logger.Infof("[App.GetDirectoryOptions] 获取目录选项: %s", filePath)
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 	opts := git.GetDirectoryOptions(filePath)
@@ -1863,7 +1863,7 @@ type ProjectFullStatus struct {
 // GetAllProjectStatuses 批量获取多个项目的完整状态
 // 使用并发控制，最多同时查询 10 个项目
 func (a *App) GetAllProjectStatuses(projectPaths []string) (map[string]*ProjectFullStatus, error) {
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return nil, err
 	}
 
@@ -1932,7 +1932,7 @@ func (a *App) GetAllProjectStatuses(projectPaths []string) (map[string]*ProjectF
 // 接收 JSON 字符串，解析后记录到日志文件
 func (a *App) LogFrontendError(errJSON string) error {
 	// 检查初始化状态
-	if err := apperrors.CheckInit(a.initError); err != nil {
+	if err := apperrors.CheckInit(a.initErr); err != nil {
 		return err
 	}
 
