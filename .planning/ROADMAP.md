@@ -58,8 +58,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: 实现单实例锁定和窗口激活
-- [ ] 02-02: 实现窗口状态持久化
+- [ ] 02-01-PLAN.md — 实现单实例锁定和窗口激活
+- [ ] 02-02-PLAN.md — 实现窗口状态持久化
 
 ### Phase 3: System Tray Fixes
 
