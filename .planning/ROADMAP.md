@@ -81,8 +81,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: 升级 systray 库并实现双击支持
-- [ ] 03-02: 修复托盘竞态条件和退出行为
+- [ ] 03-01-PLAN.md — 升级 systray 库到 energye/systray 并实现双击支持
+- [ ] 03-02-PLAN.md — 修复托盘竞态条件和优化退出行为
 
 ### Phase 4: Auto Update System
 
