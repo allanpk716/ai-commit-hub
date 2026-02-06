@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 ## Current Position
 
 Phase: 2 of 5 (Single Instance & Window Management)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-06 — Completed 02-01-SUMMARY.md (单实例锁定机制)
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-02-06 — Completed 02-03-SUMMARY.md (窗口状态保存和恢复集成)
 
-Progress: [██████░░░] 40%
+Progress: [████████░░] 47%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 4 min
-- Total execution time: 0.4 hours
+- Total plans completed: 9
+- Average duration: 3 min
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
@@ -31,8 +31,8 @@ Progress: [██████░░░] 40%
 | 02-single-instance-window-management | 3 | 3 | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 2 min, 1 min, 2 min, 2 min
-- Trend: Stable (2.2 min per plan)
+- Last 5 plans: 4 min, 2 min, 1 min, 2 min, 4 min
+- Trend: Stable (2.6 min per plan)
 
 *Updated after each plan completion*
 
@@ -64,17 +64,26 @@ Recent decisions affecting current work:
 - [02-01]: SingleInstanceLock UUID - 使用固定 UUID 'e3984e08-28dc-4e3d-b70a-45e961589cdc'
 - [02-01]: 窗口激活策略 - 静默激活（恢复最小化 + 显示到前台，无通知）
 - [02-01]: 窗口状态同步 - 必须使用封装方法（showWindow/hideWindow）而非直接调用 runtime API
+- [02-03]: 生命周期集成 - 在 startup 恢复窗口状态，在 onBeforeClose 保存窗口状态
+- [02-03]: 位置验证 - 使用边界检查防止窗口"丢失"在屏幕外（minWidth 400, minHeight 300, maxCoord 10000）
 
 ### Pending Todos
 
-None yet.
+**Phase 2 需要人工验证:**
+- 测试窗口状态保存和恢复功能（移动窗口、关闭、重启验证位置）
+- 测试最大化状态恢复
+- 测试位置验证（无效位置时使用默认值）
 
 ### Blockers/Concerns
 
-None yet.
+**无阻塞问题**
+
+**注意事项:**
+- 窗口状态持久化功能已完成，但需要人工测试验证
+- 测试通过后可以继续 Phase 3 (System Tray Fixes)
 
 ## Session Continuity
 
-Last session: 2026-02-06 04:14 UTC
-Stopped at: Completed 02-01-SUMMARY.md (Single instance lock mechanism completed)
+Last session: 2026-02-06 07:30 UTC
+Stopped at: Completed 02-03-SUMMARY.md (Window state integration complete)
 Resume file: None

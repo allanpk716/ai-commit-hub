@@ -13,7 +13,7 @@ AI Commit Hub 的 v1 里程碑聚焦于构建稳定可靠的应用基础设施�
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: CI/CD Pipeline** - 建立自动化构建和发布流程 ✅ 2026-02-06
-- [ ] **Phase 2: Single Instance & Window Management** - 实现单实例锁定和窗口状态管理
+- [x] **Phase 2: Single Instance & Window Management** - 实现单实例锁定和窗口状态管理 ✅ 2026-02-06
 - [ ] **Phase 3: System Tray Fixes** - 修复托盘双击和升级依赖
 - [ ] **Phase 4: Auto Update System** - 实现完整的自动更新功能
 - [ ] **Phase 5: Code Quality & Polish** - 修复编译错误和完善代码质量
@@ -41,26 +41,28 @@ Plans:
 - [x] 01-02-PLAN.md — 实现产物打包（exe + 文档）和校验和生成 ✅
 - [x] 01-03-PLAN.md — 配置自动发布到 GitHub Releases，支持预发布版本检测 ✅
 
-### Phase 2: Single Instance & Window Management
+### Phase 2: Single Instance & Window Management ✅
 
 **Goal**: 实现单实例锁定机制，防止多实例运行，并支持窗口状态持久化
+
+**Completed**: 2026-02-06
 
 **Depends on**: Nothing
 
 **Requirements**: SI-01, SI-02, SI-03, SI-04
 
 **Success Criteria** (what must be TRUE):
-1. 应用启动时自动检测是否已有实例运行
-2. 检测到多实例时，自动激活现有窗口到前台
-3. 窗口位置和大小在下次启动时自动恢复
-4. 使用 Wails 内置 SingleInstanceLock 机制
+1. ✓ 应用启动时自动检测是否已有实例运行
+2. ✓ 检测到多实例时，自动激活现有窗口到前台
+3. ✓ 窗口位置和大小在下次启动时自动恢复
+4. ✓ 使用 Wails 内置 SingleInstanceLock 机制
 
-**Plans**: 3 plans
+**Plans**: 3 plans complete
 
 Plans:
-- [ ] 02-01-PLAN.md — 实现单实例锁定和窗口激活
-- [ ] 02-02-PLAN.md — 创建窗口状态数据层(模型、Repository、迁移)
-- [ ] 02-03-PLAN.md — 实现窗口状态保存和恢复逻辑
+- [x] 02-01-PLAN.md — 实现单实例锁定和窗口激活 ✅
+- [x] 02-02-PLAN.md — 创建窗口状态数据层(模型、Repository、迁移) ✅
+- [x] 02-03-PLAN.md — 实现窗口状态保存和恢复逻辑 ✅
 
 ### Phase 3: System Tray Fixes
 
