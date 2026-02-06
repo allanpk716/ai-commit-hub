@@ -1,0 +1,131 @@
+# AI Commit Hub 配置示例
+# 复制此文件到配置目录并重命名为 config.yaml
+# Windows: C:\Users\<username>\.ai-commit-hub\
+# macOS/Linux: ~/.ai-commit-hub/
+
+# ============================================================================
+# AI Provider 配置
+# ============================================================================
+# 配置多个 AI Provider 的凭证和模型设置
+# 推荐使用 providers 字段而不是单独的 provider/apiKey 字段
+providers:
+  # OpenAI 配置
+  openai:
+    apiKey: sk-your-openai-api-key-here  # 从 https://platform.openai.com/api-keys 获取
+    model: gpt-4                          # 可选: gpt-4, gpt-3.5-turbo
+    baseURL: https://api.openai.com/v1    # 可选: 自定义 API 端点
+
+  # Anthropic (Claude) 配置
+  anthropic:
+    apiKey: sk-ant-your-anthropic-key-here  # 从 https://console.anthropic.com/ 获取
+    model: claude-3-sonnet-20240229         # 可选: claude-3-opus-20240229, claude-3-haiku-20240307
+
+  # DeepSeek 配置
+  deepseek:
+    apiKey: sk-your-deepseek-key-here  # 从 DeepSeek 平台获取
+    model: deepseek-chat               # DeepSeek 模型名称
+
+  # Ollama (本地模型) 配置
+  ollama:
+    apiKey: ""                          # 本地模型无需 API Key
+    model: llama2                       # Ollama 模型名称 (需先运行 ollama pull <model>)
+    baseURL: http://localhost:11434     # Ollama 服务地址
+
+# ============================================================================
+# 全局设置
+# ============================================================================
+
+# 默认使用的 AI Provider (需在 providers 中配置)
+provider: openai
+
+# 生成的 commit 消息语言
+# 可选值: chinese, english
+language: chinese
+
+# Git 作者信息 (用于 commit)
+authorName: ai-commit
+authorEmail: ai-commit@example.com
+
+# ============================================================================
+# Commit 消息生成设置
+# ============================================================================
+
+# 是否启用语义化版本号 (Semantic Release)
+# 启用后会在 commit 消息中包含版本号信息
+semanticRelease: false
+
+# 是否启用 Emoji 前缀 (如 ✨ feat, 🐛 fix)
+enableEmoji: true
+
+# 是否在 diff 过大时交互式分割处理
+interactiveSplit: false
+
+# 自定义 commit 类型及对应的 Emoji
+commitTypes:
+  - type: feat      # 新功能
+    emoji: "✨"
+  - type: fix       # Bug 修复
+    emoji: "🐛"
+  - type: docs      # 文档更新
+    emoji: "📚"
+  - type: style     # 代码格式调整 (不影响功能)
+    emoji: "💎"
+  - type: refactor  # 代码重构 (既不是新功能也不是修复)
+    emoji: "♻️"
+  - type: test      # 测试相关
+    emoji: "🧪"
+  - type: chore     # 构建过程或辅助工具变动
+    emoji: "🔧"
+  - type: perf      # 性能优化
+    emoji: "🚀"
+  - type: build     # 构建系统或外部依赖变动
+    emoji: "📦"
+  - type: ci        # CI 配置文件和脚本变动
+    emoji: "👷"
+
+# ============================================================================
+# 输入限制设置
+# ============================================================================
+# 控制 diff 和 prompt 的最大字符数，防止输入过大导致 API 错误
+limits:
+  diff:
+    enabled: false      # 是否启用 diff 字符限制
+    maxChars: 10000     # 最大字符数 (0 = 无限制)
+  prompt:
+    enabled: false      # 是否启用 prompt 字符限制
+    maxChars: 5000      # 最大字符数 (0 = 无限制)
+
+# ============================================================================
+# 自定义 Prompt 模板
+# ============================================================================
+# 引用自定义 prompt 文件 (放在配置目录的 prompts/ 子目录下)
+# 支持的占位符:
+#   {DIFF}    - Git diff 内容
+#   {LANGUAGE} - 目标语言 (chinese/english)
+prompts:
+  commitMessage: commit-message.txt    # Commit 消息生成 prompt
+  codeReview: code-review.txt          # 代码审查 prompt
+  styleReview: style-review.txt        # Commit 风格审查 prompt
+
+# ============================================================================
+# 锁文件列表
+# ============================================================================
+# 指定哪些文件被视为"锁文件" (如 go.mod, package-lock.json)
+# 当变更仅包含锁文件时，会跳过生成或自动归类为 chore 类型
+lockFiles:
+  - go.mod
+  - go.sum
+  - package-lock.json
+  - yarn.lock
+  - pnpm-lock.yaml
+  - Cargo.lock
+  - Gemfile.lock
+  - composer.lock
+
+# ============================================================================
+# 已弃用字段 (保留用于向后兼容)
+# ============================================================================
+# promptTemplate: custom-prompt.txt  # 请使用 prompts.commitMessage 代替
+# template: ""                       # 已弃用
+# prompt: ""                         # 已弃用
+# commitType: ""                     # 已弃用
