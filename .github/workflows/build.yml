@@ -1,0 +1,77 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version metadata
+        id: meta
+        shell: bash
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+          # Get short commit SHA
+          SHA=$(git rev-parse --short HEAD)
+          echo "SHA=${SHA}" >> $GITHUB_OUTPUT
+
+          # Get build date in ISO 8601 format
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "DATE=${DATE}" >> $GITHUB_OUTPUT
+
+          # Detect prerelease (alpha, beta, rc, pre)
+          if [[ "${VERSION}" =~ -(alpha|beta|rc|pre) ]]; then
+            echo "PRERELEASE=true" >> $GITHUB_OUTPUT
+          else
+            echo "PRERELEASE=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Version: ${VERSION}"
+          echo "Commit SHA: ${SHA}"
+          echo "Build Time: ${DATE}"
+          echo "Prerelease: $([[ "${VERSION}" =~ -(alpha|beta|rc|pre) ]] && echo 'yes' || echo 'no')"
+
+      - name: Build Wails application
+        uses: dAppServer/wails-build-action@v3
+        with:
+          build-name: ai-commit-hub
+          build-platform: windows/amd64
+          package: false
+          go-version: '1.24'
+
+      - name: Inject version info and rebuild
+        shell: bash
+        env:
+          CGO_ENABLED: '1'
+        run: |
+          wails build -clean -ldflags "
+            -X 'github.com/allanpk716/ai-commit-hub/pkg/version.Version=${{ steps.meta.outputs.VERSION }}'
+            -X 'github.com/allanpk716/ai-commit-hub/pkg/version.CommitSHA=${{ steps.meta.outputs.SHA }}'
+            -X 'github.com/allanpk716/ai-commit-hub/pkg/version.BuildTime=${{ steps.meta.outputs.DATE }}'
+            -s -w"
+
+      - name: Verify version injection
+        shell: bash
+        run: |
+          ./build/bin/ai-commit-hub.exe --version
+          if [ $? -eq 0 ]; then
+            echo "Version verification successful"
+          else
+            echo "Version verification failed"
+            exit 1
+          fi
