@@ -108,10 +108,15 @@ func main() {
 				"position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
 				"size", fmt.Sprintf("%dx%d", state.Width, state.Height),
 				"maximized", state.Maximized)
+			// 输出到控制台
+			fmt.Printf("[MAIN] Window state from DB: Position(%d,%d) Size(%dx%d) Maximized=%v\n",
+				state.X, state.Y, state.Width, state.Height, state.Maximized)
+			fmt.Printf("[MAIN] Will create window with size: %dx%d\n", initialWidth, initialHeight)
 		}
 		// 注意：窗口位置需要在 startup() 中使用 runtime.WindowSetPosition() 设置
 	} else {
 		logger.Info("未找到保存的窗口状态，使用默认值")
+		fmt.Printf("[MAIN] No saved state found, using default size: %dx%d\n", initialWidth, initialHeight)
 	}
 
 	// Create an instance of the app structure
