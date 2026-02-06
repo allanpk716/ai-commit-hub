@@ -18,7 +18,7 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
 	"github.com/allanpk716/ai-commit-hub/pkg/update"
-	"github.com/getlantern/systray"
+	"github.com/lutischan-ferenc/systray"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
@@ -374,24 +374,26 @@ func (a *App) onSystrayReady() {
 	systray.SetTitle("AI Commit Hub")
 	systray.SetTooltip("AI Commit Hub - 双击打开主窗口")
 
+	// 双击托盘图标显示窗口
+	systray.SetOnDClick(func(menu systray.IMenu) {
+		logger.Info("托盘图标双击,显示窗口")
+		a.showWindow()
+	})
+
 	// 创建菜单
 	menu := systray.AddMenuItem("显示窗口", "显示主窗口")
-	go func() {
-		for range menu.ClickedCh {
-			a.showWindow()
-		}
-	}()
+	menu.Click(func() {
+		a.showWindow()
+	})
 
 	// 添加分隔线
 	systray.AddSeparator()
 
 	// 退出菜单项
 	quitMenu := systray.AddMenuItem("退出应用", "完全退出应用")
-	go func() {
-		for range quitMenu.ClickedCh {
-			a.quitApplication()
-		}
-	}()
+	quitMenu.Click(func() {
+		a.quitApplication()
+	})
 
 	// 通知 systray 已就绪
 	close(a.systrayReady)
