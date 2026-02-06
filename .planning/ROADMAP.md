@@ -135,9 +135,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. CI/CD Pipeline | 3/3 | ✓ Complete | 2026-02-06 |
-| 2. Single Instance & Window Management | 0/3 | Not started | - |
+| 2. Single Instance & Window Management | 3/3 | ✓ Complete | 2026-02-06 |
 | 3. System Tray Fixes | 0/2 | Not started | - |
 | 4. Auto Update System | 0/4 | Not started | - |
 | 5. Code Quality & Polish | 0/2 | Not started | - |
 
-**Total Progress:** 3/14 plans complete (21%)
+**Total Progress:** 6/14 plans complete (43%)

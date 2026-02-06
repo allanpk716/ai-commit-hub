@@ -9,26 +9,26 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 
 ## Current Position
 
-Phase: 2 of 5 (Single Instance & Window Management)
-Plan: 3 of 3 in current phase
-Status: Phase complete - User verified
-Last activity: 2026-02-06 — User confirmed window state integration working correctly
+Phase: 3 of 5 (System Tray Fixes)
+Plan: 0 of 2 in current phase
+Status: Ready to start
+Last activity: 2026-02-06 — Phase 2 completed and verified
 
-Progress: [████████░░] 47%
+Progress: [████████░░] 43%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 6
 - Average duration: 3 min
-- Total execution time: 0.5 hours
+- Total execution time: 0.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-ci-cd-pipeline | 3 | 3 | 2 min |
-| 02-single-instance-window-management | 3 | 3 | 4 min |
+| 01-ci-cd-pipeline | 3 | 6 min | 2 min |
+| 02-single-instance-window-management | 3 | 11 min | 4 min |
 
 **Recent Trend:**
 - Last 5 plans: 4 min, 2 min, 1 min, 2 min, 4 min
@@ -94,6 +94,28 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-06 (current session)
-Stopped at: Phase 2 complete - User verified window state integration
+Last session: 2026-02-06
+Stopped at: Phase 2 complete - Moving to Phase 3
 Resume file: None
+
+## Phase 2 完成总结
+
+**完成日期**: 2026-02-06
+
+**已完成计划**:
+- 02-01: 单实例锁定和窗口激活
+- 02-02: 窗口状态数据层
+- 02-03: 窗口状态保存和恢复
+
+**验证结果**: Passed (4/4 must-haves verified)
+
+**关键决策**:
+- SingleInstanceLock UUID - 使用固定 UUID 'e3984e08-28dc-4e3d-b70a-45e961589cdc'
+- 窗口激活策略 - 静默激活（恢复最小化 + 显示到前台，无通知）
+- 窗口状态同步 - 必须使用封装方法（showWindow/hideWindow）而非直接调用 runtime API
+- 生命周期集成 - 在 startup 恢复窗口状态，在 onBeforeClose 保存窗口状态
+- 位置验证 - 使用边界检查防止窗口"丢失"在屏幕外（minWidth 400, minHeight 300, maxCoord 10000）
+- 启动时序优化 - main.go 预读取数据库设置窗口大小，startup() 中恢复位置和最大化状态，避免闪烁
+- Upsert 策略 - 使用 clause.OnConflict 处理窗口状态保存的 UNIQUE constraint 错误
+
+**下一步**: Phase 3 - System Tray Fixes
