@@ -100,3 +100,13 @@ jobs:
           cat *.sha256
           echo "::notice::MD5 Checksums:"
           cat *.md5
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-commit-hub-windows-amd64-v${{ steps.meta.outputs.VERSION }}
+          path: |
+            build/*.zip
+            build/*.sha256
+            build/*.md5
+          retention-days: 30
