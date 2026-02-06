@@ -403,6 +403,12 @@ func (a *App) onSystrayReady() {
 func (a *App) onSystrayExit() {
 	logger.Info("系统托盘已退出")
 
+	// 验证 systray 运行状态
+	if a.systrayRunning.Load() {
+		logger.Warn("systrayRunning 标志未正确清理")
+	}
+	a.systrayRunning.Store(false)
+
 	// 如果应用正在退出（用户点击"退出应用"），触发 Wails 退出
 	// 这样可以确保应用完全退出，而不是停留在后台
 	if a.quitting.Load() {
@@ -481,7 +487,12 @@ func (a *App) quitApplication() {
 		logger.Info("应用正在退出...")
 
 		// 设置退出标志，防止 onBeforeClose 拦截关闭事件
-		a.quitting.Store(true)
+		// 使用 Swap 可以检测重复调用（虽然 sync.Once 已保证只执行一次）
+		wasQuitting := a.quitting.Swap(true)
+		if wasQuitting {
+			logger.Warn("退出逻辑已被调用过,这是不应该的状态")
+			return
+		}
 
 		// 先显示窗口（如果当前隐藏），避免用户看到应用"卡住"
 		a.showWindow()
