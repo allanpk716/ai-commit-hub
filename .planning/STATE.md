@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 ## Current Position
 
 Phase: 1 of 5 (CI/CD Pipeline)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-02-06 — Roadmap created, ready to begin Phase 1 planning
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-06 — Completed 01-01-PLAN.md (Build workflow creation)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: - min
+- Total plans completed: 1
+- Average duration: 2 min
 - Total execution time: 0.0 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-ci-cd-pipeline | 1 | 3 | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: -
+- Last 5 plans: 2 min (01-01)
 - Trend: -
 
 *Updated after each plan completion*
@@ -46,6 +46,10 @@ Recent decisions affecting current work:
 - [Initial]: 自动更新方式 - 下载新版 exe 后自动替换程序
 - [Initial]: 功能边界 - 只集成常用操作，复杂操作外部处理
 - [Initial]: 实施顺序 - CI/CD 优先，建立发布流程后再实现其他功能
+- [01-01]: Windows amd64 only - 排除 32-bit (386) 构建因 WebView2 崩溃问题
+- [01-01]: NODE_OPTIONS=--max-old-space-size=4096 防止前端构建 OOM
+- [01-01]: 版本注入方式 - 通过 ldflags 注入到 pkg/version 包
+- [01-01]: CGO_ENABLED=1 - Windows SQLite 驱动必需
 
 ### Pending Todos
 
@@ -57,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-06 Initial roadmap creation
-Stopped at: Roadmap and state files created, ready to begin Phase 1 planning
+Last session: 2026-02-06 02:06 UTC
+Stopped at: Completed 01-01-PLAN.md (Build workflow with version injection)
 Resume file: None
