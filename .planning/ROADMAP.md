@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: CI/CD Pipeline** - 建立自动化构建和发布流程 ✅ 2026-02-06
 - [x] **Phase 2: Single Instance & Window Management** - 实现单实例锁定和窗口状态管理 ✅ 2026-02-06
-- [ ] **Phase 3: System Tray Fixes** - 修复托盘双击和升级依赖
+- [x] **Phase 3: System Tray Fixes** - 修复托盘双击和升级依赖 ✅ 2026-02-06
 - [ ] **Phase 4: Auto Update System** - 实现完整的自动更新功能
 - [ ] **Phase 5: Code Quality & Polish** - 修复编译错误和完善代码质量
 
@@ -64,25 +64,27 @@ Plans:
 - [x] 02-02-PLAN.md — 创建窗口状态数据层(模型、Repository、迁移) ✅
 - [x] 02-03-PLAN.md — 实现窗口状态保存和恢复逻辑 ✅
 
-### Phase 3: System Tray Fixes
+### Phase 3: System Tray Fixes ✅
 
 **Goal**: 修复系统托盘双击功能，升级依赖库，优化托盘交互体验
+
+**Completed**: 2026-02-06
 
 **Depends on**: Phase 2
 
 **Requirements**: TRAY-01, TRAY-02, TRAY-03, TRAY-04, TRAY-05
 
 **Success Criteria** (what must be TRUE):
-1. 双击托盘图标能够恢复并激活主界面到前台
-2. 右键菜单显示"显示/隐藏"、"检查更新"、"退出"选项
-3. 使用 sync.Once 和 atomic.Bool 防止托盘竞态条件
-4. 区分"最小化到托盘"和"退出应用"行为
+1. ✓ 双击托盘图标能够恢复并激活主界面到前台
+2. ✓ 右键菜单显示"显示/隐藏"、"检查更新"、"退出"选项
+3. ✓ 使用 sync.Once 和 atomic.Bool 防止托盘竞态条件
+4. ✓ 区分"最小化到托盘"和"退出应用"行为
 
-**Plans**: 2 plans
+**Plans**: 2 plans complete
 
 Plans:
-- [ ] 03-01-PLAN.md — 升级 systray 库到 energye/systray 并实现双击支持
-- [ ] 03-02-PLAN.md — 修复托盘竞态条件和优化退出行为
+- [x] 03-01-PLAN.md — 升级 systray 库到 lutischan-ferenc/systray v1.3.0 并实现双击支持 ✅
+- [x] 03-02-PLAN.md — 修复托盘竞态条件和优化退出行为 ✅
 
 ### Phase 4: Auto Update System
 
@@ -136,8 +138,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. CI/CD Pipeline | 3/3 | ✓ Complete | 2026-02-06 |
 | 2. Single Instance & Window Management | 3/3 | ✓ Complete | 2026-02-06 |
-| 3. System Tray Fixes | 0/2 | Not started | - |
+| 3. System Tray Fixes | 2/2 | ✓ Complete | 2026-02-06 |
 | 4. Auto Update System | 0/4 | Not started | - |
 | 5. Code Quality & Polish | 0/2 | Not started | - |
 
-**Total Progress:** 6/14 plans complete (43%)
+**Total Progress:** 8/14 plans complete (57%)

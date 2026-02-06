@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 
 ## Current Position
 
-Phase: 3 of 5 (System Tray Fixes)
-Plan: 0 of 2 in current phase
+Phase: 4 of 5 (Auto Update System)
+Plan: 0 of 4 in current phase
 Status: Ready to start
-Last activity: 2026-02-06 — Phase 2 completed and verified
+Last activity: 2026-02-06 — Phase 3 completed and verified
 
-Progress: [████████░░] 43%
+Progress: [██████████] 57%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 8
 - Average duration: 3 min
-- Total execution time: 0.3 hours
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
@@ -29,6 +29,7 @@ Progress: [████████░░] 43%
 |-------|-------|-------|----------|
 | 01-ci-cd-pipeline | 3 | 6 min | 2 min |
 | 02-single-instance-window-management | 3 | 11 min | 4 min |
+| 03-system-tray-fixes | 2 | 7 min | 4 min |
 
 **Recent Trend:**
 - Last 5 plans: 4 min, 2 min, 1 min, 2 min, 4 min
@@ -118,4 +119,22 @@ Resume file: None
 - 启动时序优化 - main.go 预读取数据库设置窗口大小，startup() 中恢复位置和最大化状态，避免闪烁
 - Upsert 策略 - 使用 clause.OnConflict 处理窗口状态保存的 UNIQUE constraint 错误
 
-**下一步**: Phase 3 - System Tray Fixes
+**下一步**: Phase 4 - Auto Update System
+
+## Phase 3 完成总结
+
+**完成日期**: 2026-02-06
+
+**已完成计划**:
+- 03-01: 升级 systray 库并实现双击功能
+- 03-02: 修复托盘竞态条件和优化退出行为
+
+**验证结果**: Passed (4/4 must-haves verified)
+
+**关键决策**:
+- systray 库升级 - 使用 lutischan-ferenc/systray v1.3.0 替代 getlantern/systray v1.2.2
+- API 迁移 - 从 Channel API 迁移到 Callback API，简化代码
+- 双击实现 - 使用 SetOnDClick() 实现托盘图标双击恢复窗口
+- 竞态条件防护 - 使用 sync.Once 和 atomic.Bool 防止重复退出
+- 退出/最小化分离 - 通过 quitting atomic.Bool 区分两种行为
+- 菜单结构 - 实现三项菜单（显示窗口、检查更新 stub、退出应用）
