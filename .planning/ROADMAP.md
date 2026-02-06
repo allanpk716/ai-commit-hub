@@ -55,11 +55,12 @@ Plans:
 3. 窗口位置和大小在下次启动时自动恢复
 4. 使用 Wails 内置 SingleInstanceLock 机制
 
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [ ] 02-01-PLAN.md — 实现单实例锁定和窗口激活
-- [ ] 02-02-PLAN.md — 实现窗口状态持久化
+- [ ] 02-02-PLAN.md — 创建窗口状态数据层(模型、Repository、迁移)
+- [ ] 02-03-PLAN.md — 实现窗口状态保存和恢复逻辑
 
 ### Phase 3: System Tray Fixes
 
@@ -132,9 +133,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. CI/CD Pipeline | 3/3 | ✓ Complete | 2026-02-06 |
-| 2. Single Instance & Window Management | 0/2 | Not started | - |
+| 2. Single Instance & Window Management | 0/3 | Not started | - |
 | 3. System Tray Fixes | 0/2 | Not started | - |
 | 4. Auto Update System | 0/4 | Not started | - |
 | 5. Code Quality & Polish | 0/2 | Not started | - |
 
-**Total Progress:** 3/13 plans complete (23%)
+**Total Progress:** 3/14 plans complete (21%)
