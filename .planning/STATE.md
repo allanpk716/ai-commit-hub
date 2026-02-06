@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 
 Phase: 2 of 5 (Single Instance & Window Management)
 Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-02-06 — Completed 02-03-SUMMARY.md (窗口状态保存和恢复集成)
+Status: Phase complete - User verified
+Last activity: 2026-02-06 — User confirmed window state integration working correctly
 
 Progress: [████████░░] 47%
 
@@ -66,24 +66,34 @@ Recent decisions affecting current work:
 - [02-01]: 窗口状态同步 - 必须使用封装方法（showWindow/hideWindow）而非直接调用 runtime API
 - [02-03]: 生命周期集成 - 在 startup 恢复窗口状态，在 onBeforeClose 保存窗口状态
 - [02-03]: 位置验证 - 使用边界检查防止窗口"丢失"在屏幕外（minWidth 400, minHeight 300, maxCoord 10000）
+- [02-03]: 启动时序优化 - main.go 预读取数据库设置窗口大小，startup() 中恢复位置和最大化状态，避免闪烁
+- [02-03]: Upsert 策略 - 使用 clause.OnConflict 处理窗口状态保存的 UNIQUE constraint 错误
 
 ### Pending Todos
 
-**Phase 2 需要人工验证:**
-- 测试窗口状态保存和恢复功能（移动窗口、关闭、重启验证位置）
-- 测试最大化状态恢复
-- 测试位置验证（无效位置时使用默认值）
+**Phase 2 已完成并验证:**
+- ✅ 窗口状态保存和恢复功能已实现并验证
+- ✅ 最大化状态恢复正常工作
+- ✅ 窗口位置恢复无闪烁
+- ✅ UNIQUE constraint 错误已修复
 
 ### Blockers/Concerns
 
 **无阻塞问题**
 
-**注意事项:**
-- 窗口状态持久化功能已完成，但需要人工测试验证
-- 测试通过后可以继续 Phase 3 (System Tray Fixes)
+**Phase 2 完成总结:**
+- 单例锁定和窗口激活功能完成 (02-01)
+- 窗口状态持久化数据层完成 (02-02)
+- 窗口状态持久化应用层集成完成 (02-03)
+- 所有关键问题已修复并验证：
+  - 窗口启动时序问题（闪烁）- 通过 main.go 预读取解决
+  - UNIQUE constraint 错误 - 通过 Upsert 策略解决
+  - 最大化状态恢复问题 - 通过延迟 100ms 解决
+
+**可以继续 Phase 3 (System Tray Fixes)**
 
 ## Session Continuity
 
-Last session: 2026-02-06 07:30 UTC
-Stopped at: Completed 02-03-SUMMARY.md (Window state integration complete)
+Last session: 2026-02-06 (current session)
+Stopped at: Phase 2 complete - User verified window state integration
 Resume file: None
