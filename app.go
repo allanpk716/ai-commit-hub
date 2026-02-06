@@ -87,10 +87,8 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	logger.Info("AI Commit Hub starting up...")
 
-	// 立即隐藏窗口，避免看到默认位置（1280x800）的闪烁
-	// 窗口会在 restoreWindowState() 中以正确的位置和大小显示
-	runtime.WindowHide(a.ctx)
-	logger.Debug("窗口已隐藏，准备恢复状态...")
+	// 窗口在启动时就是可见的（位置和大小已在 main.go 中设置）
+	a.windowVisible = true
 
 	// Initialize database
 	homeDir, err := os.UserHomeDir()
@@ -534,55 +532,35 @@ func (a *App) isPositionValid(x, y, width, height int) bool {
 }
 
 // restoreWindowState 恢复窗口状态
+// 注意：窗口大小已在 main.go 中从数据库读取并设置
+// 这里需要设置窗口位置和最大化状态
 func (a *App) restoreWindowState() error {
 	if a.windowStateRepo == nil {
-		// 无 repository，显示默认窗口
-		runtime.WindowShow(a.ctx)
-		a.windowVisible = true
-		return nil
+		return nil // repository 未初始化
 	}
 
 	state, err := a.windowStateRepo.GetByKey("window.main")
 	if err != nil {
-		logger.Info("首次启动,使用默认窗口位置")
-		// 无记录，显示默认窗口
-		runtime.WindowShow(a.ctx)
-		a.windowVisible = true
-		return nil
+		logger.Info("首次启动,使用默认窗口设置")
+		return nil // 无记录
 	}
 
-	// 验证窗口位置是否有效
-	if !a.isPositionValid(state.X, state.Y, state.Width, state.Height) {
-		logger.Warn("保存的窗口位置无效,使用默认位置")
-		runtime.WindowShow(a.ctx)
-		a.windowVisible = true
-		return nil
+	// 设置窗口位置
+	if state.X >= 0 && state.Y >= 0 {
+		runtime.WindowSetPosition(a.ctx, state.X, state.Y)
+		logger.Info("窗口位置已设置", "x", state.X, "y", state.Y)
 	}
 
-	// 步骤1: 设置窗口位置和大小（窗口仍在隐藏状态）
-	runtime.WindowSetPosition(a.ctx, state.X, state.Y)
-	runtime.WindowSetSize(a.ctx, state.Width, state.Height)
-	logger.Debug("窗口位置和大小已设置",
-		"position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
-		"size", fmt.Sprintf("%dx%d", state.Width, state.Height))
-
-	// 步骤2: 显示窗口
-	runtime.WindowShow(a.ctx)
-	a.windowVisible = true
-	logger.Debug("窗口已显示")
-
-	// 步骤3: 如果需要最大化，在窗口显示后最大化
+	// 恢复最大化状态
 	if state.Maximized {
-		logger.Info("恢复最大化窗口")
-		// 给窗口一点时间完成显示
-		time.Sleep(50 * time.Millisecond)
+		logger.Info("恢复最大化窗口状态")
+		// 在窗口完全显示后最大化
+		// 使用短延迟确保窗口已完全渲染
+		time.Sleep(100 * time.Millisecond)
 		runtime.WindowMaximise(a.ctx)
+		logger.Info("窗口已最大化")
 	}
 
-	logger.Info("窗口状态已恢复",
-		"position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
-		"size", fmt.Sprintf("%dx%d", state.Width, state.Height),
-		"maximized", state.Maximized)
 	return nil
 }
 

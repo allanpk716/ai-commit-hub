@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/WQGroup/logger"
+	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/version"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -77,14 +78,47 @@ func main() {
 	logger.Info("AI Commit Hub starting up...", "version", version.GetVersion())
 	logger.Debug("Full version info", "info", version.GetFullVersion())
 
+	// 初始化数据库以读取窗口状态
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		logger.Errorf("Failed to get home directory: %v", err)
+		os.Exit(1)
+	}
+
+	configDir := filepath.Join(homeDir, ".ai-commit-hub")
+	dbPath := filepath.Join(configDir, "ai-commit-hub.db")
+
+	// 初始化数据库
+	dbConfig := &repository.DatabaseConfig{Path: dbPath}
+	if err := repository.InitializeDatabase(dbConfig); err != nil {
+		logger.Warnf("Failed to initialize database for window state: %v", err)
+		// 继续使用默认窗口大小
+	}
+
+	// 读取保存的窗口状态
+	var initialWidth, initialHeight int = 1280, 800 // 默认值
+
+	windowStateRepo := repository.NewWindowStateRepository()
+	if state, err := windowStateRepo.GetByKey("window.main"); err == nil {
+		// 成功读取到窗口状态
+		if state.Width > 0 && state.Height > 0 {
+			initialWidth = state.Width
+			initialHeight = state.Height
+			logger.Info("恢复窗口大小", "width", initialWidth, "height", initialHeight)
+		}
+		// 注意：窗口位置需要在 startup() 中使用 runtime.WindowSetPosition() 设置
+	} else {
+		logger.Info("未找到保存的窗口状态，使用默认值")
+	}
+
 	// Create an instance of the app structure
 	app := NewApp()
 
 	// Create application with options
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:  "AI Commit Hub",
-		Width:  1280,
-		Height: 800,
+		Width:  initialWidth,
+		Height: initialHeight,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
