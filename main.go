@@ -92,6 +92,10 @@ func main() {
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
 		OnBeforeClose:    app.onBeforeClose, // 新增: 拦截关闭
+		SingleInstanceLock: &options.SingleInstanceLock{
+			UniqueId:              "e3984e08-28dc-4e3d-b70a-45e961589cdc",
+			OnSecondInstanceLaunch: app.onSecondInstanceLaunch,
+		},
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
