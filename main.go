@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -52,6 +53,23 @@ func initLogger() {
 }
 
 func main() {
+	// 检查命令行参数（版本标志）
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "-v", "--version":
+			fmt.Println(version.GetFullVersion())
+			os.Exit(0)
+		case "-h", "--help":
+			fmt.Println("AI Commit Hub - Git commit message generator")
+			fmt.Println("\nUsage:")
+			fmt.Println("  ai-commit-hub [options]")
+			fmt.Println("\nOptions:")
+			fmt.Println("  -v, --version  Show version information")
+			fmt.Println("  -h, --help     Show this help message")
+			os.Exit(0)
+		}
+	}
+
 	// 初始化 logger
 	initLogger()
 
