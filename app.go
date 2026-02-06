@@ -263,6 +263,19 @@ func (a *App) shutdown(ctx context.Context) {
 	// 这里不再重复调用，避免循环
 }
 
+// onSecondInstanceLaunch 当第二个实例启动时调用
+// 静默激活现有窗口到前台，不显示任何通知或对话框
+func (a *App) onSecondInstanceLaunch(secondInstanceData options.SecondInstanceData) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("激活窗口失败: %v", r)
+		}
+	}()
+
+	runtime.WindowUnminimise(a.ctx)
+	runtime.WindowShow(a.ctx)
+}
+
 // getTrayIcon 根据平台返回合适的图标
 // Windows 使用 ICO 格式（Wails 从 build/appicon.png 自动生成），其他平台使用 PNG
 func (a *App) getTrayIcon() []byte {
