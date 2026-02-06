@@ -12,27 +12,27 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 Phase: 2 of 5 (Single Instance & Window Management)
 Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-06 — Completed 02-02-PLAN.md (创建窗口状态数据层)
+Last activity: 2026-02-06 — Completed 02-01-SUMMARY.md (单实例锁定机制)
 
 Progress: [██████░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 2 min
-- Total execution time: 0.2 hours
+- Total plans completed: 6
+- Average duration: 4 min
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-ci-cd-pipeline | 3 | 3 | 2 min |
-| 02-single-instance-window-management | 2 | 3 | 2 min |
+| 02-single-instance-window-management | 3 | 3 | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 2 min, 2 min, 1 min, 2 min, 2 min
-- Trend: Stable (1.8 min per plan)
+- Last 5 plans: 4 min, 2 min, 1 min, 2 min, 2 min
+- Trend: Stable (2.2 min per plan)
 
 *Updated after each plan completion*
 
@@ -61,6 +61,9 @@ Recent decisions affecting current work:
 - [01-03]: 自动发布 - 使用 softprops/action-gh-release 创建 Release
 - [01-03]: 自动 Release Notes - GitHub 自动生成 changelog
 - [01-03]: Pre-release 检测 - 正则匹配 alpha/beta/rc/pre 标签
+- [02-01]: SingleInstanceLock UUID - 使用固定 UUID 'e3984e08-28dc-4e3d-b70a-45e961589cdc'
+- [02-01]: 窗口激活策略 - 静默激活（恢复最小化 + 显示到前台，无通知）
+- [02-01]: 窗口状态同步 - 必须使用封装方法（showWindow/hideWindow）而非直接调用 runtime API
 
 ### Pending Todos
 
@@ -72,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-06 03:54 UTC
-Stopped at: Completed 02-02-PLAN.md (Window state data layer implemented)
+Last session: 2026-02-06 04:14 UTC
+Stopped at: Completed 02-01-SUMMARY.md (Single instance lock mechanism completed)
 Resume file: None
