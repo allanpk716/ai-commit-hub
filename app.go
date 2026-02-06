@@ -19,6 +19,7 @@ import (
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
 	"github.com/allanpk716/ai-commit-hub/pkg/update"
 	"github.com/getlantern/systray"
+	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
 	"gorm.io/gorm"
