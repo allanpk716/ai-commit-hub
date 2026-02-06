@@ -87,6 +87,11 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	logger.Info("AI Commit Hub starting up...")
 
+	// 立即隐藏窗口，避免看到默认位置（1280x800）的闪烁
+	// 窗口会在 restoreWindowState() 中以正确的位置和大小显示
+	runtime.WindowHide(a.ctx)
+	logger.Debug("窗口已隐藏，准备恢复状态...")
+
 	// Initialize database
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -531,40 +536,51 @@ func (a *App) isPositionValid(x, y, width, height int) bool {
 // restoreWindowState 恢复窗口状态
 func (a *App) restoreWindowState() error {
 	if a.windowStateRepo == nil {
-		return nil // repository 未初始化,使用默认位置
+		// 无 repository，显示默认窗口
+		runtime.WindowShow(a.ctx)
+		a.windowVisible = true
+		return nil
 	}
 
 	state, err := a.windowStateRepo.GetByKey("window.main")
 	if err != nil {
 		logger.Info("首次启动,使用默认窗口位置")
-		return nil // 无记录,使用默认位置
+		// 无记录，显示默认窗口
+		runtime.WindowShow(a.ctx)
+		a.windowVisible = true
+		return nil
 	}
 
 	// 验证窗口位置是否有效
 	if !a.isPositionValid(state.X, state.Y, state.Width, state.Height) {
 		logger.Warn("保存的窗口位置无效,使用默认位置")
+		runtime.WindowShow(a.ctx)
+		a.windowVisible = true
 		return nil
 	}
 
-	// 先隐藏窗口，避免看到位置调整的闪烁
-	runtime.WindowHide(a.ctx)
-
-	// 恢复窗口位置和大小
+	// 步骤1: 设置窗口位置和大小（窗口仍在隐藏状态）
 	runtime.WindowSetPosition(a.ctx, state.X, state.Y)
 	runtime.WindowSetSize(a.ctx, state.Width, state.Height)
+	logger.Debug("窗口位置和大小已设置",
+		"position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
+		"size", fmt.Sprintf("%dx%d", state.Width, state.Height))
 
-	// 恢复最大化状态
+	// 步骤2: 显示窗口
+	runtime.WindowShow(a.ctx)
+	a.windowVisible = true
+	logger.Debug("窗口已显示")
+
+	// 步骤3: 如果需要最大化，在窗口显示后最大化
 	if state.Maximized {
 		logger.Info("恢复最大化窗口")
+		// 给窗口一点时间完成显示
+		time.Sleep(50 * time.Millisecond)
 		runtime.WindowMaximise(a.ctx)
 	}
 
-	// 最后显示窗口
-	runtime.WindowShow(a.ctx)
-	// 更新窗口可见标志
-	a.windowVisible = true
-
-	logger.Info("窗口状态已恢复", "position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
+	logger.Info("窗口状态已恢复",
+		"position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
 		"size", fmt.Sprintf("%dx%d", state.Width, state.Height),
 		"maximized", state.Maximized)
 	return nil
