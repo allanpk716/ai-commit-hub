@@ -85,3 +85,18 @@ jobs:
           7z a "../ai-commit-hub-windows-amd64-v${{ steps.meta.outputs.VERSION }}.zip" \
             ai-commit-hub.exe README.md config.yaml
           echo "Package created: ai-commit-hub-windows-amd64-v${{ steps.meta.outputs.VERSION }}.zip"
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd build
+          for file in *.zip; do
+            sha256sum "$file" > "${file}.sha256"
+            md5sum "$file" > "${file}.md5"
+          done
+
+          # Display checksums
+          echo "::notice::SHA256 Checksums:"
+          cat *.sha256
+          echo "::notice::MD5 Checksums:"
+          cat *.md5
