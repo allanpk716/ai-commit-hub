@@ -546,16 +546,27 @@ func (a *App) restoreWindowState() error {
 		return nil
 	}
 
+	// 先隐藏窗口，避免看到位置调整的闪烁
+	runtime.WindowHide(a.ctx)
+
 	// 恢复窗口位置和大小
 	runtime.WindowSetPosition(a.ctx, state.X, state.Y)
 	runtime.WindowSetSize(a.ctx, state.Width, state.Height)
 
 	// 恢复最大化状态
 	if state.Maximized {
+		logger.Info("恢复最大化窗口")
 		runtime.WindowMaximise(a.ctx)
 	}
 
-	logger.Info("窗口状态已恢复")
+	// 最后显示窗口
+	runtime.WindowShow(a.ctx)
+	// 更新窗口可见标志
+	a.windowVisible = true
+
+	logger.Info("窗口状态已恢复", "position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
+		"size", fmt.Sprintf("%dx%d", state.Width, state.Height),
+		"maximized", state.Maximized)
 	return nil
 }
 
