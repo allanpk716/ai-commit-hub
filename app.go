@@ -372,7 +372,7 @@ func (a *App) onSystrayReady() {
 	}
 	systray.SetIcon(iconBytes)
 	systray.SetTitle("AI Commit Hub")
-	systray.SetTooltip("AI Commit Hub - 双击打开主窗口")
+	systray.SetTooltip("AI Commit Hub - 双击显示/隐藏窗口")
 
 	// 双击托盘图标显示窗口
 	systray.SetOnDClick(func(menu systray.IMenu) {
@@ -380,10 +380,16 @@ func (a *App) onSystrayReady() {
 		a.showWindow()
 	})
 
-	// 创建菜单
-	menu := systray.AddMenuItem("显示窗口", "显示主窗口")
-	menu.Click(func() {
+	// 显示窗口菜单项 (始终可用,因为 showWindow 内部会检查 windowVisible)
+	showMenu := systray.AddMenuItem("显示窗口", "显示主窗口")
+	showMenu.Click(func() {
 		a.showWindow()
+	})
+
+	// 检查更新菜单项 (stub 实现 - Phase 4 将连接真实服务)
+	checkUpdateMenu := systray.AddMenuItem("检查更新", "检查是否有新版本可用")
+	checkUpdateMenu.Click(func() {
+		a.checkUpdateStub()
 	})
 
 	// 添加分隔线
@@ -501,6 +507,13 @@ func (a *App) quitApplication() {
 		// 这会导致 onSystrayExit 被调用，然后 Wails 会调用 shutdown
 		systray.Quit()
 	})
+}
+
+// checkUpdateStub "检查更新"菜单项的 stub 实现
+// Phase 4 将连接到真实的 updateService
+func (a *App) checkUpdateStub() {
+	logger.Info("检查更新功能将在未来版本实现")
+	// TODO: Phase 4 - 连接到 updateService.CheckForUpdates()
 }
 
 // saveWindowState 保存当前窗口状态
