@@ -11,6 +11,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
 
+    outputs:
+      VERSION: ${{ steps.meta.outputs.VERSION }}
+      PRERELEASE: ${{ steps.meta.outputs.PRERELEASE }}
+
     env:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
@@ -110,3 +114,31 @@ jobs:
             build/*.sha256
             build/*.md5
           retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/**/*.zip
+            artifacts/**/*.sha256
+            artifacts/**/*.md5
+          name: v${{ needs.build.outputs.VERSION }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ needs.build.outputs.PRERELEASE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
