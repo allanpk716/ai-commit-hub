@@ -75,3 +75,13 @@ jobs:
             echo "Version verification failed"
             exit 1
           fi
+
+      - name: Create release package
+        shell: bash
+        run: |
+          cd build/bin
+          cp ../../../README.md .
+          cp ../../../docs/config-examples/config.yaml .
+          7z a "../ai-commit-hub-windows-amd64-v${{ steps.meta.outputs.VERSION }}.zip" \
+            ai-commit-hub.exe README.md config.yaml
+          echo "Package created: ai-commit-hub-windows-amd64-v${{ steps.meta.outputs.VERSION }}.zip"
