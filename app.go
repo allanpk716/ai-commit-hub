@@ -273,8 +273,12 @@ func (a *App) onSecondInstanceLaunch(secondInstanceData options.SecondInstanceDa
 		}
 	}()
 
+	// 先恢复最小化的窗口
 	runtime.WindowUnminimise(a.ctx)
-	runtime.WindowShow(a.ctx)
+
+	// 使用 showWindow() 方法而不是直接调用 runtime.WindowShow()
+	// 这样可以正确更新 windowVisible 标志，避免关闭按钮失效问题
+	a.showWindow()
 }
 
 // getTrayIcon 根据平台返回合适的图标
