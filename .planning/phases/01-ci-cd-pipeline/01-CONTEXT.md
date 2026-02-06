@@ -1,6 +1,7 @@
 # Phase 1: CI/CD Pipeline - Context
 
 **Gathered:** 2026-02-06
+**Updated:** 2026-02-06 (removed 386 builds due to Wails limitations)
 **Status:** Ready for planning
 
 <domain>
@@ -27,9 +28,9 @@
 
 ### 构建矩阵策略
 - v1 版本仅构建 Windows 平台
-- Windows 平台支持两个架构：amd64 (x86_64) + 386 (x86_32)
-- 多个架构采用并行构建策略，最快完成全部产物
-- 产物命名遵循平台检测规范：`ai-commit-hub-windows-{arch}-v{version}.zip`
+- Windows 平台仅构建 amd64 (x86_64) 架构
+- **决策变更理由**: Wails 不支持 386 (32位) 构建，已知 WebView2 在 32 位环境下崩溃
+- 产物命名遵循平台检测规范：`ai-commit-hub-windows-amd64-v{version}.zip`
 
 ### 构建元数据
 - 在编译时嵌入完整的版本信息：版本号 + commit SHA + 构建时间戳
@@ -57,6 +58,7 @@
 <deferred>
 ## Deferred Ideas
 
+- Windows 386 (32位) 架构支持 — Wails 不支持 32 位构建，已知 WebView2 崩溃问题，等待官方支持
 - macOS 和 Linux 平台支持 — v2 或后续版本考虑
 - ARM64 架构支持 — 如果有实际需求再添加
 - 代码签名 — 等项目成熟后再考虑
