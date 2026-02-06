@@ -44,7 +44,7 @@
 
 - [ ] **CI-01**: 配置 GitHub Actions 工作流（.github/workflows/build.yml）
 - [ ] **CI-02**: Tag 推送时触发自动化构建
-- [ ] **CI-03**: 生成 Windows、macOS、Linux 多平台可执行文件
+- [ ] **CI-03**: 生成 Windows 平台可执行文件
 - [ ] **CI-04**: 自动上传构建资源到 GitHub Releases
 - [ ] **CI-05**: 资源文件命名遵循平台检测规范（ai-commit-hub-windows-amd64-v{version}.zip）
 
@@ -98,33 +98,33 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SI-01 | Phase 1 | Pending |
-| SI-02 | Phase 1 | Pending |
-| SI-03 | Phase 1 | Pending |
-| SI-04 | Phase 1 | Pending |
-| UPD-01 | Phase 2 | Pending |
-| UPD-02 | Phase 2 | Pending |
-| UPD-03 | Phase 2 | Pending |
-| UPD-04 | Phase 2 | Pending |
-| UPD-05 | Phase 2 | Pending |
-| UPD-06 | Phase 2 | Pending |
-| UPD-07 | Phase 2 | Pending |
-| UPD-08 | Phase 2 | Pending |
-| TRAY-01 | Phase 1 | Pending |
-| TRAY-02 | Phase 1 | Pending |
-| TRAY-03 | Phase 1 | Pending |
-| TRAY-04 | Phase 1 | Pending |
-| TRAY-05 | Phase 1 | Pending |
-| CI-01 | Phase 3 | Pending |
-| CI-02 | Phase 3 | Pending |
-| CI-03 | Phase 3 | Pending |
-| CI-04 | Phase 3 | Pending |
-| CI-05 | Phase 3 | Pending |
-| Q-01 | Phase 3 | Pending |
-| Q-02 | Phase 3 | Pending |
-| Q-03 | Phase 3 | Pending |
-| Q-04 | Phase 3 | Pending |
-| Q-05 | Phase 3 | Pending |
+| CI-01 | Phase 1 | Pending |
+| CI-02 | Phase 1 | Pending |
+| CI-03 | Phase 1 | Pending |
+| CI-04 | Phase 1 | Pending |
+| CI-05 | Phase 1 | Pending |
+| SI-01 | Phase 2 | Pending |
+| SI-02 | Phase 2 | Pending |
+| SI-03 | Phase 2 | Pending |
+| SI-04 | Phase 2 | Pending |
+| TRAY-01 | Phase 3 | Pending |
+| TRAY-02 | Phase 3 | Pending |
+| TRAY-03 | Phase 3 | Pending |
+| TRAY-04 | Phase 3 | Pending |
+| TRAY-05 | Phase 3 | Pending |
+| UPD-01 | Phase 4 | Pending |
+| UPD-02 | Phase 4 | Pending |
+| UPD-03 | Phase 4 | Pending |
+| UPD-04 | Phase 4 | Pending |
+| UPD-05 | Phase 4 | Pending |
+| UPD-06 | Phase 4 | Pending |
+| UPD-07 | Phase 4 | Pending |
+| UPD-08 | Phase 4 | Pending |
+| Q-01 | Phase 5 | Pending |
+| Q-02 | Phase 5 | Pending |
+| Q-03 | Phase 5 | Pending |
+| Q-04 | Phase 5 | Pending |
+| Q-05 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 25 total
@@ -133,4 +133,4 @@
 
 ---
 *Requirements defined: 2026-02-06*
-*Last updated: 2026-02-06 after initial definition*
+*Last updated: 2026-02-06 after roadmap creation*
