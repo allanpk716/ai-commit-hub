@@ -104,7 +104,10 @@ func main() {
 		if state.Width > 0 && state.Height > 0 {
 			initialWidth = state.Width
 			initialHeight = state.Height
-			logger.Info("恢复窗口大小", "width", initialWidth, "height", initialHeight)
+			logger.Info("从数据库恢复窗口状态",
+				"position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
+				"size", fmt.Sprintf("%dx%d", state.Width, state.Height),
+				"maximized", state.Maximized)
 		}
 		// 注意：窗口位置需要在 startup() 中使用 runtime.WindowSetPosition() 设置
 	} else {

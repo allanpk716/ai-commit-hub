@@ -501,6 +501,11 @@ func (a *App) saveWindowState() error {
 	width, height := runtime.WindowGetSize(a.ctx)
 	isMaximized := runtime.WindowIsMaximised(a.ctx)
 
+	logger.Info("准备保存窗口状态",
+		"position", fmt.Sprintf("(%d,%d)", x, y),
+		"size", fmt.Sprintf("%dx%d", width, height),
+		"maximized", isMaximized)
+
 	state := &models.WindowState{
 		Key:       "window.main",
 		X:         x,
@@ -512,10 +517,14 @@ func (a *App) saveWindowState() error {
 
 	// 保存到数据库
 	if err := a.windowStateRepo.Save(state); err != nil {
+		logger.Errorf("保存窗口状态到数据库失败: %v", err)
 		return err
 	}
 
-	logger.Info("窗口状态已保存")
+	logger.Info("窗口状态已保存到数据库",
+		"position", fmt.Sprintf("(%d,%d)", x, y),
+		"size", fmt.Sprintf("%dx%d", width, height),
+		"maximized", isMaximized)
 	return nil
 }
 
@@ -536,6 +545,7 @@ func (a *App) isPositionValid(x, y, width, height int) bool {
 // 这里需要设置窗口位置和最大化状态
 func (a *App) restoreWindowState() error {
 	if a.windowStateRepo == nil {
+		logger.Warn("windowStateRepo 未初始化，无法恢复窗口状态")
 		return nil // repository 未初始化
 	}
 
@@ -545,15 +555,22 @@ func (a *App) restoreWindowState() error {
 		return nil // 无记录
 	}
 
+	logger.Info("从数据库读取到窗口状态",
+		"position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
+		"size", fmt.Sprintf("%dx%d", state.Width, state.Height),
+		"maximized", state.Maximized)
+
 	// 设置窗口位置
 	if state.X >= 0 && state.Y >= 0 {
 		runtime.WindowSetPosition(a.ctx, state.X, state.Y)
 		logger.Info("窗口位置已设置", "x", state.X, "y", state.Y)
+	} else {
+		logger.Warn("窗口位置无效，跳过设置", "x", state.X, "y", state.Y)
 	}
 
 	// 恢复最大化状态
 	if state.Maximized {
-		logger.Info("恢复最大化窗口状态")
+		logger.Info("准备恢复最大化窗口状态")
 		// 在窗口完全显示后最大化
 		// 使用短延迟确保窗口已完全渲染
 		time.Sleep(100 * time.Millisecond)
