@@ -61,6 +61,7 @@ type App struct {
 	errorService         *service.ErrorService
 	updateService        *service.UpdateService
 	installer            *update.Installer
+	windowStateRepo      *repository.WindowStateRepository
 	initError            error
 	// 系统托盘相关字段
 	systrayReady   chan struct{} // systray 就绪信号
@@ -112,6 +113,7 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize repositories (only if database init succeeded)
 	a.gitProjectRepo = repository.NewGitProjectRepository()
 	a.commitHistoryRepo = repository.NewCommitHistoryRepository()
+	a.windowStateRepo = repository.NewWindowStateRepository()
 
 	// Initialize config service and ensure default config exists
 	a.configService = service.NewConfigService()
@@ -479,8 +481,49 @@ func (a *App) quitApplication() {
 	})
 }
 
+// saveWindowState 保存当前窗口状态
+func (a *App) saveWindowState() error {
+	if a.windowStateRepo == nil {
+		return nil // repository 未初始化,跳过
+	}
+
+	// 获取当前窗口状态
+	x, y := runtime.WindowGetPosition(a.ctx)
+	width, height := runtime.WindowGetSize(a.ctx)
+	isMaximized := runtime.WindowIsMaximised(a.ctx)
+
+	state := &models.WindowState{
+		Key:       "window.main",
+		X:         x,
+		Y:         y,
+		Width:     width,
+		Height:    height,
+		Maximized: isMaximized,
+	}
+
+	// 保存到数据库
+	if err := a.windowStateRepo.Save(state); err != nil {
+		return err
+	}
+
+	logger.Info("窗口状态已保存")
+	return nil
+}
+
 // onBeforeClose 拦截窗口关闭事件,隐藏到托盘而非退出
 func (a *App) onBeforeClose(ctx context.Context) (prevent bool) {
+	// 保存窗口状态（使用 defer recover 确保保存失败不阻塞关闭）
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("保存窗口状态失败: %v", r)
+		}
+	}()
+
+	if err := a.saveWindowState(); err != nil {
+		logger.Errorf("保存窗口状态失败: %v", err)
+		// 不阻塞关闭流程
+	}
+
 	// 如果应用正在退出，不拦截关闭事件
 	if a.quitting.Load() {
 		logger.Info("应用正在退出,允许窗口关闭")
