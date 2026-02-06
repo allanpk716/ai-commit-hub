@@ -252,6 +252,12 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}()
 
+	// 恢复窗口状态
+	if err := a.restoreWindowState(); err != nil {
+		logger.Warnf("恢复窗口状态失败: %v", err)
+		// 不阻塞启动流程
+	}
+
 	go func() {
 		time.Sleep(300 * time.Millisecond)
 		a.runSystray()
@@ -507,6 +513,49 @@ func (a *App) saveWindowState() error {
 	}
 
 	logger.Info("窗口状态已保存")
+	return nil
+}
+
+// isPositionValid 验证窗口位置是否有效
+func (a *App) isPositionValid(x, y, width, height int) bool {
+	const (
+		minWidth  = 400
+		minHeight = 300
+		maxCoord  = 10000
+	)
+
+	return x >= 0 && y >= 0 && width >= minWidth && height >= minHeight &&
+		x < maxCoord && y < maxCoord
+}
+
+// restoreWindowState 恢复窗口状态
+func (a *App) restoreWindowState() error {
+	if a.windowStateRepo == nil {
+		return nil // repository 未初始化,使用默认位置
+	}
+
+	state, err := a.windowStateRepo.GetByKey("window.main")
+	if err != nil {
+		logger.Info("首次启动,使用默认窗口位置")
+		return nil // 无记录,使用默认位置
+	}
+
+	// 验证窗口位置是否有效
+	if !a.isPositionValid(state.X, state.Y, state.Width, state.Height) {
+		logger.Warn("保存的窗口位置无效,使用默认位置")
+		return nil
+	}
+
+	// 恢复窗口位置和大小
+	runtime.WindowSetPosition(a.ctx, state.X, state.Y)
+	runtime.WindowSetSize(a.ctx, state.Width, state.Height)
+
+	// 恢复最大化状态
+	if state.Maximized {
+		runtime.WindowMaximise(a.ctx)
+	}
+
+	logger.Info("窗口状态已恢复")
 	return nil
 }
 
