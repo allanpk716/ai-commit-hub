@@ -37,9 +37,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: 配置 GitHub Actions 基础工作流
-- [ ] 01-02: 实现 Windows 平台构建和资源打包
-- [ ] 01-03: 配置自动发布到 GitHub Releases
+- [ ] 01-01-PLAN.md — 创建 GitHub Actions 基础工作流，配置 Wails 构建和版本注入
+- [ ] 01-02-PLAN.md — 实现产物打包（exe + 文档）和校验和生成
+- [ ] 01-03-PLAN.md — 配置自动发布到 GitHub Releases，支持预发布版本检测
 
 ### Phase 2: Single Instance & Window Management
 
