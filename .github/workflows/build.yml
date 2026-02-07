@@ -96,8 +96,8 @@ jobs:
         shell: bash
         run: |
           cd build/bin
-          cp ../../../README.md .
-          cp ../../../docs/config-examples/config.yaml .
+          cp "${GITHUB_WORKSPACE}/README.md" .
+          cp "${GITHUB_WORKSPACE}/docs/config-examples/config.yaml" ./config.yaml
           7z a "../ai-commit-hub-windows-amd64-v${{ steps.meta.outputs.VERSION }}.zip" \
             ai-commit-hub.exe README.md config.yaml
           echo "Package created: ai-commit-hub-windows-amd64-v${{ steps.meta.outputs.VERSION }}.zip"
