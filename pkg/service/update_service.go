@@ -301,27 +301,28 @@ func (s *UpdateService) performBackgroundCheck() {
 func (s *UpdateService) getTestUpdateInfo() (*models.UpdateInfo, error) {
 	currentVersion := version.GetVersion()
 
-	// 使用已有的 v1.0.0-alpha.1 Release 作为测试目标
-	testVersion := "v1.0.0-alpha.1"
-	testURL := "https://github.com/allanpk716/ai-commit-hub/releases/download/v1.0.0-alpha.1/ai-commit-hub-windows-amd64-v1.0.0-alpha.1.zip"
-	testAssetName := "ai-commit-hub-windows-amd64-v1.0.0-alpha.1.zip"
-	testSize := int64(60 * 1024 * 1024) // 假设 60MB（实际大小可能不同）
+	// 使用已有的 v0.2.0-beta.1 Release 作为测试目标（真实文件）
+	testVersion := "v0.2.0-beta.1"
+	testURL := "https://github.com/allanpk716/ai-commit-hub/releases/download/v0.2.0-beta.1/ai-commit-hub-windows-amd64-v0.2.0-beta.1.zip"
+	testAssetName := "ai-commit-hub-windows-amd64-v0.2.0-beta.1.zip"
+	testSize := int64(14332036) // 实际文件大小（约 13.7 MB）
 
 	logger.Info("🧪 测试模式：返回测试更新信息",
 		"current", currentVersion,
 		"test", testVersion,
-		"url", testURL)
+		"url", testURL,
+		"size", testSize)
 
 	return &models.UpdateInfo{
 		HasUpdate:      true, // 测试模式总是返回有更新
 		LatestVersion:  testVersion,
 		CurrentVersion: currentVersion,
-		ReleaseNotes:   "这是测试模式的更新说明。\n\n用于测试下载和进度显示功能。",
+		ReleaseNotes:   "这是测试模式的更新说明。\n\n用于测试下载和进度显示功能。\n\n**注意**：这将下载真实的 v0.2.0-beta.1 版本（约 13.7 MB）。",
 		PublishedAt:    time.Now(),
 		DownloadURL:    testURL,
 		AssetName:      testAssetName,
 		Size:           testSize,
 		IsPrerelease:   true,
-		PrereleaseType: "alpha",
+		PrereleaseType: "beta",
 	}, nil
 }
