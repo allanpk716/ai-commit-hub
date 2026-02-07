@@ -16,6 +16,9 @@ export const useUpdateStore = defineStore('update', () => {
   const downloadETA = ref('')
   const canCancel = ref(false)
   const isReadyToInstall = ref(false)
+  const showInstallConfirm = ref(false)
+  const isInstalling = ref(false)
+  const installError = ref<string | null>(null)
   const skippedVersion = ref<string | null>(null)
 
   // Computed
@@ -97,18 +100,32 @@ export const useUpdateStore = defineStore('update', () => {
       throw new Error('没有可用的更新信息')
     }
 
-    isDownloading.value = true
-    downloadProgress.value = 0
+    isInstalling.value = true
+    installError.value = null
 
     try {
       const { InstallUpdate } = await import('../../wailsjs/go/main/App')
-      await InstallUpdate(updateInfo.value.downloadURL, updateInfo.value.assetName)
+      await InstallUpdate(
+        updateInfo.value.downloadURL,
+        updateInfo.value.assetName
+      )
+      // 注意：成功后程序会退出，不会继续执行
     } catch (error) {
       console.error('安装更新失败:', error)
-      isDownloading.value = false
+      installError.value = String(error)
+      isInstalling.value = false
       throw error
     }
-    // 注意：成功后程序会退出，不需要重置状态
+  }
+
+  async function confirmInstall() {
+    showInstallConfirm.value = false
+    await installUpdate()
+  }
+
+  function cancelInstall() {
+    showInstallConfirm.value = false
+    isReadyToInstall.value = true // 保持可安装状态，用户可以稍后安装
   }
 
   function skipVersion(version: string) {
@@ -180,8 +197,11 @@ export const useUpdateStore = defineStore('update', () => {
   EventsOn('download-complete', () => {
     console.log('收到下载完成事件')
     isDownloading.value = false
+    downloadProgress.value = 100
     isReadyToInstall.value = true
     canCancel.value = false
+    // 显示安装确认对话框
+    showInstallConfirm.value = true
   })
 
   return {
@@ -196,6 +216,9 @@ export const useUpdateStore = defineStore('update', () => {
     downloadETA,
     canCancel,
     isReadyToInstall,
+    showInstallConfirm,
+    isInstalling,
+    installError,
     skippedVersion,
     displayVersion,
     releaseNotes,
@@ -204,6 +227,8 @@ export const useUpdateStore = defineStore('update', () => {
     downloadUpdate,
     cancelDownload,
     installUpdate,
+    confirmInstall,
+    cancelInstall,
     skipVersion,
     resetUpdateState,
     formatBytes,
