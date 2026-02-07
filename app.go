@@ -255,6 +255,9 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}()
 
+	// 启动后台定时检查更新（每24小时）
+	a.updateService.StartBackgroundCheck()
+
 	// 恢复窗口状态
 	if err := a.restoreWindowState(); err != nil {
 		logger.Warnf("恢复窗口状态失败: %v", err)
@@ -509,11 +512,25 @@ func (a *App) quitApplication() {
 	})
 }
 
-// checkUpdateStub "检查更新"菜单项的 stub 实现
-// Phase 4 将连接到真实的 updateService
+// checkUpdateStub "检查更新"菜单项的实现
 func (a *App) checkUpdateStub() {
-	logger.Info("检查更新功能将在未来版本实现")
-	// TODO: Phase 4 - 连接到 updateService.CheckForUpdates()
+	logger.Info("手动检查更新")
+
+	updateInfo, err := a.updateService.CheckForUpdates()
+	if err != nil {
+		logger.Errorf("检查更新失败: %v", err)
+		return
+	}
+
+	if updateInfo.HasUpdate {
+		logger.Infof("发现新版本: %s", updateInfo.LatestVersion)
+		// 发送事件到前端
+		runtime.EventsEmit(a.ctx, "update-available", updateInfo)
+		// TODO: 显示系统托盘通知（Phase 4-02 实现）
+	} else {
+		logger.Info("已是最新版本")
+		// TODO: 显示"已是最新版本"通知
+	}
 }
 
 // saveWindowState 保存当前窗口状态
