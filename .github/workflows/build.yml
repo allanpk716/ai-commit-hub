@@ -56,12 +56,19 @@ jobs:
           go-version: '1.21'
           cache: true
 
-      - name: Build Wails application
-        uses: dAppServer/wails-build-action@v3
-        with:
-          build-name: ai-commit-hub
-          build-platform: windows/amd64
-          package: false
+      - name: Install Wails CLI
+        shell: bash
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install Node.js dependencies
+        shell: bash
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build Wails application (prepare)
+        shell: bash
+        run: wails build -clean
 
       - name: Inject version info and rebuild
         shell: bash
