@@ -10,7 +10,11 @@ export const useUpdateStore = defineStore('update', () => {
   const isChecking = ref(false)
   const isDownloading = ref(false)
   const downloadProgress = ref(0)
+  const downloadedSize = ref(0)
+  const totalSize = ref(0)
   const downloadSpeed = ref(0)
+  const downloadETA = ref('')
+  const canCancel = ref(false)
   const isReadyToInstall = ref(false)
   const skippedVersion = ref<string | null>(null)
 
@@ -50,6 +54,44 @@ export const useUpdateStore = defineStore('update', () => {
     }
   }
 
+  async function downloadUpdate(url: string, filename: string, proxyURL: string = '') {
+    if (!updateInfo.value) {
+      throw new Error('没有可用的更新信息')
+    }
+
+    isDownloading.value = true
+    downloadProgress.value = 0
+    canCancel.value = true
+
+    try {
+      const { DownloadUpdate } = await import('../../wailsjs/go/main/App')
+      await DownloadUpdate(url, filename, proxyURL)
+    } catch (error) {
+      console.error('下载更新失败:', error)
+      isDownloading.value = false
+      canCancel.value = false
+      throw error
+    }
+  }
+
+  async function cancelDownload() {
+    if (!updateInfo.value) {
+      return
+    }
+
+    try {
+      const { CancelDownload } = await import('../../wailsjs/go/main/App')
+      await CancelDownload(updateInfo.value.assetName)
+    } catch (error) {
+      console.error('取消下载失败:', error)
+      throw error
+    } finally {
+      isDownloading.value = false
+      canCancel.value = false
+      downloadProgress.value = 0
+    }
+  }
+
   async function installUpdate() {
     if (!updateInfo.value) {
       throw new Error('没有可用的更新信息')
@@ -79,7 +121,36 @@ export const useUpdateStore = defineStore('update', () => {
     updateInfo.value = null
     isDownloading.value = false
     downloadProgress.value = 0
+    downloadedSize.value = 0
+    totalSize.value = 0
+    downloadSpeed.value = 0
+    downloadETA.value = ''
+    canCancel.value = false
     isReadyToInstall.value = false
+  }
+
+  // 工具方法：格式化字节大小
+  function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  // 工具方法：格式化速度
+  function formatSpeed(bytesPerSecond: number): string {
+    return formatBytes(bytesPerSecond) + '/s'
+  }
+
+  // 工具方法：计算剩余时间
+  function calculateETA(downloaded: number, total: number, speed: number): string {
+    if (speed <= 0) return '计算中...'
+    const remaining = total - downloaded
+    const seconds = Math.floor(remaining / speed)
+    if (seconds < 60) return `${seconds}秒`
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}分${seconds % 60}秒`
+    return `${Math.floor(seconds / 3600)}小时${Math.floor((seconds % 3600) / 60)}分`
   }
 
   // 监听后端事件
@@ -89,15 +160,28 @@ export const useUpdateStore = defineStore('update', () => {
     hasUpdate.value = info.hasUpdate
   })
 
-  EventsOn('download-progress', (data: { percentage: number; speed: number }) => {
+  EventsOn('download-progress', (data: {
+    percentage: number
+    downloaded: number
+    total: number
+    speed: number
+    eta: string
+    url: string
+  }) => {
+    console.log('收到下载进度事件:', data)
     downloadProgress.value = data.percentage
+    downloadedSize.value = data.downloaded
+    totalSize.value = data.total
     downloadSpeed.value = data.speed
+    downloadETA.value = data.eta
     isDownloading.value = true
   })
 
   EventsOn('download-complete', () => {
+    console.log('收到下载完成事件')
     isDownloading.value = false
     isReadyToInstall.value = true
+    canCancel.value = false
   })
 
   return {
@@ -106,15 +190,24 @@ export const useUpdateStore = defineStore('update', () => {
     isChecking,
     isDownloading,
     downloadProgress,
+    downloadedSize,
+    totalSize,
     downloadSpeed,
+    downloadETA,
+    canCancel,
     isReadyToInstall,
     skippedVersion,
     displayVersion,
     releaseNotes,
     formattedSize,
     checkForUpdates,
+    downloadUpdate,
+    cancelDownload,
     installUpdate,
     skipVersion,
-    resetUpdateState
+    resetUpdateState,
+    formatBytes,
+    formatSpeed,
+    calculateETA
   }
 })
