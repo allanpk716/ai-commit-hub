@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 ## Current Position
 
 Phase: 4 of 5 (Auto Update System)
-Plan: 0 of 4 in current phase
-Status: Ready to start
-Last activity: 2026-02-06 — Phase 3 completed and verified
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-02-07 — Completed 04-01 (版本检测和 UI 集成)
 
-Progress: [██████████] 57%
+Progress: [██████████░] 61%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: 3 min
-- Total execution time: 0.4 hours
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [██████████] 57%
 | 01-ci-cd-pipeline | 3 | 6 min | 2 min |
 | 02-single-instance-window-management | 3 | 11 min | 4 min |
 | 03-system-tray-fixes | 2 | 7 min | 4 min |
+| 04-auto-update-system | 1 | 8 min | 8 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 2 min, 1 min, 2 min, 4 min
-- Trend: Stable (2.6 min per plan)
+- Last 5 plans: 4 min, 2 min, 1 min, 4 min, 8 min
+- Trend: Stable (3.8 min per plan)
 
 *Updated after each plan completion*
 
@@ -69,6 +70,10 @@ Recent decisions affecting current work:
 - [02-03]: 位置验证 - 使用边界检查防止窗口"丢失"在屏幕外（minWidth 400, minHeight 300, maxCoord 10000）
 - [02-03]: 启动时序优化 - main.go 预读取数据库设置窗口大小，startup() 中恢复位置和最大化状态，避免闪烁
 - [02-03]: Upsert 策略 - 使用 clause.OnConflict 处理窗口状态保存的 UNIQUE constraint 错误
+- [04-01]: 版本比较库 - 使用 golang.org/x/mod/semver 实现标准语义化版本比较
+- [04-01]: 版本检测端点 - 使用 /releases 而非 /releases/latest 支持预发布版本
+- [04-01]: 缓存机制 - 24 小时 TTL + 速率限制时返回缓存
+- [04-01]: 后台检查 - 每 24 小时自动检查更新
 
 ### Pending Todos
 
@@ -81,6 +86,15 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **无阻塞问题**
+
+**Phase 4-01 完成总结:**
+- 版本比较支持预发布版本完成 (04-01)
+- UpdateService 重构完成，使用 /releases 端点 (04-01)
+- 24 小时后台自动检查已实现 (04-01)
+- 托盘菜单"检查更新"已连接真实 API (04-01)
+- UpdateInfo 模型增强，包含预发布标识 (04-01)
+
+**可以继续 Phase 4-02 (Download and Install)**
 
 **Phase 2 完成总结:**
 - 单例锁定和窗口激活功能完成 (02-01)
@@ -95,8 +109,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-06
-Stopped at: Phase 2 complete - Moving to Phase 3
+Last session: 2026-02-07
+Stopped at: Completed 04-01 - Version detection and UI integration
 Resume file: None
 
 ## Phase 2 完成总结
@@ -138,3 +152,20 @@ Resume file: None
 - 竞态条件防护 - 使用 sync.Once 和 atomic.Bool 防止重复退出
 - 退出/最小化分离 - 通过 quitting atomic.Bool 区分两种行为
 - 菜单结构 - 实现三项菜单（显示窗口、检查更新 stub、退出应用）
+
+## Phase 4-01 完成总结
+
+**完成日期**: 2026-02-07
+
+**已完成计划**:
+- 04-01: 版本检测和 UI 集成
+
+**关键决策**:
+- 版本比较库 - 使用 golang.org/x/mod/semver v0.32.0 实现标准语义化版本比较
+- 版本检测端点 - 使用 /releases 而非 /releases/latest 支持预发布版本
+- 缓存机制 - 24 小时 TTL + 速率限制时返回缓存提高可靠性
+- 后台检查 - 使用 time.NewTicker(24*time.Hour) 实现定时检查
+- 精确平台匹配 - 从 strings.Contains(asset.Name, "windows") 改为精确匹配 windows-amd64
+
+**下一步**: Phase 4-02 - Download and Install
+
