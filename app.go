@@ -524,8 +524,11 @@ func (a *App) checkUpdateStub() {
 
 	if updateInfo.HasUpdate {
 		logger.Infof("发现新版本: %s", updateInfo.LatestVersion)
-		// 发送事件到前端
-		runtime.EventsEmit(a.ctx, "update-available", updateInfo)
+		// 发送事件到前端（使用前端期望的数据结构）
+		runtime.EventsEmit(a.ctx, "update-available", map[string]interface{}{
+			"hasUpdate": true,
+			"info":      updateInfo,
+		})
 		// TODO: 显示系统托盘通知（Phase 4-02 实现）
 	} else {
 		logger.Info("已是最新版本")

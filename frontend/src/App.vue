@@ -49,6 +49,12 @@
     <!-- Error Toast (全局错误提示) -->
     <ErrorToast />
 
+    <!-- Update Dialog (更新对话框) -->
+    <UpdateDialog :visible="showUpdateDialog" @close="showUpdateDialog = false" />
+
+    <!-- Update Progress Dialog (下载进度对话框) -->
+    <UpdateProgressDialog :visible="updateStore.isDownloading" @close="updateStore.cancelDownload" />
+
     <!-- 删除确认对话框 -->
     <ConfirmDialog
       :visible="showDeleteDialog"
@@ -93,6 +99,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useProjectStore } from './stores/projectStore'
 import { useCommitStore } from './stores/commitStore'
 import { usePushoverStore } from './stores/pushoverStore'
+import { useUpdateStore } from './stores/updateStore'
 import { SelectProjectFolder } from '../wailsjs/go/main/App'
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
 import ProjectList from './components/ProjectList.vue'
@@ -103,16 +110,20 @@ import ExtensionInfoDialog from './components/ExtensionInfoDialog.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import SplashScreen from './components/SplashScreen.vue'
 import ErrorToast from './components/ErrorToast.vue'
+import UpdateDialog from './components/UpdateDialog.vue'
+import UpdateProgressDialog from './components/UpdateProgressDialog.vue'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
 const commitStore = useCommitStore()
 const pushoverStore = usePushoverStore()
+const updateStore = useUpdateStore()
 const selectedProjectId = ref<number>()
 const settingsOpen = ref(false)
 const extensionDialogOpen = ref(false)
 const showSplash = ref(true)
 const initErrors = ref<Array<{ error: string; message: string }>>([])
+const showUpdateDialog = ref(false)
 
 // 删除对话框状态
 const showDeleteDialog = ref(false)
@@ -203,6 +214,30 @@ onMounted(async () => {
     console.log('[App] 窗口已隐藏到托盘', data.timestamp)
   })
 
+  // 监听更新可用事件
+  EventsOn('update-available', (data: { hasUpdate: boolean; info: any }) => {
+    console.log('[App] 检测到更新', data)
+    if (data.hasUpdate) {
+      showUpdateDialog.value = true
+    }
+  })
+
+  // 监听托盘菜单的"检查更新"事件
+  EventsOn('check-update-from-tray', async () => {
+    console.log('[App] 从托盘触发检查更新')
+    try {
+      const info = await updateStore.checkForUpdates()
+      if (info.hasUpdate) {
+        showUpdateDialog.value = true
+      } else {
+        // 可以显示"已是最新版本"提示
+        console.log('[App] 已是最新版本')
+      }
+    } catch (error) {
+      console.error('[App] 检查更新失败:', error)
+    }
+  })
+
   // 3. 超时保护（30秒后强制进入主界面）
   const timeoutId = setTimeout(() => {
     if (showSplash.value) {
@@ -216,6 +251,8 @@ onMounted(async () => {
     EventsOff('startup-complete')
     EventsOff('window-shown')
     EventsOff('window-hidden')
+    EventsOff('update-available')
+    EventsOff('check-update-from-tray')
     clearTimeout(timeoutId)
   })
 
