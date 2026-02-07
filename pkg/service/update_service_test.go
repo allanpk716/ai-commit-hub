@@ -73,9 +73,9 @@ func TestFindPlatformAsset(t *testing.T) {
 	service := NewUpdateService("test/repo")
 
 	assets := []Asset{
-		{Name: "ai-commit-hub-1.0.0-windows.zip", Size: 1000, URL: "http://example.com/windows.zip"},
-		{Name: "ai-commit-hub-1.0.0-darwin.zip", Size: 2000, URL: "http://example.com/darwin.zip"},
-		{Name: "ai-commit-hub-1.0.0-linux.zip", Size: 1500, URL: "http://example.com/linux.zip"},
+		{Name: "ai-commit-hub-1.0.0-windows-amd64.zip", Size: 1000, URL: "http://example.com/windows.zip"},
+		{Name: "ai-commit-hub-1.0.0-darwin-amd64.zip", Size: 2000, URL: "http://example.com/darwin.zip"},
+		{Name: "ai-commit-hub-1.0.0-linux-amd64.zip", Size: 1500, URL: "http://example.com/linux.zip"},
 	}
 
 	// 测试当前平台

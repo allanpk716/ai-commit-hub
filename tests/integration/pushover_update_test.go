@@ -204,9 +204,8 @@ func TestPushoverNotificationModes(t *testing.T) {
 			assert.Equal(t, tt.mode, currentMode, "通知模式应该匹配")
 
 			// 验证标记文件
-			claudeDir := filepath.Join(projectPath, ".claude")
-			noPushoverPath := filepath.Join(claudeDir, ".no-pushover")
-			noWindowsPath := filepath.Join(claudeDir, ".no-windows")
+			noPushoverPath := filepath.Join(projectPath, ".no-pushover")
+			noWindowsPath := filepath.Join(projectPath, ".no-windows")
 
 			_, noPushoverErr := os.Stat(noPushoverPath)
 			_, noWindowsErr := os.Stat(noWindowsPath)
