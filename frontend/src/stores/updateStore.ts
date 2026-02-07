@@ -154,10 +154,10 @@ export const useUpdateStore = defineStore('update', () => {
   }
 
   // 监听后端事件
-  EventsOn('update-available', (info: models.UpdateInfo) => {
-    console.log('收到更新可用事件:', info)
-    updateInfo.value = info
-    hasUpdate.value = info.hasUpdate
+  EventsOn('update-available', (data: { hasUpdate: boolean; info: models.UpdateInfo }) => {
+    console.log('收到更新可用事件:', data)
+    updateInfo.value = data.info
+    hasUpdate.value = data.hasUpdate
   })
 
   EventsOn('download-progress', (data: {
