@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 ## Current Position
 
 Phase: 4 of 5 (Auto Update System)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-02-07 — Completed 04-03 (外部更新器程序)
+Plan: 4 of 4 in current phase
+Status: Phase complete
+Last activity: 2026-02-07 — Completed 04-04 (更新替换和自动重启)
 
-Progress: [██████████░] 69%
+Progress: [███████████] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 15
 - Average duration: 3 min
-- Total execution time: 0.6 hours
+- Total execution time: 0.75 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [██████████░] 69%
 | 01-ci-cd-pipeline | 3 | 6 min | 2 min |
 | 02-single-instance-window-management | 3 | 11 min | 4 min |
 | 03-system-tray-fixes | 2 | 7 min | 4 min |
-| 04-auto-update-system | 3 | 13 min | 4 min |
+| 04-auto-update-system | 4 | 16 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 8 min, 8 min, 3 min, 4 min, 8 min
-- Trend: Stable (6.2 min per plan)
+- Last 5 plans: 8 min, 3 min, 4 min, 8 min, 3 min
+- Trend: Stable (5.2 min per plan)
 
 *Updated after each plan completion*
 
@@ -80,6 +80,10 @@ Recent decisions affecting current work:
 - [04-02]: 文件回滚机制 - 更新失败时自动回滚到备份版本，确保系统稳定
 - [04-02]: 构建顺序依赖 - 先构建 updater.exe，再构建主程序（embed 需要）
 - [04-02]: 中文更新界面 - 更新器显示中文进度信息，提升用户体验
+- [04-04]: InstallUpdate 使用本地已下载的 ZIP 文件 - 简化逻辑，避免重复下载
+- [04-04]: 下载完成后自动弹出安装确认对话框 - 用户友好的更新体验
+- [04-04]: 对话框互斥显示 - 避免同时显示多个对话框，清晰的状态流转
+- [04-04]: 安装时调用 Quit() 退出主程序 - 释放文件锁，让更新器接管文件替换
 
 ### Pending Todos
 
@@ -93,14 +97,20 @@ Recent decisions affecting current work:
 
 **无阻塞问题**
 
-**Phase 4-03 完成总结:**
-- 外部更新器程序实现完成 (04-03)
-- 更新器核心功能：解压 ZIP、备份、替换、回滚、启动 (04-03)
-- embed 嵌入更新器到主程序 (04-03)
-- 构建脚本集成：Makefile 和 GitHub Actions (04-03)
-- 中文界面和进度显示 (04-03)
+**Phase 4 完成总结:**
+- ✅ 版本检测和 UI 集成 (04-01)
+- ✅ 后台下载和进度显示 (04-02)
+- ✅ 外部更新器程序实现 (04-03)
+- ✅ 更新替换和自动重启 (04-04)
 
-**可以继续 Phase 4-04 (完整测试和优化)**
+**完整的自动更新系统已实现：**
+- 版本检测：使用 GitHub API 检测新版本
+- 后台下载：支持断点续传、实时进度、自动重试
+- 更新器程序：独立进程、文件替换、自动回滚
+- 用户界面：更新对话框、下载进度、安装确认
+- 自动重启：更新完成后自动启动新版本
+
+**Phase 4 全部完成，可以进入下一阶段**
 
 **Phase 2 完成总结:**
 - 单例锁定和窗口激活功能完成 (02-01)
@@ -116,7 +126,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 04-03 - External updater program implementation
+Stopped at: Completed 04-04 - Update replacement and auto-restart
 Resume file: None
 
 ## Phase 2 完成总结
@@ -173,5 +183,48 @@ Resume file: None
 - 后台检查 - 使用 time.NewTicker(24*time.Hour) 实现定时检查
 - 精确平台匹配 - 从 strings.Contains(asset.Name, "windows") 改为精确匹配 windows-amd64
 
-**下一步**: Phase 4-02 - Download and Install
+**下一步**: Phase 4-02 - Download and Progress
+
+## Phase 4-02 完成总结
+
+**完成日期**: 2026-02-07
+
+**已完成计划**:
+- 04-02: 后台下载和进度显示
+
+**关键决策**:
+- 断点续传支持 - 使用 HTTP Range 请求实现断点续传
+- 自动重试机制 - 失败时自动重试最多 3 次，每次间隔 5 秒
+- 实时进度推送 - 通过 Wails Events 每 100ms 推送下载进度
+- 测试模式支持 - 使用真实存在的 Release 进行测试
+- 下载和安装分离 - Wave 2 只实现 downloadUpdate()，installUpdate() 在 Wave 4
+
+## Phase 4-03 完成总结
+
+**完成日期**: 2026-02-07
+
+**已完成计划**:
+- 04-03: 外部更新器程序实现
+
+**关键决策**:
+- 独立更新器程序 - pkg/update/updater 作为独立的 main 包
+- embed 嵌入策略 - 使用 //go:embed 将 updater.exe 嵌入主程序
+- 更新器显示中文进度信息 - 提升用户体验
+- 构建顺序依赖 - 先构建 updater.exe，再构建主程序
+- 文件回滚机制 - 更新失败时自动回滚到备份版本
+
+## Phase 4-04 完成总结
+
+**完成日期**: 2026-02-07
+
+**已完成计划**:
+- 04-04: 更新替换和自动重启
+
+**关键决策**:
+- InstallUpdate 使用本地已下载的 ZIP 文件 - 简化逻辑
+- 下载完成后自动弹出安装确认对话框 - 用户友好
+- 对话框互斥显示 - 避免同时显示多个对话框
+- 安装时调用 Quit() 退出主程序 - 释放文件锁
+
+**Phase 4 全部完成**
 
