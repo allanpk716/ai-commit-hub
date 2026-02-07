@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ type UpdateService struct {
 	mu           sync.RWMutex
 	lastCheck    time.Time
 	cachedResult *models.UpdateInfo
+	testMode     bool // 测试模式开关
 }
 
 // GitHubRelease GitHub Release API 响应
@@ -43,16 +45,28 @@ type Asset struct {
 
 // NewUpdateService 创建更新检查服务
 func NewUpdateService(repo string) *UpdateService {
+	// 检查是否启用测试模式（环境变量：AI_COMMIT_HUB_TEST_MODE=true）
+	testMode := os.Getenv("AI_COMMIT_HUB_TEST_MODE") == "true"
+	if testMode {
+		logger.Info("🧪 测试模式已启用")
+	}
+
 	return &UpdateService{
 		repo: repo,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		testMode: testMode,
 	}
 }
 
 // CheckForUpdates 检查更新
 func (s *UpdateService) CheckForUpdates() (*models.UpdateInfo, error) {
+	// 🧪 测试模式：返回固定的更新信息
+	if s.testMode {
+		return s.getTestUpdateInfo()
+	}
+
 	logger.Info("检查更新", "repo", s.repo)
 
 	// 检查缓存（24小时内）
@@ -280,4 +294,34 @@ func (s *UpdateService) performBackgroundCheck() {
 	if err != nil {
 		logger.Warnf("后台更新检查失败: %v", err)
 	}
+}
+
+// getTestUpdateInfo 返回测试用的更新信息
+// 用于测试下载和进度显示功能
+func (s *UpdateService) getTestUpdateInfo() (*models.UpdateInfo, error) {
+	currentVersion := version.GetVersion()
+
+	// 使用已有的 v1.0.0-alpha.1 Release 作为测试目标
+	testVersion := "v1.0.0-alpha.1"
+	testURL := "https://github.com/allanpk716/ai-commit-hub/releases/download/v1.0.0-alpha.1/ai-commit-hub-windows-amd64-v1.0.0-alpha.1.zip"
+	testAssetName := "ai-commit-hub-windows-amd64-v1.0.0-alpha.1.zip"
+	testSize := int64(60 * 1024 * 1024) // 假设 60MB（实际大小可能不同）
+
+	logger.Info("🧪 测试模式：返回测试更新信息",
+		"current", currentVersion,
+		"test", testVersion,
+		"url", testURL)
+
+	return &models.UpdateInfo{
+		HasUpdate:      true, // 测试模式总是返回有更新
+		LatestVersion:  testVersion,
+		CurrentVersion: currentVersion,
+		ReleaseNotes:   "这是测试模式的更新说明。\n\n用于测试下载和进度显示功能。",
+		PublishedAt:    time.Now(),
+		DownloadURL:    testURL,
+		AssetName:      testAssetName,
+		Size:           testSize,
+		IsPrerelease:   true,
+		PrereleaseType: "alpha",
+	}, nil
 }
