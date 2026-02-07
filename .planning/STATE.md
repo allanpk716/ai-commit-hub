@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 ## Current Position
 
 Phase: 4 of 5 (Auto Update System)
-Plan: 1 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-07 — Completed 04-01 (版本检测和 UI 集成)
+Last activity: 2026-02-07 — Completed 04-03 (外部更新器程序)
 
-Progress: [██████████░] 61%
+Progress: [██████████░] 69%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 11
 - Average duration: 3 min
-- Total execution time: 0.5 hours
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [██████████░] 61%
 | 01-ci-cd-pipeline | 3 | 6 min | 2 min |
 | 02-single-instance-window-management | 3 | 11 min | 4 min |
 | 03-system-tray-fixes | 2 | 7 min | 4 min |
-| 04-auto-update-system | 1 | 8 min | 8 min |
+| 04-auto-update-system | 3 | 13 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 2 min, 1 min, 4 min, 8 min
-- Trend: Stable (3.8 min per plan)
+- Last 5 plans: 8 min, 8 min, 3 min, 4 min, 8 min
+- Trend: Stable (6.2 min per plan)
 
 *Updated after each plan completion*
 
@@ -74,6 +74,12 @@ Recent decisions affecting current work:
 - [04-01]: 版本检测端点 - 使用 /releases 而非 /releases/latest 支持预发布版本
 - [04-01]: 缓存机制 - 24 小时 TTL + 速率限制时返回缓存
 - [04-01]: 后台检查 - 每 24 小时自动检查更新
+- [04-02]: 独立更新器模式 - 外部更新器程序等待主程序退出后替换文件（Windows 无法替换正在运行的 exe）
+- [04-02]: 更新器嵌入策略 - 使用 //go:embed 将 updater.exe 嵌入主程序，简化部署
+- [04-02]: 更新器独立 main 包 - 避免与主程序代码冲突，可独立编译测试
+- [04-02]: 文件回滚机制 - 更新失败时自动回滚到备份版本，确保系统稳定
+- [04-02]: 构建顺序依赖 - 先构建 updater.exe，再构建主程序（embed 需要）
+- [04-02]: 中文更新界面 - 更新器显示中文进度信息，提升用户体验
 
 ### Pending Todos
 
@@ -87,14 +93,14 @@ Recent decisions affecting current work:
 
 **无阻塞问题**
 
-**Phase 4-01 完成总结:**
-- 版本比较支持预发布版本完成 (04-01)
-- UpdateService 重构完成，使用 /releases 端点 (04-01)
-- 24 小时后台自动检查已实现 (04-01)
-- 托盘菜单"检查更新"已连接真实 API (04-01)
-- UpdateInfo 模型增强，包含预发布标识 (04-01)
+**Phase 4-03 完成总结:**
+- 外部更新器程序实现完成 (04-03)
+- 更新器核心功能：解压 ZIP、备份、替换、回滚、启动 (04-03)
+- embed 嵌入更新器到主程序 (04-03)
+- 构建脚本集成：Makefile 和 GitHub Actions (04-03)
+- 中文界面和进度显示 (04-03)
 
-**可以继续 Phase 4-02 (Download and Install)**
+**可以继续 Phase 4-04 (完整测试和优化)**
 
 **Phase 2 完成总结:**
 - 单例锁定和窗口激活功能完成 (02-01)
@@ -110,7 +116,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 04-01 - Version detection and UI integration
+Stopped at: Completed 04-03 - External updater program implementation
 Resume file: None
 
 ## Phase 2 完成总结
