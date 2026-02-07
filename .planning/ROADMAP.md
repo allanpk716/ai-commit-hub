@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: CI/CD Pipeline** - 建立自动化构建和发布流程 ✅ 2026-02-06
 - [x] **Phase 2: Single Instance & Window Management** - 实现单实例锁定和窗口状态管理 ✅ 2026-02-06
 - [x] **Phase 3: System Tray Fixes** - 修复托盘双击和升级依赖 ✅ 2026-02-06
-- [ ] **Phase 4: Auto Update System** - 实现完整的自动更新功能
+- [x] **Phase 4: Auto Update System** - 实现完整的自动更新功能 ✅ 2026-02-07
 - [ ] **Phase 5: Code Quality & Polish** - 修复编译错误和完善代码质量
 
 ## Phase Details
@@ -86,28 +86,30 @@ Plans:
 - [x] 03-01-PLAN.md — 升级 systray 库到 lutischan-ferenc/systray v1.3.0 并实现双击支持 ✅
 - [x] 03-02-PLAN.md — 修复托盘竞态条件和优化退出行为 ✅
 
-### Phase 4: Auto Update System
+### Phase 4: Auto Update System ✅
 
 **Goal**: 实现完整的自动更新系统，包括版本检测、下载和替换更新
+
+**Completed**: 2026-02-07
 
 **Depends on**: Phase 1, Phase 3
 
 **Requirements**: UPD-01, UPD-02, UPD-03, UPD-04, UPD-05, UPD-06, UPD-07, UPD-08
 
 **Success Criteria** (what must be TRUE):
-1. 应用启动时后台检查 GitHub Releases 最新版本
-2. 主界面提供"检查更新"按钮，设置页面显示版本信息
-3. 后台下载更新文件并通过 Wails Events 流式显示进度
-4. 使用外部更新器程序替换主应用，避免文件锁定
-5. 更新完成后自动重启应用
+1. ✓ 应用启动时后台检查 GitHub Releases 最新版本
+2. ✓ 主界面提供"检查更新"按钮，设置页面显示版本信息
+3. ✓ 后台下载更新文件并通过 Wails Events 流式显示进度
+4. ✓ 使用外部更新器程序替换主应用，避免文件锁定
+5. ✓ 更新完成后自动重启应用
 
-**Plans**: 4 plans
+**Plans**: 4 plans complete
 
 Plans:
-- [ ] 04-01-PLAN.md — 实现版本检测和 UI 集成（支持预发布版本）
-- [ ] 04-02-PLAN.md — 实现后台下载和进度显示（支持断点续传）
-- [ ] 04-03-PLAN.md — 实现外部更新器程序（嵌入主程序）
-- [ ] 04-04-PLAN.md — 实现更新替换和自动重启
+- [x] 04-01-PLAN.md — 实现版本检测和 UI 集成（支持预发布版本）✅
+- [x] 04-02-PLAN.md — 实现后台下载和进度显示（支持断点续传）✅
+- [x] 04-03-PLAN.md — 实现外部更新器程序（嵌入主程序）✅
+- [x] 04-04-PLAN.md — 实现更新替换和自动重启 ✅
 
 ### Phase 5: Code Quality & Polish
 
