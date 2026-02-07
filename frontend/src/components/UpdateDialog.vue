@@ -10,21 +10,21 @@
         <div class="version-comparison">
           <div class="version-item">
             <span class="label">当前版本:</span>
-            <span class="value">{{ updateInfo?.currentVersion }}</span>
+            <span class="value">{{ updateInfo?.currentVersion || '加载中...' }}</span>
           </div>
           <div class="version-item">
             <span class="label">最新版本:</span>
-            <span class="value highlight">{{ updateInfo?.latestVersion }}</span>
+            <span class="value highlight">{{ updateInfo?.latestVersion || '加载中...' }}</span>
           </div>
         </div>
 
-        <div class="release-notes">
+        <div class="release-notes" v-if="updateInfo">
           <h3>更新内容</h3>
           <div class="notes-content" v-html="formattedReleaseNotes"></div>
         </div>
 
         <div class="file-info">
-          <span>文件大小: {{ formattedSize }}</span>
+          <span>文件大小: {{ formattedSize || '计算中...' }}</span>
         </div>
       </div>
 
@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useUpdateStore } from '../stores/updateStore'
 
 const props = defineProps<{
@@ -52,7 +52,20 @@ const emit = defineEmits(['close'])
 const updateStore = useUpdateStore()
 const isDownloading = computed(() => updateStore.isDownloading)
 
-const updateInfo = computed(() => updateStore.updateInfo)
+const updateInfo = computed(() => {
+  console.log('[UpdateDialog] updateInfo computed:', updateStore.updateInfo)
+  return updateStore.updateInfo
+})
+
+// 监听 updateInfo 变化，输出调试信息
+watch(updateInfo, (newInfo) => {
+  console.log('[UpdateDialog] updateInfo changed:', {
+    currentVersion: newInfo?.currentVersion,
+    latestVersion: newInfo?.latestVersion,
+    size: newInfo?.size,
+    hasUpdate: newInfo?.hasUpdate
+  })
+}, { immediate: true })
 
 const formattedReleaseNotes = computed(() => {
   if (!updateInfo.value?.releaseNotes) return ''
