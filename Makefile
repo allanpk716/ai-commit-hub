@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration test-e2e test-frontend test-all coverage clean help
+.PHONY: test test-unit test-integration test-e2e test-frontend test-all coverage clean help updater build
 
 # 默认目标
 help:
@@ -10,6 +10,8 @@ help:
 	@echo "  make test-integration - 运行集成测试"
 	@echo "  make coverage       - 生成覆盖率报告"
 	@echo "  make clean          - 清理测试文件"
+	@echo "  make updater        - 构建更新器"
+	@echo "  make build          - 构建完整应用程序"
 
 # 运行所有测试
 test-all:
@@ -35,6 +37,18 @@ coverage:
 	@go test ./pkg/... -coverprofile=coverage.out
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "覆盖率报告: coverage.html"
+
+# 构建更新器（必须在主程序构建前执行）
+updater:
+	@echo "构建更新器..."
+	@go build -o pkg/update/updater/updater.exe ./pkg/update/updater
+	@echo "更新器构建完成: pkg/update/updater/updater.exe"
+
+# 构建完整应用程序（包括更新器）
+build: updater
+	@echo "构建主应用程序..."
+	@wails build
+	@echo "构建完成"
 
 # 清理测试文件
 clean:

@@ -66,6 +66,13 @@ jobs:
           cd frontend
           npm install
 
+      - name: Build updater
+        shell: bash
+        run: |
+          echo "Building updater..."
+          go build -o pkg/update/updater/updater.exe ./pkg/update/updater
+          echo "Updater built successfully"
+
       - name: Build Wails application (prepare)
         shell: bash
         run: wails build -clean
