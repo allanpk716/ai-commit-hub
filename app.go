@@ -14,6 +14,7 @@ import (
 	"github.com/WQGroup/logger"
 	"github.com/allanpk716/ai-commit-hub/pkg/git"
 	"github.com/allanpk716/ai-commit-hub/pkg/models"
+	appversion "github.com/allanpk716/ai-commit-hub/pkg/version"
 	"github.com/allanpk716/ai-commit-hub/pkg/pushover"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/service"
@@ -2203,4 +2204,16 @@ func (a *App) LogFrontendError(errJSON string) error {
 
 	// 调用 ErrorService 的 LogErrorFromJSON 方法
 	return a.errorService.LogErrorFromJSON(errJSON)
+}
+
+// GetVersion 获取应用版本号
+// 返回格式: "v1.0.0" 或 "dev-uncommitted"
+func (a *App) GetVersion() string {
+	return appversion.GetVersion()
+}
+
+// GetFullVersion 获取完整版本信息
+// 返回格式: "v1.0.0 (abc1234 2024-01-15)" 或 "dev-uncommitted"
+func (a *App) GetFullVersion() string {
+	return appversion.GetFullVersion()
 }

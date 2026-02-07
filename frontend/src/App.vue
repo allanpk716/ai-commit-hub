@@ -21,7 +21,10 @@
       <div class="toolbar-left">
         <div class="logo">
           <img src="./assets/app-icon.png" alt="AI Commit Hub" class="logo-icon" />
-          <h1>AI Commit Hub</h1>
+          <div class="logo-text">
+            <h1>AI Commit Hub</h1>
+            <span class="version">{{ appVersion }}</span>
+          </div>
         </div>
         <div class="toolbar-divider"></div>
       </div>
@@ -33,6 +36,10 @@
         </button>
         <!-- 扩展状态按钮 -->
         <ExtensionStatusButton @open="extensionDialogOpen = true" />
+        <button @click="openAbout" class="btn btn-secondary">
+          <span class="icon">ℹ</span>
+          <span>关于</span>
+        </button>
         <button @click="openSettings" class="btn btn-secondary">
           <span class="icon">⚙</span>
           <span>设置</span>
@@ -42,6 +49,9 @@
 
     <!-- Settings Dialog -->
     <SettingsDialog v-model="settingsOpen" />
+
+    <!-- About Dialog -->
+    <AboutDialog :visible="showAboutDialog" @close="showAboutDialog = false" />
 
     <!-- Extension Info Dialog -->
     <ExtensionInfoDialog :open="extensionDialogOpen" @close="extensionDialogOpen = false" />
@@ -103,11 +113,12 @@ import { useProjectStore } from './stores/projectStore'
 import { useCommitStore } from './stores/commitStore'
 import { usePushoverStore } from './stores/pushoverStore'
 import { useUpdateStore } from './stores/updateStore'
-import { SelectProjectFolder } from '../wailsjs/go/main/App'
+import { SelectProjectFolder, GetVersion } from '../wailsjs/go/main/App'
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
 import ProjectList from './components/ProjectList.vue'
 import CommitPanel from './components/CommitPanel.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
+import AboutDialog from './components/AboutDialog.vue'
 import ExtensionStatusButton from './components/ExtensionStatusButton.vue'
 import ExtensionInfoDialog from './components/ExtensionInfoDialog.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
@@ -124,10 +135,12 @@ const pushoverStore = usePushoverStore()
 const updateStore = useUpdateStore()
 const selectedProjectId = ref<number>()
 const settingsOpen = ref(false)
+const showAboutDialog = ref(false)
 const extensionDialogOpen = ref(false)
 const showSplash = ref(true)
 const initErrors = ref<Array<{ error: string; message: string }>>([])
 const showUpdateDialog = ref(false)
+const appVersion = ref('加载中...')
 
 // 删除对话框状态
 const showDeleteDialog = ref(false)
@@ -142,6 +155,9 @@ const deleteDialogCallback = ref<(() => Promise<void>) | null>(null)
 
 async function initializeApp() {
   console.log('[App] 开始初始化前端应用')
+
+  // 加载版本信息
+  loadVersion()
 
   // 只执行不阻塞启动的基础初始化
   const tasks = [
@@ -161,6 +177,21 @@ async function initializeApp() {
   }
 
   console.log('[App] 前端应用初始化完成')
+}
+
+// 加载版本信息
+async function loadVersion() {
+  try {
+    appVersion.value = await GetVersion()
+  } catch (error) {
+    console.error('加载版本信息失败:', error)
+    appVersion.value = 'dev'
+  }
+}
+
+// 打开关于对话框
+function openAbout() {
+  showAboutDialog.value = true
 }
 
 onMounted(async () => {
@@ -393,7 +424,13 @@ async function handleDeleteConfirm() {
   animation: pulse-glow 3s ease-in-out infinite;
 }
 
-.logo h1 {
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logo-text h1 {
   margin: 0;
   font-family: var(--font-display);
   font-size: 20px;
@@ -403,6 +440,16 @@ async function handleDeleteConfirm() {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.version {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  font-family: var(--font-mono);
+  letter-spacing: 0;
 }
 
 .toolbar-divider {
