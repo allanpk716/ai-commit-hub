@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+
+	"golang.org/x/mod/semver"
 )
 
 var (
@@ -18,14 +20,14 @@ var (
 // 预编译正则表达式以提高性能
 var (
 	vPrefixRegex = regexp.MustCompile(`^v`)
-	versionRegex = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
+	// 支持预发布版本的正则表达式: v1.2.3-beta.1 或 1.2.3-alpha.2
+	versionRegex = regexp.MustCompile(`^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$`)
 )
 
-// ParseVersion 解析版本字符串，返回主版本、次版本、修订号
-// 支持格式："v1.2.3" 或 "1.2.3"
-// 注意：不支持预发布版本号（如 v1.2.3-beta）或构建元数据（如 v1.2.3+build123）
+// ParseVersion 解析版本字符串，返回主版本、次版本、修订号和预发布标识符
+// 支持格式："v1.2.3", "1.2.3", "v1.2.3-beta.1", "1.2.3-alpha.2"
 // 格式错误时返回错误
-func ParseVersion(version string) (major, minor, patch int, err error) {
+func ParseVersion(version string) (major, minor, patch int, prerelease string, err error) {
 	// 移除 v 前缀
 	version = vPrefixRegex.ReplaceAllString(version, "")
 
@@ -33,60 +35,69 @@ func ParseVersion(version string) (major, minor, patch int, err error) {
 	matches := versionRegex.FindStringSubmatch(version)
 
 	if matches == nil {
-		return 0, 0, 0, fmt.Errorf("invalid version format: %s", version)
+		return 0, 0, 0, "", fmt.Errorf("invalid version format: %s", version)
 	}
 
 	major, err = strconv.Atoi(matches[1])
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, "", err
 	}
 
 	minor, err = strconv.Atoi(matches[2])
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, "", err
 	}
 
 	patch, err = strconv.Atoi(matches[3])
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, "", err
 	}
 
-	return major, minor, patch, nil
+	// 预发布标识符（如果有）
+ prerelease = matches[4]
+
+	return major, minor, patch, prerelease, nil
 }
 
-// CompareVersions 比较两个版本号
-// 返回: 1 if v1 > v2, 0 if v1 == v2, -1 if v1 < v2
-func CompareVersions(v1, v2 string) int {
-	major1, minor1, patch1, err1 := ParseVersion(v1)
-	major2, minor2, patch2, err2 := ParseVersion(v2)
+// NormalizeVersion 规范化版本号，确保以 "v" 开头（semver 库要求）
+func NormalizeVersion(version string) string {
+	// 移除空格
+	version = regexp.MustCompile(`\s+`).ReplaceAllString(version, "")
+	// 确保以 "v" 开头
+	if !regexp.MustCompile(`^v`).MatchString(version) {
+		return "v" + version
+	}
+	return version
+}
 
-	// 如果解析失败，视为相等
-	if err1 != nil || err2 != nil {
+// SafeCompareVersions 安全比较两个版本号，使用 semver 库
+// 返回: 1 if v1 > v2, 0 if v1 == v2, -1 if v1 < v2
+// 无效版本时返回 0
+func SafeCompareVersions(v1, v2 string) int {
+	normV1 := NormalizeVersion(v1)
+	normV2 := NormalizeVersion(v2)
+
+	// 验证版本号格式
+	if !semver.IsValid(normV1) || !semver.IsValid(normV2) {
 		return 0
 	}
 
-	if major1 != major2 {
-		if major1 > major2 {
-			return 1
-		}
-		return -1
-	}
+	return semver.Compare(normV1, normV2)
+}
 
-	if minor1 != minor2 {
-		if minor1 > minor2 {
-			return 1
-		}
-		return -1
+// IsPrerelease 检查是否为预发布版本
+func IsPrerelease(version string) bool {
+	normVersion := NormalizeVersion(version)
+	if !semver.IsValid(normVersion) {
+		return false
 	}
+	return semver.Prerelease(normVersion) != ""
+}
 
-	if patch1 != patch2 {
-		if patch1 > patch2 {
-			return 1
-		}
-		return -1
-	}
-
-	return 0
+// CompareVersions 比较两个版本号（兼容旧接口，内部使用 semver）
+// 返回: 1 if v1 > v2, 0 if v1 == v2, -1 if v1 < v2
+func CompareVersions(v1, v2 string) int {
+	return SafeCompareVersions(v1, v2)
 }
 
 // GetVersion 获取当前版本号
