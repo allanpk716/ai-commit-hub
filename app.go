@@ -881,44 +881,38 @@ func (a *App) InstallUpdate(downloadURL, assetName string) error {
 
 	logger.Info("开始安装更新", "url", downloadURL, "asset", assetName)
 
-	// 创建临时目录用于下载
-	tempDir := filepath.Join(os.TempDir(), "ai-commit-hub-update")
+	// 构建本地 ZIP 文件路径
+	updatesDir := filepath.Join(getConfigDir(), "updates")
+	zipPath := filepath.Join(updatesDir, assetName)
 
-	// 创建下载器
-	downloader := update.NewDownloader(tempDir)
-
-	// 设置进度回调
-	downloader.SetProgressFunc(func(downloaded, total int64) {
-		// 发送进度事件到前端
-		runtime.EventsEmit(a.ctx, "download-progress", map[string]interface{}{
-			"downloaded": downloaded,
-			"total":      total,
-			"percentage": float64(downloaded) / float64(total) * 100,
-		})
-	})
-
-	// 下载更新包
-	zipPath, err := downloader.Download(downloadURL, assetName)
-	if err != nil {
-		logger.Errorf("下载更新失败: %v", err)
-		return fmt.Errorf("下载更新失败: %w", err)
+	// 验证 ZIP 文件存在
+	if _, err := os.Stat(zipPath); os.IsNotExist(err) {
+		return fmt.Errorf("更新文件不存在: %s", zipPath)
 	}
 
-	logger.Info("更新包下载完成", "path", zipPath)
+	logger.Info("找到本地更新文件", "path", zipPath)
 
-	// 发送下载完成事件
-	runtime.EventsEmit(a.ctx, "download-complete", map[string]interface{}{
-		"path": zipPath,
-	})
+	// 创建安装器
+	installer := update.NewInstaller()
 
-	// 调用安装器安装更新
-	if err := a.installer.Install(zipPath); err != nil {
-		logger.Errorf("安装更新失败: %v", err)
-		return fmt.Errorf("安装更新失败: %w", err)
+	// 启动更新器（会释放嵌入的更新器并启动）
+	if err := installer.Install(zipPath); err != nil {
+		return fmt.Errorf("启动更新器失败: %w", err)
 	}
 
-	logger.Info("更新安装流程已启动")
+	logger.Info("更新器已启动，主程序即将退出")
+
+	// 退出主程序，释放文件锁
+	a.Quit()
+
 	return nil
+}
+
+// Quit 退出应用程序
+func (a *App) Quit() {
+	if a.ctx != nil {
+		runtime.Quit(a.ctx)
+	}
 }
 
 // DownloadUpdate 下载更新（支持断点续传）
