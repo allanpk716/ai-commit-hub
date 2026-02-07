@@ -37,7 +37,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	cfg, err := s.configService.LoadConfig(s.ctx)
 	if err != nil {
 		errMsg := fmt.Sprintf("加载配置失败: %v", err)
-		logger.Errorf(errMsg)
+		logger.Error(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("加载配置失败: %w", err)
 	}
@@ -71,7 +71,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 
 	if !providerConfigured {
 		errMsg := fmt.Sprintf("Provider '%s' 未配置或不可用，请先在设置中配置 API Key", cfg.Provider)
-		logger.Errorf(errMsg)
+		logger.Error(errMsg)
 		logger.Infof("可用的 Provider: %v", providers)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("provider not configured: %s", cfg.Provider)
@@ -83,7 +83,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	factory, ok := registry.Get(cfg.Provider)
 	if !ok {
 		errMsg := fmt.Sprintf("未知的 provider: %s", cfg.Provider)
-		logger.Errorf(errMsg)
+		logger.Error(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("未知的 provider: %s", cfg.Provider)
 	}
@@ -101,7 +101,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	client, err := factory(context.Background(), cfg.Provider, ps)
 	if err != nil {
 		errMsg := fmt.Sprintf("创建 AI client 失败: %v", err)
-		logger.Errorf(errMsg)
+		logger.Error(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("创建 AI client 失败: %w", err)
 	}
@@ -113,7 +113,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	err = os.Chdir(projectPath)
 	if err != nil {
 		errMsg := fmt.Sprintf("切换到项目目录失败: %v", err)
-		logger.Errorf(errMsg)
+		logger.Error(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("切换目录失败: %w", err)
 	}
@@ -122,7 +122,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	diff, err := git.GetStagedDiff(context.Background())
 	if err != nil {
 		errMsg := fmt.Sprintf("获取暂存区 diff 失败: %v", err)
-		logger.Errorf(errMsg)
+		logger.Error(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return fmt.Errorf("获取暂存区 diff 失败: %w", err)
 	}
@@ -151,7 +151,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 
 			if err != nil {
 				errMsg := fmt.Sprintf("生成失败: %v", err)
-				logger.Errorf(errMsg)
+				logger.Error(errMsg)
 				runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 			} else {
 				logger.Info("Commit 消息生成成功")
@@ -166,7 +166,7 @@ func (s *CommitService) GenerateCommit(projectPath, providerName, language strin
 	msg, err := client.GetCommitMessage(context.Background(), promptText)
 	if err != nil {
 		errMsg := fmt.Sprintf("生成失败: %v", err)
-		logger.Errorf(errMsg)
+		logger.Error(errMsg)
 		runtime.EventsEmit(s.ctx, "commit-error", errMsg)
 		return err
 	}

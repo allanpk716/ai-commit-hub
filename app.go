@@ -1231,7 +1231,7 @@ func (a *App) GenerateCommit(projectPath, provider, language string) error {
 
 	if a.initError != nil {
 		errMsg := fmt.Sprintf("应用未正确初始化: %v", a.initError)
-		logger.Errorf(errMsg)
+		logger.Error(errMsg)
 		return a.initError
 	}
 
@@ -1655,7 +1655,7 @@ func (a *App) CheckPushoverConfig() map[string]interface{} {
 	if valid {
 		logger.Info("Pushover 配置检查: 已配置")
 	} else {
-		logger.Warn("Pushover 配置检查: 未配置 (TOKEN=%t, USER=%t)", tokenSet, userSet)
+		logger.Warnf("Pushover 配置检查: 未配置 (TOKEN=%t, USER=%t)", tokenSet, userSet)
 	}
 
 	return result
