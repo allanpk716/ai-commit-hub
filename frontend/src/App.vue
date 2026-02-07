@@ -55,6 +55,9 @@
     <!-- Update Progress Dialog (下载进度对话框) -->
     <UpdateProgressDialog :visible="updateStore.isDownloading" @close="updateStore.cancelDownload" />
 
+    <!-- Update Installer Dialog (安装确认对话框) -->
+    <UpdateInstallerDialog :visible="updateStore.showInstallConfirm" @close="updateStore.cancelInstall" />
+
     <!-- 删除确认对话框 -->
     <ConfirmDialog
       :visible="showDeleteDialog"
@@ -112,6 +115,7 @@ import SplashScreen from './components/SplashScreen.vue'
 import ErrorToast from './components/ErrorToast.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
 import UpdateProgressDialog from './components/UpdateProgressDialog.vue'
+import UpdateInstallerDialog from './components/UpdateInstallerDialog.vue'
 import type { GitProject } from './types'
 
 const projectStore = useProjectStore()
