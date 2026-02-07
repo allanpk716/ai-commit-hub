@@ -12,4 +12,6 @@ type UpdateInfo struct {
 	DownloadURL    string    `json:"downloadURL"`    // 下载链接
 	AssetName      string    `json:"assetName"`      // 资源文件名
 	Size           int64     `json:"size"`           // 文件大小
+	IsPrerelease   bool      `json:"isPrerelease"`   // 是否为预发布版本
+	PrereleaseType string    `json:"prereleaseType"` // 预发布类型 (alpha/beta/rc)
 }
