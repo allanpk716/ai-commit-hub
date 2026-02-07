@@ -107,12 +107,25 @@ function skip() {
 }
 
 async function download() {
+  if (!updateInfo.value) {
+    console.error('No update info available')
+    return
+  }
+
   try {
-    await updateStore.installUpdate()
-    // 注意：成功后程序会自动退出并重启
+    // 关闭更新对话框
+    close()
+
+    // 开始下载（Wave 2 只实现下载，安装在后续 Wave）
+    await updateStore.downloadUpdate(
+      updateInfo.value.downloadURL,
+      updateInfo.value.assetName
+    )
+
+    console.log('Download initiated successfully')
   } catch (error) {
-    console.error('下载更新失败:', error)
-    alert('下载更新失败，请稍后重试')
+    console.error('Failed to start download:', error)
+    alert('Failed to download update, please try again later')
   }
 }
 </script>
