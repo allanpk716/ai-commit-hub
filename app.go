@@ -918,6 +918,83 @@ func (a *App) InstallUpdate(downloadURL, assetName string) error {
 	return nil
 }
 
+// DownloadUpdate 下载更新（支持断点续传）
+func (a *App) DownloadUpdate(url, filename, proxyURL string) error {
+	if a.initError != nil {
+		return fmt.Errorf("app not initialized: %w", a.initError)
+	}
+
+	logger.Info("开始下载更新", "url", url, "filename", filename, "proxy", proxyURL)
+
+	// 创建下载目录
+	updatesDir := filepath.Join(getConfigDir(), "updates")
+	if err := os.MkdirAll(updatesDir, 0755); err != nil {
+		return fmt.Errorf("创建下载目录失败: %w", err)
+	}
+
+	// 创建下载器
+	downloader := update.NewResumableDownloader(updatesDir)
+	downloader.SetContext(a.ctx)
+
+	// 设置代理（如果提供）
+	if proxyURL != "" {
+		downloader.SetProxy(proxyURL)
+	}
+
+	// 设置进度回调
+	downloader.SetProgressFunc(func(downloaded, total int64) {
+		// 通过 Events 推送进度（现在由 downloader 内部处理）
+		// 这里保持兼容性，不做额外处理
+	})
+
+	// 开始下载
+	_, err := downloader.Download(url, filename)
+	if err != nil {
+		logger.Errorf("下载更新失败: %v", err)
+		return fmt.Errorf("下载更新失败: %w", err)
+	}
+
+	// 发送下载完成事件
+	runtime.EventsEmit(a.ctx, "download-complete", map[string]interface{}{
+		"filename": filename,
+	})
+
+	logger.Info("更新下载完成", "filename", filename)
+	return nil
+}
+
+// CancelDownload 取消下载
+func (a *App) CancelDownload(filename string) error {
+	if a.initError != nil {
+		return fmt.Errorf("app not initialized: %w", a.initError)
+	}
+
+	logger.Info("取消下载", "filename", filename)
+
+	// 创建下载目录
+	updatesDir := filepath.Join(getConfigDir(), "updates")
+
+	// 创建下载器并取消
+	downloader := update.NewDownloader(updatesDir)
+	if err := downloader.Cancel(filename); err != nil {
+		logger.Errorf("取消下载失败: %v", err)
+		return fmt.Errorf("取消下载失败: %w", err)
+	}
+
+	logger.Info("下载已取消", "filename", filename)
+	return nil
+}
+
+// getConfigDir 获取配置目录
+func getConfigDir() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		logger.Errorf("获取用户目录失败: %v", err)
+		return ""
+	}
+	return filepath.Join(homeDir, ".ai-commit-hub")
+}
+
 // GetAllProjects retrieves all projects
 func (a *App) GetAllProjects() ([]models.GitProject, error) {
 	if a.initError != nil {
