@@ -194,6 +194,11 @@ func (d *Downloader) downloadWithResume(url, tmpPath, destPath string, downloade
 		return "", fmt.Errorf("文件大小不匹配: 期望 %d, 实际 %d", totalSize, actualSize)
 	}
 
+	// 显式关闭文件，确保数据写入磁盘
+	if err := destFile.Close(); err != nil {
+		return "", fmt.Errorf("关闭文件失败: %w", err)
+	}
+
 	// 重命名临时文件为最终文件
 	if err := os.Rename(tmpPath, destPath); err != nil {
 		return "", fmt.Errorf("重命名文件失败: %w", err)
