@@ -101,11 +101,21 @@ Windows 上可能出现 `wailsbindings.exe: %1 is not a valid Win32 application`
 2. 重新运行 `wails dev`
 3. 或使用已有的绑定文件，直接 `go build`
 
+## Claude Code 技能
+
+项目特定的 Claude Code 技能存放在 `.claude/skills/` 目录：
+
+- **wails-debug-helper**: AI Commit Hub 项目调试助手
+  - 位置：`.claude/skills/wails-debug-helper/SKILL.md`
+  - 用途：使用子代理进行后端日志分析和前端浏览器自动化测试，避免影响主会话上下文
+  - 触发词：调试、debug、查看日志、启动开发服务器、检查前端问题、浏览器调试等
+
 ## 详细文档导航
 
 ### Claude Code 配置
 - Wails 调试助手：`docs/.claude/README.md`
-- 调试技能：`docs/.claude/skills/wails-debug-helper/SKILL.md`
+- 调试技能：`.claude/skills/wails-debug-helper/SKILL.md`（可被 Claude Code 自动加载）
+- 调试技能（文档参考）：`docs/.claude/skills/wails-debug-helper/SKILL.md`
 - 调试命令：`docs/.claude/commands/wails-debug.md`
 
 ### 开发规范
