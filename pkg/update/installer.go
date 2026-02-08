@@ -44,7 +44,7 @@ func (i *Installer) ExtractUpdater() (string, error) {
 
 // Install 安装更新
 func (i *Installer) Install(updateZipPath string) error {
-	logger.Info("开始安装更新...", "zip", updateZipPath)
+	logger.WithField("zip", updateZipPath).Info("开始安装更新...")
 
 	// 释放更新器
 	updaterPath, err := i.ExtractUpdater()
