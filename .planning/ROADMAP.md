@@ -86,7 +86,7 @@ Plans:
 **Verification**: ✓ Passed (4/4 must-haves verified)
 
 #### Phase 7: 自动更新检测修复
-**Goal**: 修复 GitHub Releases 版本检测失败问题，增强错误提示
+**Goal**: 修复 GitHub Releases 版本检测失败问题，增强错误提示和重试机制
 **Depends on**: Phase 6
 **Requirements**: UPD-09, UPD-10
 **Success Criteria** (what must be TRUE):
@@ -94,11 +94,11 @@ Plans:
   2. 版本比较逻辑正确处理预发布版本（alpha/beta/rc）
   3. 网络错误时显示清晰的错误消息和重试建议
   4. API 速率限制时提供用户友好的提示
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 07-01: 调查并修复 GitHub Releases 版本检测失败问题
-- [ ] 07-02: 增强更新检测错误提示和重试机制
+- [ ] 07-01-PLAN.md — 实现 GitHub API + Atom feed 混合降级策略
+- [ ] 07-02-PLAN.md — 增强更新检测错误提示和版本信息卡片展示
 
 ## Progress
 
