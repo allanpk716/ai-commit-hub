@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-07)
+See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** 简化 Git 工作流 - 自动生成高质量 commit 消息
-**Current focus:** Planning next milestone
+**Current focus:** Phase 6 - 日志系统修复
 
 ## Current Position
 
-Phase: Defining requirements
-Plan: Not started
-Status: Starting milestone v1.0.1
-Last activity: 2026-02-08 — v1.0.1 milestone started
+Phase: 6 of 7 (日志系统修复)
+Plan: 0 of 3 in current phase
+Status: Ready to plan
+Last activity: 2026-02-08 — Created v1.0.1 roadmap
 
-Progress: [██████████] 100%
+Progress: [████████░░] 63.6%
 
 ## Performance Metrics
 
@@ -46,39 +46,34 @@ Progress: [██████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- **SingleInstanceLock UUID** - 使用固定 UUID 'e3984e08-28dc-4e3d-b70a-45e961589cdc'
-- **窗口激活策略** - 静默激活（恢复最小化 + 显示到前台，无通知）
-- **外部更新器模式** - 独立进程等待主程序退出后替换文件
-- **更新器嵌入策略** - 使用 embed.FS 嵌入 updater.exe
+- **日志库选择** - 使用 `github.com/WQGroup/logger` 作为统一日志库
+- **日志输出路径** - 日志文件应输出到程序根目录的 logs 文件夹
+- **日志格式标准** - 使用 withField 格式器，格式：`2025-12-18 18:32:07.379 - [INFO]: 消息内容`
 - **版本比较库** - 使用 golang.org/x/mod/semver
-- **systray 库升级** - lutischan-ferenc/systray v1.3.0
+- **外部更新器模式** - 独立进程等待主程序退出后替换文件
 
 All decisions documented in PROJECT.md with outcomes marked ✓.
 
 ### Pending Todos
 
-**v1.0 里程碑已完成：**
-- ✅ 所有 5 个阶段完成（14 个计划）
-- ✅ 所有编译错误修复
-- ✅ 所有测试失败修复
-- ✅ v1.0.0 正式版发布
-
-**下一里程碑待规划：**
-- 无待办事项（使用 `/gsd:new-milestone` 开始规划）
+**v1.0.1 里程碑待规划：**
+- Phase 6: 日志系统修复（LOG-01, LOG-02, LOG-03）
+- Phase 7: 自动更新检测修复（UPD-09, UPD-10）
 
 ### Blockers/Concerns
 
-**无阻塞问题** ✅
-
-v1.0.0 已成功发布，所有已知问题已解决。
+**已知问题（待修复）：**
+- 日志格式不符合 WQGroup/logger 标准格式
+- 日志输出路径未配置到程序根目录 logs 文件夹
+- GitHub Releases 版本检测失败问题原因未明
 
 ## Session Continuity
 
-Last session: 2026-02-07
-Stopped at: Completed v1.0 milestone, tagged v1.0.0, pushed to GitHub
+Last session: 2026-02-08
+Stopped at: Created v1.0.1 roadmap, ready to plan Phase 6
 Resume file: None
 
-## Milestone v1 Complete
+## Milestone v1.0 Complete
 
 **Completed**: 2026-02-07
 
@@ -95,32 +90,13 @@ Resume file: None
 - ✅ v1.0.0 标签已创建并推送
 - ✅ GitHub Actions 构建成功
 
-**Archived:**
-- `.planning/milestones/v1.0-ROADMAP.md`
-- `.planning/milestones/v1.0-REQUIREMENTS.md`
+## Milestone v1.0.1 In Progress
+
+**Started**: 2026-02-08
+
+**Planned Phases:**
+- Phase 6: 日志系统修复 (3 plans)
+- Phase 7: 自动更新检测修复 (2 plans)
 
 **Next Steps:**
-- 使用 `/gsd:new-milestone` 开始规划下一里程碑
-- 收集用户反馈
-- 监控 v1.0.0 使用情况和问题
-
-## Key Technical Achievements
-
-**Architecture:**
-- 分层架构：App → Service → Repository → Database
-- 事件驱动：Wails Events 实现前后端通信
-- 状态管理：Pinia stores + StatusCache
-- 外部更新器：独立进程更新模式
-
-**Infrastructure:**
-- CI/CD 全自动化（GitHub Actions）
-- 单实例锁定（Wails SingleInstanceLock）
-- 窗口状态持久化（SQLite + GORM）
-- 系统托盘完善（双击 + 菜单）
-- 端到端自动更新（版本检测 → 下载 → 安装 → 重启）
-
-**Quality:**
-- 0 编译错误
-- 0 测试失败
-- 100% 测试通过率
-- 7,115 LOC (Go + Vue + TypeScript)
+- 使用 `/gsd:plan-phase 6` 开始规划 Phase 6

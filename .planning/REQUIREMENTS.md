@@ -48,7 +48,7 @@ v1.0.1 里程碑聚焦于修复日志系统和自动更新检测的关键 bug。
 
 ## Traceability
 
-需求到阶段的映射（在创建 ROADMAP.md 时填充）：
+需求到阶段的映射：
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -60,9 +60,13 @@ v1.0.1 里程碑聚焦于修复日志系统和自动更新检测的关键 bug。
 
 **Coverage:**
 - v1.0.1 requirements: 5 total
-- Mapped to phases: 0（待 roadmap 创建）
-- Unmapped: 5 ⚠️
+- Mapped to phases: 5 (100%) ✅
+- Unmapped: 0
+
+**Phase Distribution:**
+- Phase 6 (日志系统修复): 3 requirements (LOG-01, LOG-02, LOG-03)
+- Phase 7 (自动更新检测修复): 2 requirements (UPD-09, UPD-10)
 
 ---
 *Requirements defined: 2026-02-08*
-*Last updated: 2026-02-08 after initial definition*
+*Last updated: 2026-02-08 after roadmap creation*
