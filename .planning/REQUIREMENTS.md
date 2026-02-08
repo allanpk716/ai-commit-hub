@@ -9,17 +9,17 @@ v1.0.1 里程碑聚焦于修复日志系统和自动更新检测的关键 bug。
 
 ### 日志系统
 
-- [ ] **LOG-01**: 日志输出格式符合 WQGroup/logger 标准格式
+- [x] **LOG-01**: 日志输出格式符合 WQGroup/logger 标准格式
   - 格式：`2025-12-18 18:32:07.379 - [INFO]: 消息内容`
   - 使用 `withField` 格式器（默认）
   - 时间戳精确到毫秒
 
-- [ ] **LOG-02**: 日志文件输出到程序根目录的 logs 文件夹
+- [x] **LOG-02**: 日志文件输出到程序根目录的 logs 文件夹
   - 日志根目录：`{程序根目录}/logs/`
   - 支持日志轮转（时间 + 大小）
   - 自动清理过期日志文件（默认 30 天）
 
-- [ ] **LOG-03**: 所有 logger 调用使用正确的方法签名
+- [x] **LOG-03**: 所有 logger 调用使用正确的方法签名
   - 区分 `logger.Error()` 和 `logger.Errorf()`
   - 不带格式化参数使用 `logger.Error(msg)`
   - 带格式化参数使用 `logger.Errorf(fmt, args...)`
@@ -52,9 +52,9 @@ v1.0.1 里程碑聚焦于修复日志系统和自动更新检测的关键 bug。
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOG-01 | Phase 6 | Pending |
-| LOG-02 | Phase 6 | Pending |
-| LOG-03 | Phase 6 | Pending |
+| LOG-01 | Phase 6 | Complete |
+| LOG-02 | Phase 6 | Complete |
+| LOG-03 | Phase 6 | Complete |
 | UPD-09 | Phase 7 | Pending |
 | UPD-10 | Phase 7 | Pending |
 

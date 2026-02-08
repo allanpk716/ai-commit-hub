@@ -76,11 +76,14 @@ Plans:
 **Plans**: 5 plans in 3 waves
 
 Plans:
-- [ ] 06-01-PLAN.md — 修复日志格式为标准 withField 格式器
-- [ ] 06-02-PLAN.md — 配置日志输出路径到程序根目录 logs 文件夹
-- [ ] 06-03-PLAN.md — 修复 main.go 和 app.go 中的 logger 方法签名错误
-- [ ] 06-04-PLAN.md — 修复 pkg/service 目录中的 logger 方法签名错误
-- [ ] 06-05-PLAN.md — 修复 pkg/update, pkg/git, pkg/repository, pkg/pushover 中的 logger 方法签名错误
+- [x] 06-01-PLAN.md — 修复日志格式为标准 withField 格式器
+- [x] 06-02-PLAN.md — 配置日志输出路径到程序根目录 logs 文件夹
+- [x] 06-03-PLAN.md — 修复 main.go 和 app.go 中的 logger 方法签名错误
+- [x] 06-04-PLAN.md — 修复 pkg/service 目录中的 logger 方法签名错误
+- [x] 06-05-PLAN.md — 修复 pkg/update, pkg/git, pkg/repository, pkg/pushover 中的 logger 方法签名错误
+
+**Completed**: 2026-02-08
+**Verification**: ✓ Passed (4/4 must-haves verified)
 
 #### Phase 7: 自动更新检测修复
 **Goal**: 修复 GitHub Releases 版本检测失败问题，增强错误提示
@@ -109,7 +112,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. System Tray Fixes | v1.0.0 | 2/2 | Complete | 2026-02-06 |
 | 4. Auto Update System | v1.0.0 | 4/4 | Complete | 2026-02-07 |
 | 5. Code Quality & Polish | v1.0.0 | 2/2 | Complete | 2026-02-07 |
-| 6. 日志系统修复 | v1.0.1 | 0/5 | Not started | - |
+| 6. 日志系统修复 | v1.0.1 | 5/5 | Complete | 2026-02-08 |
 | 7. 自动更新检测修复 | v1.0.1 | 0/2 | Not started | - |
 
-**Overall Progress:** 14/24 plans complete (58.3%)
+**Overall Progress:** 19/24 plans complete (79.2%)
