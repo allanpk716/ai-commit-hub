@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Current Position
 
 Phase: 6 of 7 (日志系统修复)
-Plan: 2 of 3 in current phase
+Plan: 4 of 5 in current phase
 Status: In progress
-Last activity: 2026-02-08 — Completed 06-02-PLAN.md (日志输出路径配置)
+Last activity: 2026-02-08 — Completed 06-04-PLAN.md (pkg/service logger 方法签名修复)
 
-Progress: [██████████] 70.6%
+Progress: [█████████░] 73.5%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
-- Average duration: 3 min
-- Total execution time: 0.79 hours
+- Total plans completed: 17
+- Average duration: 2.9 min
+- Total execution time: 0.82 hours
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: [██████████] 70.6%
 | 03-system-tray-fixes | 2 | 7 min | 4 min |
 | 04-auto-update-system | 4 | 16 min | 4 min |
 | 05-code-quality-and-polish | 2 | 5 min | 2.5 min |
-| 06-日志系统修复 | 2 | 2 min | 1 min |
+| 06-日志系统修复 | 4 | 2 min | 0.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 8 min, 2.5 min, 1 min, 1 min
-- Trend: Stable (3.3 min per plan)
+- Last 5 plans: 8 min, 2.5 min, 1 min, 1 min, <1 min
+- Trend: Stable (2.5 min per plan)
 
 *Updated after v1.0 milestone completion*
 
@@ -50,6 +50,7 @@ Recent decisions affecting current work:
 - **日志库选择** - 使用 `github.com/WQGroup/logger` 作为统一日志库
 - **日志输出路径** - 日志文件应输出到程序根目录的 logs 文件夹
 - **日志格式标准** - 使用 withField 格式器，格式：`2025-12-18 18:32:07.379 - [INFO]: 消息内容`
+- **logger 方法签名规范** - 单字段使用 WithField，多字段使用 WithFields，格式化使用 *f 方法
 - **版本比较库** - 使用 golang.org/x/mod/semver
 - **外部更新器模式** - 独立进程等待主程序退出后替换文件
 
@@ -66,12 +67,14 @@ All decisions documented in PROJECT.md with outcomes marked ✓.
 **已知问题（待修复）：**
 - ~~日志格式不符合 WQGroup/logger 标准格式~~ ✓ (06-01 已完成)
 - ~~日志输出路径未配置到程序根目录 logs 文件夹~~ ✓ (06-02 已完成)
+- ~~main.go 和 app.go 中的 logger 方法签名错误~~ ✓ (06-03 已完成)
+- ~~pkg/service 中的 logger 方法签名错误~~ ✓ (06-04 已完成)
 - GitHub Releases 版本检测失败问题原因未明
 
 ## Session Continuity
 
 Last session: 2026-02-08
-Stopped at: Completed 06-02-PLAN.md (日志输出路径配置到程序根目录)
+Stopped at: Completed 06-04-PLAN.md (pkg/service logger 方法签名修复)
 Resume file: None
 
 ## Milestone v1.0 Complete
