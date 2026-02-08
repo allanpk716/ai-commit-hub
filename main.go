@@ -25,17 +25,18 @@ var appIconPNG []byte
 var appIconICO []byte
 
 func initLogger() {
-	// 获取用户主目录
-	homeDir, err := os.UserHomeDir()
+	// 获取可执行文件所在目录（程序根目录）
+	exePath, err := os.Executable()
 	if err != nil {
-		logger.Errorf("Failed to get home directory: %v", err)
+		logger.Errorf("获取可执行文件路径失败: %v", err)
 		return
 	}
+	exeDir := filepath.Dir(exePath)
 
 	// 创建日志目录
-	logDir := filepath.Join(homeDir, ".ai-commit-hub", "logs")
+	logDir := filepath.Join(exeDir, "logs")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
-		logger.Errorf("Failed to create log directory: %v", err)
+		logger.Errorf("创建日志目录失败: %v", err)
 		return
 	}
 
@@ -54,7 +55,7 @@ func initLogger() {
 		},
 	)
 
-	logger.Info("Logger initialized, log directory:", logDir)
+	logger.Infof("日志初始化完成，日志目录: %s", logDir)
 }
 
 func main() {
