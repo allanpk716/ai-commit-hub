@@ -62,7 +62,9 @@ AI Commit Hub 是一个基于 Wails (Go + Vue3) 的轻量级 Git 辅助桌面应
 
 <!-- 当前需要修复/实现的功能 -->
 
-（无 - v1.0 里程碑已完成，下一里程碑待规划）
+- [ ] **日志格式修复** — 使用 `github.com/WQGroup/logger` 的 `withField` 格式器
+- [ ] **日志输出路径修复** — 输出到程序根目录的 logs 文件夹
+- [ ] **自动更新检测失败修复** — 调查并修复 GitHub Releases 版本检测问题
 
 ### Out of Scope
 
@@ -100,15 +102,14 @@ AI Commit Hub 是一个基于 Wails (Go + Vue3) 的轻量级 Git 辅助桌面应
 - 测试通过率：100% ✅
 - 代码覆盖率：核心功能全覆盖
 
-## Next Milestone Goals
+## Current Milestone: v1.0.1 日志系统修复
 
-（待规划 - 使用 `/gsd:new-milestone` 开始下一里程碑）
+**Goal:** 修复日志格式和输出路径问题，确保日志正确输出到程序根目录 logs 文件夹
 
-**潜在方向：**
-- 用户反馈收集和 Bug 修复
-- 跨平台支持（macOS, Linux）
-- 新功能开发（根据用户需求）
-- 性能优化和用户体验改进
+**Target features:**
+- 修复日志格式为标准格式：`2025-12-18 18:32:07.379 - [INFO]: 消息内容`
+- 配置日志输出到程序根目录的 logs 文件夹
+- 修复自动更新检测失败问题
 
 ## Context
 
@@ -162,4 +163,4 @@ AI Commit Hub 是一个基于 Wails (Go + Vue3) 的轻量级 Git 辅助桌面应
 | 文件回滚机制 | 确保系统稳定 | ✓ 更新失败时自动回滚到备份版本 |
 
 ---
-*Last updated: 2026-02-07 after v1.0 milestone completion*
+*Last updated: 2026-02-08 after starting v1.0.1 milestone*
