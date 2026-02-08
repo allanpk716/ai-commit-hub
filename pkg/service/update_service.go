@@ -67,7 +67,7 @@ func (s *UpdateService) CheckForUpdates() (*models.UpdateInfo, error) {
 		return s.getTestUpdateInfo()
 	}
 
-	logger.Info("检查更新", "repo", s.repo)
+	logger.WithField("repo", s.repo).Info("检查更新")
 
 	// 检查缓存（24小时内）
 	s.mu.RLock()
@@ -104,7 +104,10 @@ func (s *UpdateService) CheckForUpdates() (*models.UpdateInfo, error) {
 	currentVersion := version.GetVersion()
 	latestVersion := latestRelease.TagName
 
-	logger.Info("版本信息", "current", currentVersion, "latest", latestVersion)
+	logger.WithFields(map[string]interface{}{
+		"current": currentVersion,
+		"latest":  latestVersion,
+	}).Info("版本信息")
 
 	// 比较版本
 	hasUpdate := s.compareVersions(latestVersion, currentVersion)
@@ -307,11 +310,12 @@ func (s *UpdateService) getTestUpdateInfo() (*models.UpdateInfo, error) {
 	testAssetName := "ai-commit-hub-windows-amd64-v0.2.0-beta.1.zip"
 	testSize := int64(14332036) // 实际文件大小（约 13.7 MB）
 
-	logger.Info("🧪 测试模式：返回测试更新信息",
-		"current", currentVersion,
-		"test", testVersion,
-		"url", testURL,
-		"size", testSize)
+	logger.WithFields(map[string]interface{}{
+		"current": currentVersion,
+		"test":    testVersion,
+		"url":     testURL,
+		"size":    testSize,
+	}).Info("🧪 测试模式：返回测试更新信息")
 
 	return &models.UpdateInfo{
 		HasUpdate:      true, // 测试模式总是返回有更新
