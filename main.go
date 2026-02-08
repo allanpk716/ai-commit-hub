@@ -80,8 +80,8 @@ func main() {
 	initLogger()
 
 	// 输出版本信息
-	logger.Info("AI Commit Hub starting up...", "version", version.GetVersion())
-	logger.Debug("Full version info", "info", version.GetFullVersion())
+	logger.WithField("version", version.GetVersion()).Info("AI Commit Hub starting up...")
+	logger.WithField("info", version.GetFullVersion()).Debug("Full version info")
 
 	// 初始化数据库以读取窗口状态
 	homeDir, err := os.UserHomeDir()
@@ -109,10 +109,11 @@ func main() {
 		if state.Width > 0 && state.Height > 0 {
 			initialWidth = state.Width
 			initialHeight = state.Height
-			logger.Info("从数据库恢复窗口状态",
-				"position", fmt.Sprintf("(%d,%d)", state.X, state.Y),
-				"size", fmt.Sprintf("%dx%d", state.Width, state.Height),
-				"maximized", state.Maximized)
+			logger.WithFields(map[string]interface{}{
+				"position":  fmt.Sprintf("(%d,%d)", state.X, state.Y),
+				"size":      fmt.Sprintf("%dx%d", state.Width, state.Height),
+				"maximized": state.Maximized,
+			}).Info("从数据库恢复窗口状态")
 			// 输出到控制台
 			fmt.Printf("[MAIN] Window state from DB: Position(%d,%d) Size(%dx%d) Maximized=%v\n",
 				state.X, state.Y, state.Width, state.Height, state.Maximized)
