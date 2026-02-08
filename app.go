@@ -249,7 +249,7 @@ func (a *App) startup(ctx context.Context) {
 		}
 
 		if updateInfo.HasUpdate {
-			logger.Info("发现新版本", "version", updateInfo.LatestVersion)
+			logger.WithField("version", updateInfo.LatestVersion).Info("发现新版本")
 			runtime.EventsEmit(ctx, "update-available", updateInfo)
 		} else {
 			logger.Info("已是最新版本")
@@ -303,7 +303,10 @@ func (a *App) getTrayIcon() []byte {
 		if len(appIconICO) > 0 {
 			// 验证 ICO 格式（仅在启动时记录日志）
 			if sizes, err := icoSquareSizes(appIconICO); err == nil {
-				logger.Info("使用 Wails 生成的托盘图标 ICO", "sizes", sizes, "bytes", len(appIconICO))
+				logger.WithFields(map[string]interface{}{
+					"sizes": sizes,
+					"bytes": len(appIconICO),
+				}).Info("使用 Wails 生成的托盘图标 ICO")
 				return appIconICO
 			} else {
 				logger.Warnf("嵌入 ICO 格式验证失败: %v", err)
@@ -312,7 +315,7 @@ func (a *App) getTrayIcon() []byte {
 		// 如果 ICO 不可用，尝试从 PNG 生成
 		if len(appIconPNG) > 0 {
 			if generated, err := windowsICOFromPNGOnce(appIconPNG); err == nil && len(generated) > 0 {
-				logger.Info("从 PNG 生成的托盘图标", "bytes", len(generated))
+				logger.WithField("bytes", len(generated)).Info("从 PNG 生成的托盘图标")
 				return generated
 			} else if err != nil {
 				logger.Errorf("从 PNG 生成 ICO 失败: %v", err)
@@ -361,14 +364,17 @@ func (a *App) onSystrayReady() {
 				if sizes, err := icoSquareSizes(iconBytes); err != nil {
 					logger.Warnf("托盘图标 ICO 自检失败: %v", err)
 				} else {
-					logger.Info("托盘图标 ICO 自检通过", "sizes", sizes, "bytes", len(iconBytes))
+					logger.WithFields(map[string]interface{}{
+						"sizes": sizes,
+						"bytes": len(iconBytes),
+					}).Info("托盘图标 ICO 自检通过")
 				}
 			} else {
-				logger.Warn("托盘图标格式未知", "bytes", len(iconBytes))
+				logger.WithField("bytes", len(iconBytes)).Warn("托盘图标格式未知")
 			}
 
 		} else if looksLikeICO(iconBytes) {
-			logger.Warn("非 Windows 平台检测到 ICO 图标资源", "bytes", len(iconBytes))
+			logger.WithField("bytes", len(iconBytes)).Warn("非 Windows 平台检测到 ICO 图标资源")
 		}
 	}
 	if stdruntime.GOOS == "windows" {
@@ -380,7 +386,7 @@ func (a *App) onSystrayReady() {
 
 	// 双击托盘图标显示窗口
 	systray.SetOnDClick(func(menu systray.IMenu) {
-		logger.Info("托盘图标双击,显示窗口")
+		logger.WithField("module", "systray").Info("托盘图标双击，显示窗口")
 		a.showWindow()
 	})
 
@@ -440,7 +446,7 @@ func (a *App) showWindow() {
 	defer a.windowMutex.Unlock()
 
 	if a.windowVisible {
-		logger.Debug("窗口已可见,跳过显示")
+		logger.Debug("窗口已可见，跳过显示")
 		return
 	}
 
@@ -456,7 +462,7 @@ func (a *App) showWindow() {
 	// === 健康检查和自动重启 ===
 	// 检查 systray 是否还在运行
 	if !a.systrayRunning.Load() {
-		logger.Warn("检测到 systray 已停止,重新启动...")
+		logger.Warn("检测到 systray 已停止，重新启动...")
 		go a.runSystray()
 
 		// 等待 systray 重新初始化完成
@@ -476,7 +482,7 @@ func (a *App) hideWindow() {
 	defer a.windowMutex.Unlock()
 
 	if !a.windowVisible {
-		logger.Debug("窗口已隐藏,跳过隐藏")
+		logger.Debug("窗口已隐藏，跳过隐藏")
 		return
 	}
 
@@ -500,7 +506,7 @@ func (a *App) quitApplication() {
 		// 使用 Swap 可以检测重复调用（虽然 sync.Once 已保证只执行一次）
 		wasQuitting := a.quitting.Swap(true)
 		if wasQuitting {
-			logger.Warn("退出逻辑已被调用过,这是不应该的状态")
+			logger.Warn("退出逻辑已被调用过，这是不应该的状态")
 			return
 		}
 
@@ -605,7 +611,7 @@ func (a *App) restoreWindowState() error {
 
 	state, err := a.windowStateRepo.GetByKey("window.main")
 	if err != nil {
-		logger.Info("首次启动,使用默认窗口设置")
+		logger.Info("首次启动，使用默认窗口设置")
 		fmt.Printf("[WINDOW RESTORE] No saved state found, using defaults\n")
 		return nil // 无记录
 	}
@@ -622,10 +628,16 @@ func (a *App) restoreWindowState() error {
 	// 设置窗口位置
 	if state.X >= 0 && state.Y >= 0 {
 		runtime.WindowSetPosition(a.ctx, state.X, state.Y)
-		logger.Info("窗口位置已设置", "x", state.X, "y", state.Y)
+		logger.WithFields(map[string]interface{}{
+			"x": state.X,
+			"y": state.Y,
+		}).Info("窗口位置已设置")
 		fmt.Printf("[WINDOW RESTORE] Set position to (%d, %d)\n", state.X, state.Y)
 	} else {
-		logger.Warn("窗口位置无效，跳过设置", "x", state.X, "y", state.Y)
+		logger.WithFields(map[string]interface{}{
+			"x": state.X,
+			"y": state.Y,
+		}).Warn("窗口位置无效，跳过设置")
 		fmt.Printf("[WINDOW RESTORE] Invalid position (%d, %d), skipping\n", state.X, state.Y)
 	}
 
@@ -659,11 +671,11 @@ func (a *App) onBeforeClose(ctx context.Context) (prevent bool) {
 
 	// 如果应用正在退出，不拦截关闭事件
 	if a.quitting.Load() {
-		logger.Info("应用正在退出,允许窗口关闭")
+		logger.Info("应用正在退出，允许窗口关闭")
 		return false
 	}
 
-	logger.Info("窗口关闭事件被触发,将隐藏到托盘")
+	logger.Info("窗口关闭事件被触发，将隐藏到托盘")
 
 	// 隐藏窗口而非退出
 	a.hideWindow()
@@ -880,7 +892,10 @@ func (a *App) InstallUpdate(downloadURL, assetName string) error {
 		return fmt.Errorf("app not initialized: %w", a.initError)
 	}
 
-	logger.Info("开始安装更新", "url", downloadURL, "asset", assetName)
+	logger.WithFields(map[string]interface{}{
+		"url":   downloadURL,
+		"asset": assetName,
+	}).Info("开始安装更新")
 
 	// 构建本地 ZIP 文件路径
 	updatesDir := filepath.Join(getConfigDir(), "updates")
@@ -891,7 +906,7 @@ func (a *App) InstallUpdate(downloadURL, assetName string) error {
 		return fmt.Errorf("更新文件不存在: %s", zipPath)
 	}
 
-	logger.Info("找到本地更新文件", "path", zipPath)
+	logger.WithField("path", zipPath).Info("找到本地更新文件")
 
 	// 创建安装器
 	installer := update.NewInstaller()
@@ -922,7 +937,11 @@ func (a *App) DownloadUpdate(url, filename, proxyURL string) error {
 		return fmt.Errorf("app not initialized: %w", a.initError)
 	}
 
-	logger.Info("开始下载更新", "url", url, "filename", filename, "proxy", proxyURL)
+	logger.WithFields(map[string]interface{}{
+		"url":      url,
+		"filename": filename,
+		"proxy":    proxyURL,
+	}).Info("开始下载更新")
 
 	// 创建下载目录
 	updatesDir := filepath.Join(getConfigDir(), "updates")
@@ -957,7 +976,7 @@ func (a *App) DownloadUpdate(url, filename, proxyURL string) error {
 		"filename": filename,
 	})
 
-	logger.Info("更新下载完成", "filename", filename)
+	logger.WithField("filename", filename).Info("更新下载完成")
 	return nil
 }
 
@@ -967,7 +986,7 @@ func (a *App) CancelDownload(filename string) error {
 		return fmt.Errorf("app not initialized: %w", a.initError)
 	}
 
-	logger.Info("取消下载", "filename", filename)
+	logger.WithField("filename", filename).Info("取消下载")
 
 	// 创建下载目录
 	updatesDir := filepath.Join(getConfigDir(), "updates")
@@ -979,7 +998,7 @@ func (a *App) CancelDownload(filename string) error {
 		return fmt.Errorf("取消下载失败: %w", err)
 	}
 
-	logger.Info("下载已取消", "filename", filename)
+	logger.WithField("filename", filename).Info("下载已取消")
 	return nil
 }
 
