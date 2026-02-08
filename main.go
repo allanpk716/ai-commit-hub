@@ -9,6 +9,7 @@ import (
 	"github.com/WQGroup/logger"
 	"github.com/allanpk716/ai-commit-hub/pkg/repository"
 	"github.com/allanpk716/ai-commit-hub/pkg/version"
+	"github.com/sirupsen/logrus"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -28,7 +29,7 @@ func initLogger() {
 	// 获取可执行文件所在目录（程序根目录）
 	exePath, err := os.Executable()
 	if err != nil {
-		logger.Errorf("获取可执行文件路径失败: %v", err)
+		fmt.Fprintf(os.Stderr, "获取可执行文件路径失败: %v\n", err)
 		return
 	}
 	exeDir := filepath.Dir(exePath)
@@ -36,15 +37,18 @@ func initLogger() {
 	// 创建日志目录
 	logDir := filepath.Join(exeDir, "logs")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
-		logger.Errorf("创建日志目录失败: %v", err)
+		fmt.Fprintf(os.Stderr, "创建日志目录失败: %v\n", err)
 		return
 	}
 
+	// 输出调试信息
+	fmt.Fprintf(os.Stderr, "[DEBUG] 日志目录: %s\n", logDir)
+
 	// 配置 logger 输出到文件
-	logger.SetLoggerSettings(
+	if err := logger.SetLoggerSettingsWithError(
 		&logger.Settings{
 			LogRootFPath:     logDir,
-			LogNameBase:      "app.log",
+			LogNameBase:      "app", // logger 库会自动添加 .log 后缀
 			MaxSizeMB:        100,
 			MaxAgeDays:       30,
 			FormatterType:    "withField",
@@ -52,8 +56,12 @@ func initLogger() {
 			DisableTimestamp: false,
 			DisableLevel:     false,
 			DisableCaller:    true,
+			Level:            logrus.InfoLevel, // 明确设置日志级别为 Info
 		},
-	)
+	); err != nil {
+		fmt.Fprintf(os.Stderr, "配置 logger 失败: %v\n", err)
+		return
+	}
 
 	logger.Infof("日志初始化完成，日志目录: %s", logDir)
 }
@@ -78,6 +86,7 @@ func main() {
 
 	// 初始化 logger
 	initLogger()
+	defer logger.Close() // 确保程序退出时刷新日志
 
 	// 输出版本信息
 	logger.WithField("version", version.GetVersion()).Info("AI Commit Hub starting up...")
