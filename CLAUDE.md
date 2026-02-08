@@ -103,6 +103,11 @@ Windows 上可能出现 `wailsbindings.exe: %1 is not a valid Win32 application`
 
 ## 详细文档导航
 
+### Claude Code 配置
+- Wails 调试助手：`docs/.claude/README.md`
+- 调试技能：`docs/.claude/skills/wails-debug-helper/SKILL.md`
+- 调试命令：`docs/.claude/commands/wails-debug.md`
+
 ### 开发规范
 - Wails 开发规范：`docs/development/wails-development-standards.md`
 - 日志输出规范：`docs/development/logging-standards.md`

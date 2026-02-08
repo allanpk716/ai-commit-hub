@@ -41,7 +41,9 @@ Thumbs.db
 
 # Temporary files
 nul
-/.claude
+# 排除用户特定的 .claude 目录，但保留项目的
+/.claude/
+!docs/.claude/
 tmp/
 .playwright-mcp/
 
