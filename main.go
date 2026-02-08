@@ -42,11 +42,15 @@ func initLogger() {
 	// 配置 logger 输出到文件
 	logger.SetLoggerSettings(
 		&logger.Settings{
-			LogRootFPath:  logDir,
-			LogNameBase:   "app.log",
-			MaxSizeMB:     100,
-			MaxAgeDays:    30,
-			FormatterType: "text",
+			LogRootFPath:     logDir,
+			LogNameBase:      "app.log",
+			MaxSizeMB:        100,
+			MaxAgeDays:       30,
+			FormatterType:    "withField",
+			TimestampFormat:  "2006-01-02 15:04:05.000",
+			DisableTimestamp: false,
+			DisableLevel:     false,
+			DisableCaller:    true,
 		},
 	)
 
